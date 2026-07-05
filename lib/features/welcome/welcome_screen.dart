@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import 'welcome_constants.dart';
 
-class WelcomeScreen extends StatelessWidget {
-  const WelcomeScreen({super.key, required this.onEnter});
+// === 1. THÊM 2 DÒNG IMPORT NÀY VÀO ĐỂ GỌI ĐƯỢC MÀN HÌNH CỦA ÔNG ===
+import '../auth/login_screen.dart';
+import '../auth/register_screen.dart'; // Đường dẫn đến file Đăng ký (RegisterPage) của ông
 
-  final ValueChanged<BuildContext> onEnter;
+class WelcomeScreen extends StatelessWidget {
+  // Giữ lại onEnter để không làm lỗi file main.dart nếu có gọi
+  const WelcomeScreen({super.key, this.onEnter});
+
+  final ValueChanged<BuildContext>? onEnter;
 
   @override
   Widget build(BuildContext context) {
@@ -41,13 +46,31 @@ class WelcomeScreen extends StatelessWidget {
                       SizedBox(height: WelcomeLayout.descriptionGap * scale),
                       _WelcomeDescription(scale: scale),
                       SizedBox(height: WelcomeLayout.buttonTopGap * scale),
+                      
+                      // === 2. ĐIỀU HƯỚNG NÚT ĐĂNG KÝ SANG REGISTER PAGE ===
                       _PrimaryWelcomeButton(
-                        onPressed: () => onEnter(context),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          );
+                        },
                         scale: scale,
                       ),
                       SizedBox(height: WelcomeLayout.buttonGap * scale),
+                      
+                      // === 3. ĐIỀU HƯỚNG NÚT ĐĂNG NHẬP SANG WELCOME PAGE (LOGIN) ===
                       _SecondaryWelcomeButton(
-                        onPressed: () => onEnter(context),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const WelcomePage(),
+                            ),
+                          );
+                        },
                         scale: scale,
                       ),
                       SizedBox(height: bottomInset + WelcomeLayout.bottomGap),

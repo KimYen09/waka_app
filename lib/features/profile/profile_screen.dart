@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../shared/widgets/icons/acorn_icon.dart';
+import 'account_info_screen.dart';
 import 'profile_constants.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -88,60 +89,68 @@ class _UserRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ProfileLayout.horizontalPadding,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: ProfileLayout.avatarSize,
-            height: ProfileLayout.avatarSize,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF71FFDC), Color(0xFF18C58E)],
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const AccountInfoScreen()),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: ProfileLayout.horizontalPadding,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: ProfileLayout.avatarSize,
+              height: ProfileLayout.avatarSize,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFF71FFDC), Color(0xFF18C58E)],
+                ),
+              ),
+              child: const Icon(Icons.person, color: Color(0xCCFFFFFF), size: 48),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tên tài khoản',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ProfileFontSizes.username,
+                      fontWeight: FontWeight.w900,
+                      height: 1.08,
+                    ),
+                  ),
+                  SizedBox(height: 10),
+                  Text(
+                    'Xem thông tin tài khoản',
+                    style: TextStyle(
+                      color: WakaColors.mutedText,
+                      fontSize: ProfileFontSizes.accountSubtitle,
+                      fontWeight: FontWeight.w500,
+                      height: 1.12,
+                    ),
+                  ),
+                ],
               ),
             ),
-            child: const Icon(Icons.person, color: Color(0xCCFFFFFF), size: 48),
-          ),
-          const SizedBox(width: 16),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Tên tài khoản',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: ProfileFontSizes.username,
-                    fontWeight: FontWeight.w900,
-                    height: 1.08,
-                  ),
-                ),
-                SizedBox(height: 10),
-                Text(
-                  'Xem thông tin tài khoản',
-                  style: TextStyle(
-                    color: WakaColors.mutedText,
-                    fontSize: ProfileFontSizes.accountSubtitle,
-                    fontWeight: FontWeight.w500,
-                    height: 1.12,
-                  ),
-                ),
-              ],
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: WakaColors.mutedText,
+              size: 30,
             ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: WakaColors.mutedText,
-            size: 30,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
