@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
@@ -51,12 +52,25 @@ class _WakaShellState extends State<WakaShell> {
       const ProfileScreen(),
     ];
 
-    return Scaffold(
-      backgroundColor: WakaColors.background,
-      body: IndexedStack(index: _selectedIndex, children: pages),
-      bottomNavigationBar: WakaBottomNav(
-        selectedIndex: _selectedIndex,
-        onChanged: (index) => setState(() => _selectedIndex = index),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+          return;
+        }
+
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
+        backgroundColor: WakaColors.background,
+        body: IndexedStack(index: _selectedIndex, children: pages),
+        bottomNavigationBar: WakaBottomNav(
+          selectedIndex: _selectedIndex,
+          onChanged: (index) => setState(() => _selectedIndex = index),
+        ),
       ),
     );
   }

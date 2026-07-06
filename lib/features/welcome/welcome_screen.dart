@@ -5,7 +5,7 @@ import 'welcome_constants.dart';
 
 // === 1. THÊM 2 DÒNG IMPORT NÀY VÀO ĐỂ GỌI ĐƯỢC MÀN HÌNH CỦA ÔNG ===
 import '../auth/login_screen.dart';
-import '../auth/register_screen.dart'; // Đường dẫn đến file Đăng ký (RegisterPage) của ông
+import '../auth/register_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   // Giữ lại onEnter để không làm lỗi file main.dart nếu có gọi
@@ -46,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
                       SizedBox(height: WelcomeLayout.descriptionGap * scale),
                       _WelcomeDescription(scale: scale),
                       SizedBox(height: WelcomeLayout.buttonTopGap * scale),
-                      
+
                       // === 2. ĐIỀU HƯỚNG NÚT ĐĂNG KÝ SANG REGISTER PAGE ===
                       _PrimaryWelcomeButton(
                         onPressed: () {
@@ -60,7 +60,7 @@ class WelcomeScreen extends StatelessWidget {
                         scale: scale,
                       ),
                       SizedBox(height: WelcomeLayout.buttonGap * scale),
-                      
+
                       // === 3. ĐIỀU HƯỚNG NÚT ĐĂNG NHẬP SANG WELCOME PAGE (LOGIN) ===
                       _SecondaryWelcomeButton(
                         onPressed: () {

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/navigation/app_navigation.dart';
 import '../../shared/widgets/icons/acorn_icon.dart';
+import '../welcome/welcome_screen.dart';
 import 'account_info_screen.dart';
 import 'profile_constants.dart';
 
@@ -113,7 +115,11 @@ class _UserRow extends StatelessWidget {
                   colors: [Color(0xFF71FFDC), Color(0xFF18C58E)],
                 ),
               ),
-              child: const Icon(Icons.person, color: Color(0xCCFFFFFF), size: 48),
+              child: const Icon(
+                Icons.person,
+                color: Color(0xCCFFFFFF),
+                size: 48,
+              ),
             ),
             const SizedBox(width: 16),
             const Expanded(
@@ -890,20 +896,24 @@ class _LogoutButton extends StatelessWidget {
       padding: const EdgeInsets.symmetric(
         horizontal: ProfileLayout.horizontalPadding,
       ),
-      child: Container(
-        height: ProfileLayout.logoutButtonHeight,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: WakaColors.surface,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: const Text(
-          'Đăng xuất',
-          style: TextStyle(
-            color: WakaColors.accent,
-            fontSize: ProfileFontSizes.logout,
-            fontWeight: FontWeight.w500,
-            height: 1,
+      child: GestureDetector(
+        onTap: () => AppNavigation.replaceAll(context, const WelcomeScreen()),
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          height: ProfileLayout.logoutButtonHeight,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: WakaColors.surface,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: const Text(
+            'Đăng xuất',
+            style: TextStyle(
+              color: WakaColors.accent,
+              fontSize: ProfileFontSizes.logout,
+              fontWeight: FontWeight.w500,
+              height: 1,
+            ),
           ),
         ),
       ),

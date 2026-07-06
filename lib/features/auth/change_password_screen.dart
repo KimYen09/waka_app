@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/navigation/app_navigation.dart';
 
 /// Màn "Đổi mật khẩu" trong Thông tin tài khoản (khác với màn Quên mật khẩu
 /// ở luồng đăng nhập) - yêu cầu nhập mật khẩu cũ.
@@ -35,14 +36,11 @@ class _AccountChangePasswordScreenState
 
   void _updatePassword() {
     if (_formKey.currentState!.validate()) {
-      final oldPassword = oldPasswordController.text;
-      final newPassword = newPasswordController.text;
-
       // TODO: gọi API đổi mật khẩu thật ở đây, dùng oldPassword + newPassword
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đổi mật khẩu thành công')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công')));
 
       Navigator.pop(context);
     }
@@ -64,9 +62,12 @@ class _AccountChangePasswordScreenState
                 Row(
                   children: [
                     GestureDetector(
-                      onTap: () => Navigator.pop(context),
-                      child: const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 28),
+                      onTap: () => AppNavigation.goBackOrExit(context),
+                      child: const Icon(
+                        Icons.arrow_back,
+                        color: Colors.white,
+                        size: 28,
+                      ),
                     ),
                     const SizedBox(width: 16),
                     const Text(
@@ -207,13 +208,18 @@ class _PasswordField extends StatelessWidget {
         obscureText: obscure,
         style: const TextStyle(color: Colors.white),
         decoration: InputDecoration(
-          prefixIcon: const Icon(Icons.lock_outline_rounded,
-              color: WakaColors.accent, size: 22),
+          prefixIcon: const Icon(
+            Icons.lock_outline_rounded,
+            color: WakaColors.accent,
+            size: 22,
+          ),
           hintText: hint,
           hintStyle: const TextStyle(color: WakaColors.mutedText),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 4, vertical: 18),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 4,
+            vertical: 18,
+          ),
           suffixIcon: IconButton(
             icon: Icon(
               obscure

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../shared/navigation/app_navigation.dart';
+
 class ForgotPasswordPage extends StatefulWidget {
   const ForgotPasswordPage({super.key});
 
@@ -61,7 +63,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
             ),
           ),
           Positioned.fill(
-            child: Container(color: Colors.black.withOpacity(0.6)),
+            child: Container(color: Colors.black.withValues(alpha: 0.6)),
           ),
           SafeArea(
             child: SingleChildScrollView(
@@ -73,26 +75,26 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   Row(
                     children: [
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.arrow_back,
-                            color: Colors.white, size: 26),
+                        onTap: () => AppNavigation.goBackOrExit(context),
+                        child: const Icon(
+                          Icons.arrow_back,
+                          color: Colors.white,
+                          size: 26,
+                        ),
                       ),
                       const Expanded(
                         child: Center(
                           child: Text(
                             "Quên mật khẩu",
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700),
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: const Icon(Icons.close,
-                            color: Colors.white, size: 26),
-                      ),
+                      const SizedBox(width: 26),
                     ],
                   ),
                   const SizedBox(height: 90),
@@ -127,8 +129,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                         hintText: "Tên đăng nhập /Số điện thoại",
                         hintStyle: TextStyle(color: Colors.white54),
                         border: InputBorder.none,
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
                       ),
                     ),
                   ),

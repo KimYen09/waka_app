@@ -63,11 +63,15 @@ class AuthBackground extends StatelessWidget {
                 end: Alignment.bottomCenter,
                 colors: [
                   // 🌟 Đã giảm độ đen ở phần trên và giữa để ảnh sáng hơn
-                  Colors.black.withOpacity(0.15), // Trên cùng gần như trong suốt (15% đen)
-                  Colors.black.withOpacity(0.55), // Khúc giữa chỉ hơi sương mờ (55% đen)
-                  Colors.black.withOpacity(0.95), // Xuống sát đáy mới tối lại để hiện rõ chữ
+                  Colors.black.withValues(alpha: 0.15),
+                  Colors.black.withValues(alpha: 0.55),
+                  Colors.black.withValues(alpha: 0.95),
                 ],
-                stops: const [0.0, 0.5, 0.95], // Đẩy phần đen thui tụt hẳn xuống dưới đáy
+                stops: const [
+                  0.0,
+                  0.5,
+                  0.95,
+                ], // Đẩy phần đen thui tụt hẳn xuống dưới đáy
               ),
             ),
           ),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/navigation/app_navigation.dart';
 import '../auth/change_password_screen.dart';
+
 /// Màn "Thông tin tài khoản" - hiện ra khi bấm vào dòng tên/avatar ở Profile.
 class AccountInfoScreen extends StatelessWidget {
   const AccountInfoScreen({
@@ -37,9 +39,12 @@ class AccountInfoScreen extends StatelessWidget {
             Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(Icons.arrow_back,
-                      color: Colors.white, size: 28),
+                  onTap: () => AppNavigation.goBackOrExit(context),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 const Text(
@@ -71,8 +76,11 @@ class AccountInfoScreen extends StatelessWidget {
                             colors: [Color(0xFF71FFDC), Color(0xFF18C58E)],
                           ),
                         ),
-                        child: const Icon(Icons.person,
-                            color: Color(0xCCFFFFFF), size: 76),
+                        child: const Icon(
+                          Icons.person,
+                          color: Color(0xCCFFFFFF),
+                          size: 76,
+                        ),
                       ),
                       Positioned(
                         right: 2,
@@ -84,8 +92,11 @@ class AccountInfoScreen extends StatelessWidget {
                             color: Color(0xFF3A3A3D),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.camera_alt_outlined,
-                              color: Colors.white, size: 18),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 18,
+                          ),
                         ),
                       ),
                     ],
@@ -109,10 +120,7 @@ class AccountInfoScreen extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     '($phoneNumber)',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
+                    style: const TextStyle(color: Colors.white70, fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -156,7 +164,9 @@ class AccountInfoScreen extends StatelessWidget {
                   labelColor: Colors.white,
                   trailingWidget: Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 8),
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
@@ -310,7 +320,7 @@ class _InfoRow extends StatelessWidget {
                 ),
               ),
             ),
-            if (trailingWidget != null) trailingWidget!,
+            trailingWidget ?? const SizedBox.shrink(),
             if (trailingText != null)
               Row(
                 children: [
@@ -323,8 +333,11 @@ class _InfoRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 2),
-                  const Icon(Icons.chevron_right_rounded,
-                      color: WakaColors.accent, size: 22),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: WakaColors.accent,
+                    size: 22,
+                  ),
                 ],
               ),
             if (trailingIcon != null)
@@ -340,7 +353,10 @@ class _GoogleIcon extends StatelessWidget {
   const _GoogleIcon();
   @override
   Widget build(BuildContext context) {
-    return const Icon(Icons.g_mobiledata_rounded,
-        color: Colors.redAccent, size: 28);
+    return const Icon(
+      Icons.g_mobiledata_rounded,
+      color: Colors.redAccent,
+      size: 28,
+    );
   }
 }
