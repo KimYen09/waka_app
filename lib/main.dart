@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'features/offer/offer_screen.dart';
 import 'core/theme/app_theme.dart';
+import 'features/library/library_screen.dart';
 import 'features/home/home_screen.dart';
-import 'features/offers/offer_screen.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/welcome/welcome_screen.dart';
 import 'shared/widgets/waka_bottom_nav.dart';
+import 'features/explore/explore_screen.dart';
 
 void main() {
   runApp(const WakaDemoApp());
@@ -41,10 +42,11 @@ class _WakaShellState extends State<WakaShell> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const HomeScreen(),
-      const ShopScreen(),
-      const OfferScreen(),
-      const _ComingSoonScreen(title: 'Khám phá'),
-      const _ComingSoonScreen(title: 'Thư viện'),
+      const ShopScreen(),      
+      const OffersScreen(),
+      const ExploreScreen(),
+      const LibraryScreen(),
+
       const ProfileScreen(),
     ];
 
@@ -72,17 +74,4 @@ class _WakaShellState extends State<WakaShell> {
   }
 }
 
-class _ComingSoonScreen extends StatelessWidget {
-  const _ComingSoonScreen({required this.title});
 
-  final String title;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: Center(
-        child: Text(title, style: Theme.of(context).textTheme.headlineMedium),
-      ),
-    );
-  }
-}

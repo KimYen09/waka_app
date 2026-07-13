@@ -15,4 +15,7 @@ abstract final class WakaColors {
   static const danger = Color(0xFFD01817);
   static const divider = Color(0xFF2E2E31);
   static const darkDivider = Color(0xFF18191A);
+
+  // Thêm mới: dùng riêng cho OffersScreen (badge Flash Sale, giá tag)
+  static const flashPink = Color(0xFFFF2D6C);
 }
