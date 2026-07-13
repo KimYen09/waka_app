@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
-
-import '../../core/theme/app_theme.dart';
-import 'welcome_constants.dart';
-
-// === 1. THÊM 2 DÒNG IMPORT NÀY VÀO ĐỂ GỌI ĐƯỢC MÀN HÌNH CỦA ÔNG ===
+import '/../../core/theme/app_theme.dart';
+import '../welcome/welcome_constants.dart';
 import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
-  // Giữ lại onEnter để không làm lỗi file main.dart nếu có gọi
-  const WelcomeScreen({super.key, this.onEnter});
-
-  final ValueChanged<BuildContext>? onEnter;
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +41,6 @@ class WelcomeScreen extends StatelessWidget {
                       _WelcomeDescription(scale: scale),
                       SizedBox(height: WelcomeLayout.buttonTopGap * scale),
 
-                      // === 2. ĐIỀU HƯỚNG NÚT ĐĂNG KÝ SANG REGISTER PAGE ===
                       _PrimaryWelcomeButton(
                         onPressed: () {
                           Navigator.push(
@@ -61,7 +54,6 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       SizedBox(height: WelcomeLayout.buttonGap * scale),
 
-                      // === 3. ĐIỀU HƯỚNG NÚT ĐĂNG NHẬP SANG WELCOME PAGE (LOGIN) ===
                       _SecondaryWelcomeButton(
                         onPressed: () {
                           Navigator.push(

@@ -1,0 +1,40 @@
+{
+  "source": "https://waka.vn/",
+  "banners": [
+    {
+      "id": "5113",
+      "title": "Waka banner",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_wap_v2/0/0/0/5113.jpg?v=1&w=700&h=1020",
+      "webImageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_web_v2/0/0/0/5113.jpg?v=1&w=1920&h=600",
+      "targetUrl": "https://waka.vn/sach/tuyentaptaichinh-other"
+    },
+    {
+      "id": "5065",
+      "title": "Mùa hè rực rỡ - truyện hot",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_wap_v2/0/0/0/5065.jpg?v=1&w=700&h=1020",
+      "webImageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_web_v2/0/0/0/5065.jpg?v=1&w=1920&h=600",
+      "targetUrl": "https://ebook.waka.vn/tin-tuc/top-9-truyen-tranh-hot-nhat-thang-7-bung-no-cang-doc-cang-cuon-nZDd4W.html?type=4&data=6607"
+    },
+    {
+      "id": "5083",
+      "title": "Sale đôi 7/7 - Gom trọn tủ ngôn tình",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_wap_v2/0/0/0/5083.jpg?v=1&w=700&h=1020",
+      "webImageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_web_v2/0/0/0/5083.jpg?v=1&w=1920&h=600",
+      "targetUrl": "https://waka.vn/sach/sale77tusachngontinh-facebook"
+    },
+    {
+      "id": "5095",
+      "title": "List truyện nữ truy 8.7",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_wap_v2/0/0/0/5095.jpg?v=1&w=700&h=1020",
+      "webImageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_web_v2/0/0/0/5095.jpg?v=1&w=1920&h=600",
+      "targetUrl": "https://ebook.waka.vn/landing-book-fair/tusachngontinh.html#block_2"
+    },
+    {
+      "id": "5110",
+      "title": "Công bố bìa và mở bán",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_wap_v2/0/0/0/5110.jpg?v=1&w=700&h=1020",
+      "webImageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner_web_v2/0/0/0/5110.jpg?v=1&w=1920&h=600",
+      "targetUrl": "https://waka.vn/sach/etachuyenmabenbantra-facebook"
+    }
+  ]
+}

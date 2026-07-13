@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 
 import 'core/theme/app_theme.dart';
 import 'features/home/home_screen.dart';
+import 'features/offers/offer_screen.dart';
 import 'features/profile/profile_screen.dart';
+import 'features/shop/shop_screen.dart';
 import 'features/welcome/welcome_screen.dart';
 import 'shared/widgets/waka_bottom_nav.dart';
 
@@ -20,13 +22,7 @@ class WakaDemoApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Waka Demo',
       theme: WakaTheme.dark,
-      home: WelcomeScreen(
-        onEnter: (context) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute<void>(builder: (_) => const WakaShell()),
-          );
-        },
-      ),
+      home: const WelcomeScreen(),
     );
   }
 }
@@ -45,8 +41,8 @@ class _WakaShellState extends State<WakaShell> {
   Widget build(BuildContext context) {
     final pages = <Widget>[
       const HomeScreen(),
-      const _ComingSoonScreen(title: 'Waka Shop'),
-      const _ComingSoonScreen(title: 'Ưu đãi'),
+      const ShopScreen(),
+      const OfferScreen(),
       const _ComingSoonScreen(title: 'Khám phá'),
       const _ComingSoonScreen(title: 'Thư viện'),
       const ProfileScreen(),
