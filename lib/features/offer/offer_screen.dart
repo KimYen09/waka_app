@@ -10,7 +10,7 @@ class OffersScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: WakaColors.homeBackground,
+      color: Colors.black,
       child: SafeArea(
         bottom: false,
         child: CustomScrollView(

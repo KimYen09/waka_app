@@ -108,7 +108,7 @@ class _OfferScreenState extends State<OfferScreen> {
       child: SafeArea(
         bottom: false,
         child: Stack(
-          children: [
+          children: [                            
             const Positioned.fill(child: _OfferBackground()),
             CustomScrollView(
               physics: const BouncingScrollPhysics(),

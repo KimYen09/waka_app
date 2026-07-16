@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/auth_api_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
@@ -19,7 +20,9 @@ class _WelcomePageState extends State<WelcomePage> {
 
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final _authApi = const AuthApiService();
   bool obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -38,25 +41,27 @@ class _WelcomePageState extends State<WelcomePage> {
     return RegExp(r'^0[0-9]{9}$').hasMatch(value);
   }
 
-  // Hàm xử lý đăng nhập
-  // Hàm xử lý đăng nhập
-  void login() {
-    if (_formKey.currentState!.validate()) {
-      String username = usernameController.text;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đăng nhập thành công\nTài khoản: $username")),
+  Future<void> login() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _authApi.login(
+        identifier: usernameController.text,
+        password: passwordController.text,
       );
-
-      // 🔥 THÊM ĐOẠN CODE CHUYỂN HƯỚNG VÀO ĐÂY ĐỂ VÀO TRANG CHỦ
+      if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) =>
-              const WakaShell(), // Gọi class màn hình Trang chủ của bạn kia
-        ),
-        (route) =>
-            false, // Dòng này cực kỳ quan trọng: xóa sạch các màn hình trước đó (Welcome, Login) để user không bấm nút Back quay lại màn Login được nữa.
+        MaterialPageRoute(builder: (context) => const WakaShell()),
+        (route) => false,
       );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -271,8 +276,8 @@ class _WelcomePageState extends State<WelcomePage> {
                             return "Vui lòng nhập mật khẩu";
                           }
 
-                          if (value.length <= 6) {
-                            return "Mật khẩu phải trên 6 ký tự";
+                          if (value.length < 6) {
+                            return "Mật khẩu phải có ít nhất 6 ký tự";
                           }
 
                           return null;
@@ -286,22 +291,31 @@ class _WelcomePageState extends State<WelcomePage> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: login,
+                        onPressed: _isSubmitting ? null : login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00E5A0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
-                          "ĐĂNG NHẬP",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: 1,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Text(
+                                "ĐĂNG NHẬP",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),

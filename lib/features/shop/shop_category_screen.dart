@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/navigation/app_navigation.dart';
 import 'shop_constants.dart';
+import 'shop_flow_screens.dart';
 
 class ShopCategoryScreen extends StatefulWidget {
   const ShopCategoryScreen({super.key});
@@ -55,6 +56,17 @@ class _ShopCategoryScreenState extends State<ShopCategoryScreen> {
                     category: _categories[index],
                     stationery: _selectedTab == 1,
                     index: index,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => ShopProductCategoryScreen(
+                          category: _categories[index],
+                          products: const [
+                            ...topProducts,
+                            ...suggestedProducts,
+                          ],
+                        ),
+                      ),
+                    ),
                   );
                 },
               ),
@@ -105,7 +117,9 @@ class _CategoryHeader extends StatelessWidget {
           ),
           IconButton(
             visualDensity: VisualDensity.compact,
-            onPressed: () {},
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const ShopCartScreen()),
+            ),
             icon: const Icon(
               Icons.add_shopping_cart_rounded,
               color: Colors.white,
@@ -201,35 +215,40 @@ class _CategoryGridItem extends StatelessWidget {
     required this.category,
     required this.stationery,
     required this.index,
+    required this.onTap,
   });
 
   final ShopCategory category;
   final bool stationery;
   final int index;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _CategoryImage(
-          category: category,
-          stationery: stationery,
-          index: index,
-        ),
-        const SizedBox(height: 12),
-        Text(
-          category.label,
-          maxLines: 4,
-          textAlign: TextAlign.center,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: ShopFontSizes.categoryScreenLabel,
-            fontWeight: FontWeight.w500,
-            height: 1.12,
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          _CategoryImage(
+            category: category,
+            stationery: stationery,
+            index: index,
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Text(
+            category.label,
+            maxLines: 4,
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: ShopFontSizes.categoryScreenLabel,
+              fontWeight: FontWeight.w500,
+              height: 1.12,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -284,9 +303,19 @@ class _CategoryImage extends StatelessWidget {
                   ),
                   clipBehavior: Clip.antiAlias,
                   child: Image.asset(
-                    ShopAssets.bookIllustration,
+                    category.imageAsset.isEmpty
+                        ? ShopAssets.bookIllustration
+                        : category.imageAsset,
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
+                    errorBuilder: (_, _, _) => ColoredBox(
+                      color: category.bookColor,
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: Colors.white70,
+                        size: 28,
+                      ),
+                    ),
                   ),
                 ),
               ),

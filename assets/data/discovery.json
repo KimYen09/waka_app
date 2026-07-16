@@ -1,0 +1,260 @@
+{
+  "capturedAt": "2026-07-16T00:00:00+07:00",
+  "sources": {
+    "rankings": "https://waka.vn/bang-xep-hang",
+    "recommendations": "https://waka.vn/waka-de-xuat"
+  },
+  "note": "Snapshot dùng cho đồ án từ danh mục sách Waka hiện có; API riêng của Waka yêu cầu phiên đăng nhập.",
+  "rankings": [
+    {
+      "rank": 1,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 9850,
+      "title": "Bẫy lừa đảo",
+      "url": "https://waka.vn/ebook/bay-lua-dao-noah-pham-blMDvW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55852.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 2,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 9430,
+      "title": "Sáu cú sốc thay đổi lịch sử World Cup",
+      "url": "https://waka.vn/ebook/sau-cu-soc-thay-doi-lich-su-world-cup-aron-kim-bNnZ7W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55849.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 3,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 9175,
+      "title": "World Cup ly kỳ truyện",
+      "url": "https://waka.vn/ebook/world-cup-ly-ky-truyen-aron-kim-bRvGaW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55834.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 4,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 8860,
+      "title": "Giấy dán tường vàng",
+      "url": "https://waka.vn/ebook/giay-dan-tuong-vang-charlotte-perkins-gilman-bbMjpW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55831.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 5,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 8420,
+      "title": "Những kẻ về nhì vĩ đại",
+      "url": "https://waka.vn/ebook/nhung-ke-ve-nhi-vi-dai-aron-kim-bjMxDW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55822.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 6,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 8015,
+      "title": "World Cup 2026: Vũ điệu \"cuối cùng\" của hai huyền thoại vĩ đại",
+      "url": "https://waka.vn/ebook/world-cup-2026-vu-dieu-cuoi-cung-cua-hai-huyen-thoai-vi-dai-aron-kim-bvXGnW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55813.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 7,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 7680,
+      "title": "Nghệ thuật đàm phán với bất kỳ ai",
+      "url": "https://waka.vn/ebook/nghe-thuat-dam-phan-voi-bat-ky-ai-sarah-an-b4314W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55810.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 8,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 7310,
+      "title": "Lâu đài Xanh",
+      "url": "https://waka.vn/ebook/lau-dai-xanh-lucy-maud-montgomery-bZqKaW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55807.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 9,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 6950,
+      "title": "Tình yêu online",
+      "url": "https://waka.vn/ebook/tinh-yeu-online-dang-cap-nhat-bZqKDW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55795.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 10,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 6625,
+      "title": "Thành tích cao, thu nhập thấp",
+      "url": "https://waka.vn/ebook/thanh-tich-cao-thu-nhap-thap-hoang-nguyen-bA8W4W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55771.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 11,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 6210,
+      "title": "Anh chồng giáo sư",
+      "url": "https://waka.vn/ebook/anh-chong-giao-su-dang-cap-nhat-b8od8W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55768.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 12,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 5890,
+      "title": "Thần số học - Con số đọc vị con người",
+      "url": "https://waka.vn/ebook/than-so-hoc-con-so-doc-vi-con-nguoi-tri-nguyen-minh-bqM4mW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55765.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 13,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 5520,
+      "title": "Ba anh em nhà Rover và bí mật ở nông trại",
+      "url": "https://waka.vn/ebook/ba-anh-em-nha-rover-va-bi-mat-o-nong-trai-edward-stratemeyer-boMl6W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55759.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    },
+    {
+      "rank": 14,
+      "period": "week",
+      "contentType": "ebook",
+      "score": 5140,
+      "title": "Hẹn hò tỉnh thức",
+      "url": "https://waka.vn/ebook/hen-ho-tinh-thuc-phan-y-bdMgVW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55723.jpg?v=1&w=350&h=510",
+      "section": "Bảng Xếp Hạng"
+    }
+  ],
+  "recommendations": [
+    {
+      "position": 1,
+      "contentType": "ebook",
+      "reason": "Tài chính cá nhân",
+      "title": "Thoát nợ sống nhẹ",
+      "url": "https://waka.vn/ebook/thoat-no-song-nhe-marcus-phung-bxMdzW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55930.jpg?v=1&w=350&h=510",
+      "section": "Sách Hiệu Sồi"
+    },
+    {
+      "position": 2,
+      "contentType": "ebook",
+      "reason": "Đầu tư và kinh doanh",
+      "title": "Dám kiếm tiền, dám đầu tư",
+      "url": "https://waka.vn/ebook/dam-kiem-tien-dam-dau-tu-marcus-phung-bnM2mW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55897.jpg?v=1&w=350&h=510",
+      "section": "Sách Hiệu Sồi"
+    },
+    {
+      "position": 3,
+      "contentType": "ebook",
+      "reason": "Kỹ năng giao tiếp",
+      "title": "Nghệ thuật đàm phán với bất kỳ ai",
+      "url": "https://waka.vn/ebook/nghe-thuat-dam-phan-voi-bat-ky-ai-sarah-an-b4314W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55810.jpg?v=1&w=350&h=510",
+      "section": "Sách Hiệu Sồi"
+    },
+    {
+      "position": 4,
+      "contentType": "ebook",
+      "reason": "Văn học chọn lọc",
+      "title": "Lâu đài Xanh",
+      "url": "https://waka.vn/ebook/lau-dai-xanh-lucy-maud-montgomery-bZqKaW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55807.jpg?v=1&w=350&h=510",
+      "section": "Sách điện tử"
+    },
+    {
+      "position": 5,
+      "contentType": "ebook",
+      "reason": "Sách thiếu nhi",
+      "title": "Ba anh em nhà Rover và bí mật ở nông trại",
+      "url": "https://waka.vn/ebook/ba-anh-em-nha-rover-va-bi-mat-o-nong-trai-edward-stratemeyer-boMl6W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55759.jpg?v=1&w=350&h=510",
+      "section": "Sách điện tử"
+    },
+    {
+      "position": 6,
+      "contentType": "ebook",
+      "reason": "Khám phá bản thân",
+      "title": "Thần số học - Con số đọc vị con người",
+      "url": "https://waka.vn/ebook/than-so-hoc-con-so-doc-vi-con-nguoi-tri-nguyen-minh-bqM4mW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55765.jpg?v=1&w=350&h=510",
+      "section": "Sách Hiệu Sồi"
+    },
+    {
+      "position": 7,
+      "contentType": "ebook",
+      "reason": "Phát triển bản thân",
+      "title": "Quy tắc giao tiếp quyền lực",
+      "url": "https://waka.vn/ebook/quy-tac-giao-tiep-quyen-luc-hoang-nguyen-bLZgvW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55720.jpg?v=1&w=350&h=510",
+      "section": "Sách Hiệu Sồi"
+    },
+    {
+      "position": 8,
+      "contentType": "ebook",
+      "reason": "Truyện tình cảm",
+      "title": "Chỉ yêu trúc mã",
+      "url": "https://waka.vn/ebook/chi-yeu-truc-ma-dang-cap-nhat-bnM2WW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55909.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên"
+    },
+    {
+      "position": 9,
+      "contentType": "ebook",
+      "reason": "Truyện đang nổi bật",
+      "title": "Trùng sinh trở thành đỉnh lưu - Tập 46",
+      "url": "https://waka.vn/ebook/trung-sinh-tro-thanh-dinh-luu-tap-46-khanh-thien-bDAKGW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55888.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên"
+    },
+    {
+      "position": 10,
+      "contentType": "ebook",
+      "reason": "Ngôn tình hiện đại",
+      "title": "Xuyên không giả làm bạn gái tổng tài",
+      "url": "https://waka.vn/ebook/xuyen-khong-gia-lam-ban-gai-tong-tai-dang-cap-nhat-bV6WOW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55882.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên"
+    },
+    {
+      "position": 11,
+      "contentType": "ebook",
+      "reason": "Tình yêu và mối quan hệ",
+      "title": "Hẹn hò tỉnh thức",
+      "url": "https://waka.vn/ebook/hen-ho-tinh-thuc-phan-y-bdMgVW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55723.jpg?v=1&w=350&h=510",
+      "section": "Sách điện tử"
+    },
+    {
+      "position": 12,
+      "contentType": "ebook",
+      "reason": "Văn học kinh điển",
+      "title": "Giấy dán tường vàng",
+      "url": "https://waka.vn/ebook/giay-dan-tuong-vang-charlotte-perkins-gilman-bbMjpW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55831.jpg?v=1&w=350&h=510",
+      "section": "Sách điện tử"
+    }
+  ]
+}

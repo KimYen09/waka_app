@@ -21,19 +21,31 @@ class WakaScrapedBook {
     required this.url,
     required this.imageUrl,
     required this.section,
+    this.id = 0,
+    this.price = 0,
+    this.discountPercent = 0,
+    this.isFeatured = false,
   });
 
   final String title;
   final String url;
   final String imageUrl;
   final String section;
+  final int id;
+  final int price;
+  final int discountPercent;
+  final bool isFeatured;
 
-  Map<String, String> toJson() {
+  Map<String, Object> toJson() {
     return {
       'title': title,
       'url': url,
       'imageUrl': imageUrl,
       'section': section,
+      'id': id,
+      'price': price,
+      'discountPercent': discountPercent,
+      'isFeatured': isFeatured,
     };
   }
 }
@@ -186,6 +198,10 @@ class WakaScraperService {
       url: book.url,
       imageUrl: book.imageUrl,
       section: section,
+      id: book.id,
+      price: book.price,
+      discountPercent: book.discountPercent,
+      isFeatured: book.isFeatured,
     );
   }
 
