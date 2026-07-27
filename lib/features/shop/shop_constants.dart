@@ -70,6 +70,7 @@ class ShopProduct {
     this.imageAsset = '',
     this.url = '',
     this.type = 'Sách giấy',
+    this.backendBookId = 0,
   });
 
   final String title;
@@ -83,6 +84,7 @@ class ShopProduct {
   final String imageAsset;
   final String url;
   final String type;
+  final int backendBookId;
 }
 
 const shopCategories = [

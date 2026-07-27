@@ -21,7 +21,7 @@ class WakaDemoApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Waka Demo',
+      title: 'Waka',
       theme: WakaTheme.dark,
       home: const WelcomeScreen(),
     );

@@ -39,6 +39,12 @@ Kiểm tra tại `http://localhost:3000/health`.
 | GET/POST | `/api/favorites` | Danh sách/thêm yêu thích | Bearer JWT |
 | DELETE | `/api/favorites/:bookId` | Xóa yêu thích | Bearer JWT |
 | GET/POST | `/api/orders` | Danh sách/tạo đơn hàng | Bearer JWT |
+| GET | `/api/cart` | Giỏ hàng đã lưu của tài khoản | Bearer JWT |
+| POST/DELETE | `/api/cart/items` | Cập nhật/xóa sản phẩm giỏ hàng | Bearer JWT |
+| POST | `/api/checkout` | Tạo đơn và giao dịch demo từ giỏ hàng | Bearer JWT |
+| GET | `/api/membership-plans` | Danh sách gói hội viên | Không |
+| GET/POST | `/api/memberships/me`, `/api/memberships/purchase` | Lịch sử/mua gói hội viên demo | Bearer JWT |
+| GET | `/api/payments` | Lịch sử giao dịch demo | Bearer JWT |
 
 Ví dụ lọc sách:
 
@@ -66,3 +72,10 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.10:3000/api
 
 HTTP chỉ được bật cho Android debug build. Bản release cần triển khai backend qua
 HTTPS và truyền URL HTTPS bằng `--dart-define`.
+
+## Dữ liệu thương mại
+
+Schema tạo các bảng `cart_items`, `membership_plans`, `user_memberships` và
+`payments`. Thanh toán hiện là mô phỏng: backend chỉ tạo mã giao dịch `DEMO-*`
+và trạng thái `paid`; tuyệt đối không gửi hoặc lưu số thẻ, CVV hay OTP. Khi tích
+hợp cổng thanh toán thật, chỉ lưu mã giao dịch và trạng thái phản hồi của cổng.

@@ -312,6 +312,7 @@ ShopProduct _bookToShopProduct(WakaScrapedBook book, int index) {
     imageUrl: book.imageUrl,
     url: book.url,
     type: const ['Sách giấy', 'Sách điện tử', 'Sách nói'][index % 3],
+    backendBookId: book.id,
   );
 }
 

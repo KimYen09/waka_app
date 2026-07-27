@@ -121,3 +121,84 @@ CREATE TABLE IF NOT EXISTS order_items (
   CONSTRAINT fk_order_items_book
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE RESTRICT
 );
+
+CREATE TABLE IF NOT EXISTS cart_items (
+  user_id BIGINT UNSIGNED NOT NULL,
+  book_id BIGINT UNSIGNED NOT NULL,
+  quantity INT UNSIGNED NOT NULL DEFAULT 1,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, book_id),
+  CONSTRAINT fk_cart_items_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_cart_items_book
+    FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS membership_plans (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  code VARCHAR(40) NOT NULL UNIQUE,
+  title VARCHAR(120) NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  duration_days SMALLINT UNSIGNED NOT NULL,
+  price DECIMAL(12, 2) NOT NULL,
+  list_price DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  payment_channel ENUM('card', 'sms') NOT NULL DEFAULT 'card',
+  bonus_description VARCHAR(255) NOT NULL DEFAULT '',
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_membership_plans_channel_active (payment_channel, is_active)
+);
+
+CREATE TABLE IF NOT EXISTS user_memberships (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  plan_id BIGINT UNSIGNED NOT NULL,
+  status ENUM('active', 'expired', 'cancelled') NOT NULL DEFAULT 'active',
+  started_at DATETIME NOT NULL,
+  expires_at DATETIME NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_memberships_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_memberships_plan
+    FOREIGN KEY (plan_id) REFERENCES membership_plans(id) ON DELETE RESTRICT,
+  INDEX idx_user_memberships_user_status (user_id, status),
+  INDEX idx_user_memberships_expires_at (expires_at)
+);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  order_id BIGINT UNSIGNED NULL,
+  membership_id BIGINT UNSIGNED NULL,
+  provider VARCHAR(40) NOT NULL DEFAULT 'demo',
+  transaction_ref VARCHAR(80) NOT NULL UNIQUE,
+  amount DECIMAL(12, 2) NOT NULL,
+  status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+  paid_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_payments_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
+  CONSTRAINT fk_payments_order
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
+  CONSTRAINT fk_payments_membership
+    FOREIGN KEY (membership_id) REFERENCES user_memberships(id) ON DELETE SET NULL,
+  INDEX idx_payments_user_created (user_id, created_at),
+  INDEX idx_payments_order_id (order_id),
+  INDEX idx_payments_membership_id (membership_id)
+);
+
+INSERT INTO membership_plans
+  (code, title, description, duration_days, price, list_price, payment_channel, bonus_description, sort_order)
+VALUES
+  ('WAKA_3_MONTHS', 'WAKA 3 THÁNG', '90 ngày đọc/nghe sách', 90, 199000, 207000, 'card', 'TIẾT KIỆM 10%', 10),
+  ('WAKA_6_MONTHS', 'WAKA 6 THÁNG', '183 ngày đọc/nghe sách', 183, 399000, 414000, 'card', '', 20),
+  ('WAKA_12_MONTHS', 'WAKA 12 THÁNG', '365 ngày đọc/nghe sách', 365, 499000, 828000, 'card', 'Tặng thêm 02 tháng', 30),
+  ('WAKA_1_DAY_SMS', 'WAKA 1 NGÀY', 'Gia hạn sau 1 ngày', 1, 5000, 0, 'sms', 'Tặng 300MB DATA', 40),
+  ('WAKA_7_DAYS_SMS', 'WAKA 7 NGÀY', 'Gia hạn sau 7 ngày', 7, 20000, 0, 'sms', 'Tặng 1GB DATA', 50)
+ON DUPLICATE KEY UPDATE
+  title = VALUES(title), description = VALUES(description),
+  duration_days = VALUES(duration_days), price = VALUES(price),
+  list_price = VALUES(list_price), payment_channel = VALUES(payment_channel),
+  bonus_description = VALUES(bonus_description), sort_order = VALUES(sort_order);

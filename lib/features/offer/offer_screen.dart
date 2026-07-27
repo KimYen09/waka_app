@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../home/home_screen.dart';
 
 class OffersScreen extends StatelessWidget {
   const OffersScreen({super.key});
@@ -93,7 +94,7 @@ class _CategoryTabsState extends State<_CategoryTabs> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _tabs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final isSelected = index == _selected;
           return GestureDetector(
@@ -108,8 +109,11 @@ class _CategoryTabsState extends State<_CategoryTabs> {
               child: Row(
                 children: [
                   if (isSelected && index == 0) ...[
-                    const Icon(Icons.bolt_rounded,
-                        color: WakaColors.flashPink, size: 18),
+                    const Icon(
+                      Icons.bolt_rounded,
+                      color: WakaColors.flashPink,
+                      size: 18,
+                    ),
                     const SizedBox(width: 4),
                   ],
                   Text(
@@ -149,7 +153,8 @@ class _FlashSaleSectionState extends State<_FlashSaleSection> {
       color: Color(0xFF1A1A1A),
       oldPrice: '120.000đ',
       newPrice: '59.000đ',
-      imageUrl: 'https://cdn.hstatic.net/products/200000294254/b_a_ti_ng_v_ng_t_ng_lam_1_311356bce78245efabadab78958f50ca_large.png',
+      imageUrl:
+          'https://cdn.hstatic.net/products/200000294254/b_a_ti_ng_v_ng_t_ng_lam_1_311356bce78245efabadab78958f50ca_large.png',
     ),
     _FlashBook(
       title: 'Hiểu về trái tim',
@@ -158,7 +163,8 @@ class _FlashSaleSectionState extends State<_FlashSaleSection> {
       color: Color(0xFF6B6B60),
       oldPrice: '79.000đ',
       newPrice: '59.000đ',
-      imageUrl: 'https://cdn1.fahasa.com/media/flashmagazine/images/page_images/hieu_ve_trai_tim_tai_ban_2023/2023_02_21_08_51_07_1-390x510.jpg',
+      imageUrl:
+          'https://cdn1.fahasa.com/media/flashmagazine/images/page_images/hieu_ve_trai_tim_tai_ban_2023/2023_02_21_08_51_07_1-390x510.jpg',
     ),
     _FlashBook(
       title: 'Thấu Hiểu Trẻ Tự Kỷ',
@@ -166,7 +172,8 @@ class _FlashSaleSectionState extends State<_FlashSaleSection> {
       discountPercent: 0,
       oldPrice: '99.000đ',
       newPrice: '69.000đ',
-      imageUrl: 'https://media.nxbtrithuc.com.vn/Picture/2022/7/14/image-20220714153711022.jpg',
+      imageUrl:
+          'https://media.nxbtrithuc.com.vn/Picture/2022/7/14/image-20220714153711022.jpg',
       color: Color(0xFF16223A),
     ),
   ];
@@ -287,10 +294,7 @@ class _FlashSaleSectionState extends State<_FlashSaleSection> {
                   }
                   final scale = (1 - distance * 0.16).clamp(0.78, 1.0);
                   return Center(
-                    child: Transform.scale(
-                      scale: scale,
-                      child: child,
-                    ),
+                    child: Transform.scale(scale: scale, child: child),
                   );
                 },
                 child: _FlashBookCover(book: book, width: cardWidth),
@@ -450,7 +454,7 @@ class _FlashBookCover extends StatelessWidget {
           Image.network(
             book.imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Center(
+            errorBuilder: (_, _, _) => Center(
               child: Text(
                 book.title,
                 style: const TextStyle(color: Colors.white),
@@ -632,8 +636,11 @@ class _MembershipCard extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.card_giftcard_rounded,
-                      color: Colors.white, size: 18),
+                  const Icon(
+                    Icons.card_giftcard_rounded,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                   const SizedBox(width: 8),
                   Text(
                     badgeText,
@@ -668,8 +675,7 @@ class _MembershipCard extends StatelessWidget {
             right: 0,
             top: -12,
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   colors: [Color(0xFFFF8A00), Color(0xFFE0333F)],
@@ -716,8 +722,11 @@ class _SectionTitle extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(Icons.chevron_right_rounded,
-                color: Colors.white54, size: 26),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Colors.white54,
+              size: 26,
+            ),
           ],
         ),
       ),
@@ -767,69 +776,23 @@ class _BookGridSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 250,
+      height: 262,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: _books.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final book = _books[index];
-          return SizedBox(
-            width: 130,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        book.imageUrl,
-                        width: 130,
-                        height: 180,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 130,
-                          height: 180,
-                          color: WakaColors.surface,
-                          child: const Icon(Icons.book, color: Colors.white38),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      top: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: const BoxDecoration(
-                          color: WakaColors.flashPink,
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(4),
-                            bottomRight: Radius.circular(4),
-                          ),
-                        ),
-                        child: Text(
-                          book.price,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  book.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 13.5),
-                ),
-              ],
+          return HomeBookCard(
+            book: HomeBook(
+              title: book.title,
+              imageUrl: book.imageUrl,
+              price: book.price,
+              section: 'Sách ưu đãi',
+              colors: const [Color(0xFF1B2B3D), Color(0xFF0C755F)],
+              icon: Icons.menu_book_rounded,
             ),
           );
         },
@@ -874,72 +837,23 @@ class _ComboSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 240,
+      height: 262,
       child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 10),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemCount: _combos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final combo = _combos[index];
-          return SizedBox(
-            width: 150,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Stack(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Image.network(
-                        combo.imageUrl,
-                        width: 150,
-                        height: 170,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 150,
-                          height: 170,
-                          color: WakaColors.surface,
-                          child: const Icon(
-                            Icons.collections_bookmark_rounded,
-                            color: Colors.white38,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 0,
-                      top: 10,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
-                        decoration: const BoxDecoration(
-                          color: WakaColors.flashPink,
-                          borderRadius: BorderRadius.only(
-                            topRight: Radius.circular(4),
-                            bottomRight: Radius.circular(4),
-                          ),
-                        ),
-                        child: Text(
-                          combo.price,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  combo.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(color: Colors.white, fontSize: 13.5),
-                ),
-              ],
+          return HomeBookCard(
+            book: HomeBook(
+              title: combo.title,
+              imageUrl: combo.imageUrl,
+              price: combo.price,
+              section: 'Combo sách',
+              colors: const [Color(0xFF55204D), Color(0xFF171925)],
+              icon: Icons.collections_bookmark_rounded,
             ),
           );
         },

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/navigation/app_navigation.dart';
 import 'shop_constants.dart';
@@ -18,6 +20,7 @@ void addShopProductToCart(ShopProduct product) {
   );
   if (exists) return;
   shopCartProducts.value = [...current, product];
+  _saveCartItemToServer(product, 1);
 }
 
 void removeShopProductFromCart(ShopProduct product) {
@@ -28,6 +31,28 @@ void removeShopProductFromCart(ShopProduct product) {
             : item.title != product.title,
       )
       .toList(growable: false);
+  _removeCartItemFromServer(product);
+}
+
+Future<void> _saveCartItemToServer(ShopProduct product, int quantity) async {
+  if (!AuthSession.isSignedIn || product.backendBookId <= 0) return;
+  try {
+    await const CommerceApiService().setCartItem(
+      bookId: product.backendBookId,
+      quantity: quantity,
+    );
+  } on Object {
+    // The cart remains usable while the backend is temporarily unavailable.
+  }
+}
+
+Future<void> _removeCartItemFromServer(ShopProduct product) async {
+  if (!AuthSession.isSignedIn || product.backendBookId <= 0) return;
+  try {
+    await const CommerceApiService().removeCartItem(product.backendBookId);
+  } on Object {
+    // The next successful sync will reconcile the cart with the server.
+  }
 }
 
 class ShopProductCategoryScreen extends StatefulWidget {
@@ -553,8 +578,48 @@ class ShopChatScreen extends StatelessWidget {
   }
 }
 
-class ShopCartScreen extends StatelessWidget {
+class ShopCartScreen extends StatefulWidget {
   const ShopCartScreen({super.key});
+
+  @override
+  State<ShopCartScreen> createState() => _ShopCartScreenState();
+}
+
+class _ShopCartScreenState extends State<ShopCartScreen> {
+  final Set<String> _selectedKeys = <String>{};
+  final Map<String, int> _quantities = <String, int>{};
+  _CartVoucher? _voucher;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadServerCart();
+  }
+
+  Future<void> _loadServerCart() async {
+    if (!AuthSession.isSignedIn) return;
+    try {
+      final cart = await const CommerceApiService().getCart();
+      if (!context.mounted) return;
+      shopCartProducts.value = cart.items.map(_productFromServerCart).toList();
+      setState(() {});
+    } on Object {
+      // Keep the in-memory cart when the API cannot be reached.
+    }
+  }
+
+  String _keyOf(ShopProduct product) => product.url.isNotEmpty
+      ? product.url
+      : '${product.title}-${product.price}';
+
+  void _syncProducts(List<ShopProduct> products) {
+    final keys = products.map(_keyOf).toSet();
+    _selectedKeys.removeWhere((key) => !keys.contains(key));
+    _quantities.removeWhere((key, _) => !keys.contains(key));
+    for (final product in products) {
+      _quantities.putIfAbsent(_keyOf(product), () => 1);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -568,8 +633,44 @@ class ShopCartScreen extends StatelessWidget {
               child: ValueListenableBuilder<List<ShopProduct>>(
                 valueListenable: shopCartProducts,
                 builder: (context, products, _) {
+                  _syncProducts(products);
                   if (products.isEmpty) return const _EmptyCart();
-                  return _CartContent(products: products);
+                  return _CartContent(
+                    products: products,
+                    selectedKeys: _selectedKeys,
+                    quantities: _quantities,
+                    voucher: _voucher,
+                    keyOf: _keyOf,
+                    onToggleProduct: (product, selected) => setState(() {
+                      final key = _keyOf(product);
+                      if (selected) {
+                        _selectedKeys.add(key);
+                      } else {
+                        _selectedKeys.remove(key);
+                      }
+                    }),
+                    onToggleAll: (selected) => setState(() {
+                      if (selected) {
+                        _selectedKeys.addAll(products.map(_keyOf));
+                      } else {
+                        _selectedKeys.clear();
+                      }
+                    }),
+                    onQuantityChanged: (product, change) {
+                      final key = _keyOf(product);
+                      final next = (_quantities[key] ?? 1) + change;
+                      if (next < 1) return;
+                      setState(() => _quantities[key] = next);
+                      _saveCartItemToServer(product, next);
+                    },
+                    onVoucher: () async {
+                      final voucher = await _showVoucherPicker(context);
+                      if (voucher != null && mounted) {
+                        setState(() => _voucher = voucher);
+                      }
+                    },
+                    onCheckout: () => _checkout(context, products),
+                  );
                 },
               ),
             ),
@@ -578,7 +679,131 @@ class ShopCartScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<_CartVoucher?> _showVoucherPicker(BuildContext context) {
+    return showModalBottomSheet<_CartVoucher>(
+      context: context,
+      backgroundColor: WakaColors.elevated,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Waka Voucher',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (final voucher in _cartVouchers)
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    backgroundColor: Color(0x33FF2F6E),
+                    child: Icon(
+                      Icons.confirmation_number_outlined,
+                      color: Color(0xFFFF3B7A),
+                    ),
+                  ),
+                  title: Text(
+                    voucher.title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: Text(
+                    voucher.description,
+                    style: const TextStyle(color: Colors.white60),
+                  ),
+                  trailing: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white54,
+                  ),
+                  onTap: () => Navigator.pop(sheetContext, voucher),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _checkout(
+    BuildContext context,
+    List<ShopProduct> products,
+  ) async {
+    if (_selectedKeys.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hãy chọn ít nhất một sản phẩm để mua.')),
+      );
+      return;
+    }
+    if (!AuthSession.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Vui lòng đăng nhập để tiếp tục thanh toán.'),
+        ),
+      );
+      return;
+    }
+    final selectedProducts = products
+        .where((product) => _selectedKeys.contains(_keyOf(product)))
+        .toList(growable: false);
+    if (selectedProducts.any((product) => product.backendBookId <= 0)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Hãy tải lại Waka Shop để đồng bộ sản phẩm trước khi thanh toán.',
+          ),
+        ),
+      );
+      return;
+    }
+    try {
+      await const CommerceApiService().checkout(
+        selectedProducts.map((product) => product.backendBookId).toList(),
+      );
+      final selected = selectedProducts.toSet();
+      shopCartProducts.value = products
+          .where((product) => !selected.contains(product))
+          .toList(growable: false);
+      if (!context.mounted) return;
+      setState(() => _selectedKeys.clear());
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Thanh toán demo thành công. Đơn hàng đã được lưu.'),
+        ),
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    }
+  }
 }
+
+ShopProduct _productFromServerCart(CommerceCartItem item) => ShopProduct(
+  title: item.title,
+  price: _formatShopPrice(item.unitPrice.round()),
+  oldPrice: item.discountPercent > 0
+      ? _formatShopPrice(item.price.round())
+      : '',
+  discount: item.discountPercent > 0 ? '-${item.discountPercent}%' : '',
+  sold: '',
+  rank: null,
+  colors: const [Color(0xFF1D293B), Color(0xFF334155)],
+  imageUrl: item.imageUrl,
+  url: item.sourceUrl,
+  backendBookId: item.bookId,
+);
 
 class _EmptyCart extends StatelessWidget {
   const _EmptyCart();
@@ -602,29 +827,73 @@ class _EmptyCart extends StatelessWidget {
 }
 
 class _CartContent extends StatelessWidget {
-  const _CartContent({required this.products});
+  const _CartContent({
+    required this.products,
+    required this.selectedKeys,
+    required this.quantities,
+    required this.voucher,
+    required this.keyOf,
+    required this.onToggleProduct,
+    required this.onToggleAll,
+    required this.onQuantityChanged,
+    required this.onVoucher,
+    required this.onCheckout,
+  });
 
   final List<ShopProduct> products;
+  final Set<String> selectedKeys;
+  final Map<String, int> quantities;
+  final _CartVoucher? voucher;
+  final String Function(ShopProduct) keyOf;
+  final void Function(ShopProduct, bool) onToggleProduct;
+  final ValueChanged<bool> onToggleAll;
+  final void Function(ShopProduct, int) onQuantityChanged;
+  final VoidCallback onVoucher;
+  final VoidCallback onCheckout;
 
   @override
   Widget build(BuildContext context) {
-    final total = products.fold<int>(
-      0,
-      (sum, product) => sum + _priceValue(product.price),
+    final selected = products.where(
+      (product) => selectedKeys.contains(keyOf(product)),
     );
+    final subtotal = selected.fold<int>(
+      0,
+      (sum, product) =>
+          sum + _priceValue(product.price) * (quantities[keyOf(product)] ?? 1),
+    );
+    final discount = voucher?.discountFor(subtotal) ?? 0;
+    final total = (subtotal - discount).clamp(0, subtotal);
+    final allSelected = selectedKeys.length == products.length;
     return Column(
       children: [
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 18),
-            itemCount: products.length,
+            itemCount: products.length + 2,
             separatorBuilder: (_, _) => const Divider(color: Colors.white12),
             itemBuilder: (context, index) {
-              final product = products[index];
+              if (index == 0) {
+                return _CartStoreHeader(
+                  allSelected: allSelected,
+                  onChanged: onToggleAll,
+                );
+              }
+              if (index == products.length + 1) {
+                return _CartVoucherRow(voucher: voucher, onTap: onVoucher);
+              }
+              final product = products[index - 1];
+              final selected = selectedKeys.contains(keyOf(product));
+              final quantity = quantities[keyOf(product)] ?? 1;
               return SizedBox(
-                height: 92,
+                height: 112,
                 child: Row(
                   children: [
+                    Checkbox(
+                      value: selected,
+                      activeColor: WakaColors.accent,
+                      onChanged: (value) =>
+                          onToggleProduct(product, value ?? false),
+                    ),
                     SizedBox(
                       width: 62,
                       child: ShopProductArtwork(product: product),
@@ -652,6 +921,33 @@ class _CartContent extends StatelessWidget {
                               fontSize: 17,
                               fontWeight: FontWeight.w900,
                             ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _QuantityButton(
+                                icon: Icons.remove,
+                                onTap: quantity > 1
+                                    ? () => onQuantityChanged(product, -1)
+                                    : null,
+                              ),
+                              SizedBox(
+                                width: 32,
+                                child: Text(
+                                  '$quantity',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                              _QuantityButton(
+                                icon: Icons.add,
+                                onTap: () => onQuantityChanged(product, 1),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -686,6 +982,14 @@ class _CartContent extends StatelessWidget {
                       'Tổng thanh toán',
                       style: TextStyle(color: Colors.white60),
                     ),
+                    if (discount > 0)
+                      Text(
+                        'Đã giảm ${_formatShopPrice(discount)}',
+                        style: const TextStyle(
+                          color: WakaColors.accent,
+                          fontSize: 12,
+                        ),
+                      ),
                     Text(
                       _formatShopPrice(total),
                       style: const TextStyle(
@@ -698,16 +1002,12 @@ class _CartContent extends StatelessWidget {
                 ),
               ),
               FilledButton(
-                onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Vui lòng đăng nhập để thanh toán.'),
-                  ),
-                ),
+                onPressed: onCheckout,
                 style: FilledButton.styleFrom(
                   backgroundColor: WakaColors.accent,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('Thanh toán'),
+                child: Text('MUA HÀNG (${selectedKeys.length})'),
               ),
             ],
           ),
@@ -716,6 +1016,94 @@ class _CartContent extends StatelessWidget {
     );
   }
 }
+
+class _CartStoreHeader extends StatelessWidget {
+  const _CartStoreHeader({required this.allSelected, required this.onChanged});
+  final bool allSelected;
+  final ValueChanged<bool> onChanged;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Checkbox(
+        value: allSelected,
+        activeColor: WakaColors.accent,
+        onChanged: (value) => onChanged(value ?? false),
+      ),
+      const Icon(Icons.storefront_outlined, color: Colors.white70, size: 18),
+      const SizedBox(width: 8),
+      const Text(
+        'Nhà sách Waka',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+      ),
+      const Spacer(),
+      const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+    ],
+  );
+}
+
+class _CartVoucherRow extends StatelessWidget {
+  const _CartVoucherRow({required this.voucher, required this.onTap});
+  final _CartVoucher? voucher;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => ListTile(
+    contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+    leading: const Icon(
+      Icons.confirmation_number_outlined,
+      color: Color(0xFFFF5C8D),
+    ),
+    title: const Text(
+      'Waka Voucher',
+      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+    ),
+    subtitle: voucher == null
+        ? null
+        : Text(
+            voucher!.title,
+            style: const TextStyle(color: WakaColors.accent, fontSize: 12),
+          ),
+    trailing: const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+    onTap: onTap,
+  );
+}
+
+class _QuantityButton extends StatelessWidget {
+  const _QuantityButton({required this.icon, this.onTap});
+  final IconData icon;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(5),
+    child: Container(
+      width: 25,
+      height: 25,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.white24),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Icon(
+        icon,
+        color: onTap == null ? Colors.white24 : Colors.white70,
+        size: 16,
+      ),
+    ),
+  );
+}
+
+class _CartVoucher {
+  const _CartVoucher(this.title, this.description, this.percent);
+  final String title;
+  final String description;
+  final int percent;
+  int discountFor(int subtotal) => (subtotal * percent / 100).round();
+}
+
+const _cartVouchers = <_CartVoucher>[
+  _CartVoucher('Giảm 10%', 'Áp dụng cho đơn từ 100.000đ', 10),
+  _CartVoucher('Giảm 15%', 'Áp dụng cho đơn từ 250.000đ', 15),
+];
 
 class ShopProductTile extends StatelessWidget {
   const ShopProductTile({super.key, required this.product});

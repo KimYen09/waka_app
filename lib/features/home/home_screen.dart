@@ -7,8 +7,11 @@ import '../../core/services/waka_api_store.dart';
 import '../../core/services/waka_discovery_store.dart';
 import '../../core/services/waka_scraper_service.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/icons/acorn_icon.dart';
+import '../categories/categories_screen.dart';
+import '../membership/membership_plans_screen.dart';
 import '../reader/book_detail_screen.dart';
+import '../shop/shop_constants.dart';
+import '../shop/shop_flow_screens.dart';
 
 const _homeIllustrationAsset = 'assets/images/welcome_books.jpg';
 
@@ -543,6 +546,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 onClear: _clearSearch,
                 onClose: _closeSearch,
                 selectedCategoryIndex: _selectedCategoryIndex,
+                onPlans: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MembershipPlansScreen(),
+                  ),
+                ),
+                onCart: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ShopCartScreen(),
+                  ),
+                ),
               ),
             ),
             if (!hasSearchText && !showingCategoryPage) ...[
@@ -964,6 +977,8 @@ class _HomeHeader extends StatelessWidget {
     required this.onClear,
     required this.onClose,
     required this.selectedCategoryIndex,
+    required this.onPlans,
+    required this.onCart,
   });
 
   final TextEditingController controller;
@@ -974,6 +989,8 @@ class _HomeHeader extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onClose;
   final int selectedCategoryIndex;
+  final VoidCallback onPlans;
+  final VoidCallback onCart;
 
   @override
   Widget build(BuildContext context) {
@@ -982,7 +999,21 @@ class _HomeHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 13, 16, 0),
         child: Row(
           children: [
-            const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategoriesScreen(),
+                  ),
+                );
+              },
+              child: const Icon(
+                Icons.grid_view_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Container(
@@ -1058,42 +1089,54 @@ class _HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 13, 16, 0),
       child: Row(
         children: [
-          const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: WakaColors.gold, width: 1.2),
-            ),
-            child: Row(
-              children: [
-                selectedCategoryIndex == 2
-                    ? const AcornIcon(color: WakaColors.gold, size: 18)
-                    : const Icon(
-                        Icons.workspace_premium_outlined,
-                        color: WakaColors.gold,
-                        size: 18,
-                      ),
-                const SizedBox(width: 5),
-                Text(
-                  selectedCategoryIndex == 2 ? 'Nạp Sồi' : 'Gói cước',
-                  style: const TextStyle(
-                    color: WakaColors.gold,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CategoriesScreen(),
                 ),
-              ],
+              );
+            },
+            child: const Icon(
+              Icons.grid_view_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
+          ),
+          const Spacer(),
+          InkWell(
+            onTap: onPlans,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: WakaColors.gold, width: 1.2),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.workspace_premium_outlined,
+                    color: WakaColors.gold,
+                    size: 18,
+                  ),
+                  SizedBox(width: 5),
+                  Text(
+                    'Gói cước',
+                    style: TextStyle(
+                      color: WakaColors.gold,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 18),
-          const Icon(
-            Icons.add_shopping_cart_rounded,
-            color: Colors.white,
-            size: 28,
-          ),
+          _HomeCartButton(onTap: onCart),
           const SizedBox(width: 18),
           IconButton(
             visualDensity: VisualDensity.compact,
@@ -1105,6 +1148,57 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeCartButton extends StatelessWidget {
+  const _HomeCartButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Giỏ hàng',
+      visualDensity: VisualDensity.compact,
+      onPressed: onTap,
+      icon: ValueListenableBuilder<List<ShopProduct>>(
+        valueListenable: shopCartProducts,
+        builder: (context, products, _) => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(
+              Icons.add_shopping_cart_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+            if (products.isNotEmpty)
+              Positioned(
+                top: -7,
+                right: -8,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 17),
+                  height: 17,
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF2F6E),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${products.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2534,7 +2628,7 @@ class _BookShelf extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) => _BookCard(book: books[index]),
+        itemBuilder: (context, index) => HomeBookCard(book: books[index]),
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemCount: books.length,
       ),
@@ -2678,16 +2772,17 @@ class _BookGridCard extends StatelessWidget {
   }
 }
 
-class _BookCard extends StatelessWidget {
-  const _BookCard({required this.book});
+class HomeBookCard extends StatelessWidget {
+  const HomeBookCard({super.key, required this.book, this.onTap});
 
   final HomeBook book;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: () => _openBookDetail(context, book),
+      onTap: onTap ?? () => _openBookDetail(context, book),
       child: SizedBox(
         width: 145,
         child: Column(

@@ -22,63 +22,72 @@ class _LibraryScreenState extends State<LibraryScreen> {
       author: 'Earl Prevette, A.B., LL.B',
       color: Color(0xFF1B4B8F),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSeXzdu05LBq9hZc5bS56Yt79QG6Svtc0GTr9J9xvOGNg&s=10',
+      imageUrl:
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSeXzdu05LBq9hZc5bS56Yt79QG6Svtc0GTr9J9xvOGNg&s=10',
     ),
     _LibraryBook(
       title: 'Hướng dẫn sử dụng mạng xã hội an toàn',
       author: 'Bộ Thông tin và Truyền thông',
       color: Color(0xFF2A6FB0),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://www.vwu.vn/documents/20182/6109697/11_Dec_2023_071620_GMTAnnotation_2023-12-11_135545.jpg/166bcd82-df2d-4c3c-a371-02409b2a0014',
+      imageUrl:
+          'https://www.vwu.vn/documents/20182/6109697/11_Dec_2023_071620_GMTAnnotation_2023-12-11_135545.jpg/166bcd82-df2d-4c3c-a371-02409b2a0014',
     ),
     _LibraryBook(
       title: '[Tóm tắt sách] Phụ nữ thông minh phải biết tiêu tiền',
       author: 'Lois P. Frankel',
       color: Color(0xFFF3D7E8),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShL9BmxKeCXJT1NiG-gQ5Nm9zfY_68ySMFhikkYq1DA4LvjqWeK6zJ7g&s=10',
+      imageUrl:
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcShL9BmxKeCXJT1NiG-gQ5Nm9zfY_68ySMFhikkYq1DA4LvjqWeK6zJ7g&s=10',
     ),
     _LibraryBook(
       title: '[Tóm tắt sách] Họ hỏi bạn trả lời',
       author: 'Marcus Sheridan',
       color: Color(0xFFF6C85F),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://cdn1.fahasa.com/media/catalog/product/i/m/image_244718_1_3285.jpg',
+      imageUrl:
+          'https://cdn1.fahasa.com/media/catalog/product/i/m/image_244718_1_3285.jpg',
     ),
     _LibraryBook(
       title: '[Tóm tắt sách] - Công thức hỏi',
       author: 'Ryan Levesque',
       color: Color(0xFFF6B93B),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgszzzQLYDW1_9G5qf1hfftkkT4S8voAdEli_iq7DHOfXtCcJR3kC_9H4&s=10',
+      imageUrl:
+          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgszzzQLYDW1_9G5qf1hfftkkT4S8voAdEli_iq7DHOfXtCcJR3kC_9H4&s=10',
     ),
     _LibraryBook(
       title: 'Xây dựng thương hiệu từ A đến Z',
       author: 'Fabian Geyrhalter',
       color: Color(0xFF2E9E6B),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55897.jpg?v=1&w=350&h=510',
+      imageUrl:
+          'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55897.jpg?v=1&w=350&h=510',
     ),
     _LibraryBook(
       title: '[Tóm tắt sách] Nghệ thuật thất truyền về kết nối',
       author: 'Susan McPherson',
       color: Color(0xFF2C3E50),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://dilib.vn/img/news/2022/11/larger/10082-hom-nay-toi-that-tinh-1.webp',
+      imageUrl:
+          'https://dilib.vn/img/news/2022/11/larger/10082-hom-nay-toi-that-tinh-1.webp',
     ),
     _LibraryBook(
       title: 'Bí mật bán mọi thứ',
       author: 'Harry Browne',
       color: Color(0xFF34495E),
       mediaType: _MediaType.audio,
-      imageUrl: 'https://dtv-ebook.com.vn/images/files_2/2025/062025/bi-mat-ban-moi-thu-harry-browne.jpg',
+      imageUrl:
+          'https://dtv-ebook.com.vn/images/files_2/2025/062025/bi-mat-ban-moi-thu-harry-browne.jpg',
     ),
     _LibraryBook(
       title: 'Bạn không thiếu thời gian, bạn thiếu cách dùng nó',
       author: 'Hoàng Anh Thư',
       color: Color(0xFFC0392B),
       mediaType: _MediaType.ebook,
-      imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55909.jpg?v=1&w=350&h=510',
+      imageUrl:
+          'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55909.jpg?v=1&w=350&h=510',
     ),
   ];
 
@@ -103,9 +112,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
             if (_showBanner) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
               SliverToBoxAdapter(
-                child: _AdBanner(onClose: () {
-                  setState(() => _showBanner = false);
-                }),
+                child: _AdBanner(
+                  onClose: () {
+                    setState(() => _showBanner = false);
+                  },
+                ),
               ),
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
@@ -169,7 +180,10 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   Widget build(
-      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
     return Container(
       color: WakaColors.background,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -189,8 +203,11 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
                     colors: [Color(0xFF71FFDC), Color(0xFF18C58E)],
                   ),
                 ),
-                child: const Icon(Icons.person,
-                    color: Color(0xCCFFFFFF), size: 30),
+                child: const Icon(
+                  Icons.person,
+                  color: Color(0xCCFFFFFF),
+                  size: 30,
+                ),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -216,14 +233,19 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
                   ],
                 ),
               ),
-              const Icon(Icons.notifications_none_rounded,
-                  color: WakaColors.text, size: 26),
+              const Icon(
+                Icons.notifications_none_rounded,
+                color: WakaColors.text,
+                size: 26,
+              ),
               const SizedBox(width: 18),
-              const Icon(Icons.headset_mic_outlined,
-                  color: WakaColors.text, size: 26),
+              const Icon(
+                Icons.headset_mic_outlined,
+                color: WakaColors.text,
+                size: 26,
+              ),
               const SizedBox(width: 18),
-              const Icon(Icons.edit_outlined,
-                  color: WakaColors.text, size: 24),
+              const Icon(Icons.edit_outlined, color: WakaColors.text, size: 24),
             ],
           ),
           const SizedBox(height: 18),
@@ -232,7 +254,7 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _tabs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 26),
+              separatorBuilder: (_, _) => const SizedBox(width: 26),
               itemBuilder: (context, index) {
                 final isSelected = index == selectedTab;
                 return GestureDetector(
@@ -244,8 +266,9 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
                           ? WakaColors.text
                           : WakaColors.mutedText,
                       fontSize: 19,
-                      fontWeight:
-                          isSelected ? FontWeight.w800 : FontWeight.w500,
+                      fontWeight: isSelected
+                          ? FontWeight.w800
+                          : FontWeight.w500,
                     ),
                   ),
                 );
@@ -275,7 +298,12 @@ class _CategoryChips extends StatefulWidget {
 
 class _CategoryChipsState extends State<_CategoryChips> {
   int _selected = 0;
-  static const _items = ['Sách điện tử', 'Sách nói', 'Truyện tranh', 'Sách hiệu Sồi'];
+  static const _items = [
+    'Sách điện tử',
+    'Sách nói',
+    'Truyện tranh',
+    'Sách hiệu Sồi',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +313,7 @@ class _CategoryChipsState extends State<_CategoryChips> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final isSelected = index == _selected;
           return GestureDetector(
@@ -294,7 +322,9 @@ class _CategoryChipsState extends State<_CategoryChips> {
               padding: const EdgeInsets.symmetric(horizontal: 18),
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: isSelected ? WakaColors.elevatedSoft : WakaColors.surface,
+                color: isSelected
+                    ? WakaColors.elevatedSoft
+                    : WakaColors.surface,
                 borderRadius: BorderRadius.circular(24),
               ),
               child: Text(
@@ -358,7 +388,9 @@ class _AdBanner extends StatelessWidget {
                       const SizedBox(height: 10),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
                           color: WakaColors.accent,
                           borderRadius: BorderRadius.circular(4),
@@ -463,7 +495,7 @@ class _LibraryBookCard extends StatelessWidget {
                   Image.network(
                     book.imageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: book.color),
+                    errorBuilder: (_, _, _) => Container(color: book.color),
                   )
                 else
                   Container(color: book.color),

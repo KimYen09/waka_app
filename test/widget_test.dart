@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:waka_demo/core/services/waka_discovery_store.dart';
+import 'package:waka_demo/features/home/home_screen.dart';
+import 'package:waka_demo/features/offer/offer_screen.dart';
 import 'package:waka_demo/features/reader/book_detail_screen.dart';
 import 'package:waka_demo/features/reader/reader_screen.dart';
 import 'package:waka_demo/features/shop/shop_constants.dart';
@@ -83,6 +85,27 @@ void main() {
     await tester.tap(find.byIcon(Icons.close_rounded));
     await tester.pumpAndSettle();
     expect(find.text('ƯU ĐÃI HỘI VIÊN'), findsNothing);
+  });
+
+  testWidgets('offer book card opens the shared book detail screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 932));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData.dark(useMaterial3: true),
+        home: const Scaffold(body: OffersScreen()),
+      ),
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -1600));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(HomeBookCard).first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(BookDetailScreen), findsOneWidget);
+    expect(find.text('99.000đ'), findsWidgets);
   });
 
   testWidgets('reader opens with progress and supports horizontal paging', (
