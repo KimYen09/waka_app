@@ -93,7 +93,7 @@ class _CategoryTabsState extends State<_CategoryTabs> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _tabs.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final isSelected = index == _selected;
           return GestureDetector(
@@ -450,7 +450,7 @@ class _FlashBookCover extends StatelessWidget {
           Image.network(
             book.imageUrl,
             fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => Center(
+            errorBuilder: (_, _, _) => Center(
               child: Text(
                 book.title,
                 style: const TextStyle(color: Colors.white),
@@ -772,7 +772,7 @@ class _BookGridSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _books.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final book = _books[index];
           return SizedBox(
@@ -789,7 +789,7 @@ class _BookGridSection extends StatelessWidget {
                         width: 130,
                         height: 180,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           width: 130,
                           height: 180,
                           color: WakaColors.surface,
@@ -879,7 +879,7 @@ class _ComboSection extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _combos.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
           final combo = _combos[index];
           return SizedBox(
@@ -896,7 +896,7 @@ class _ComboSection extends StatelessWidget {
                         width: 150,
                         height: 170,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        errorBuilder: (_, _, _) => Container(
                           width: 150,
                           height: 170,
                           color: WakaColors.surface,

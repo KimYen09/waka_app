@@ -232,7 +232,7 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _tabs.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 26),
+              separatorBuilder: (_, _) => const SizedBox(width: 26),
               itemBuilder: (context, index) {
                 final isSelected = index == selectedTab;
                 return GestureDetector(
@@ -285,7 +285,7 @@ class _CategoryChipsState extends State<_CategoryChips> {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (context, index) {
           final isSelected = index == _selected;
           return GestureDetector(
@@ -463,7 +463,7 @@ class _LibraryBookCard extends StatelessWidget {
                   Image.network(
                     book.imageUrl!,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(color: book.color),
+                    errorBuilder: (_, _, _) => Container(color: book.color),
                   )
                 else
                   Container(color: book.color),

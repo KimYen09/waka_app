@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import '../../core/services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
@@ -16,7 +16,7 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   // Key để kiểm tra Form
   final _formKey = GlobalKey<FormState>();
-
+  final AuthService _authService = AuthService();
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool obscurePassword = true;
@@ -38,8 +38,7 @@ class _WelcomePageState extends State<WelcomePage> {
     return RegExp(r'^0[0-9]{9}$').hasMatch(value);
   }
 
-  // Hàm xử lý đăng nhập
-  // Hàm xử lý đăng nhập
+  // Hàm xử lý đăng nhập thường
   void login() {
     if (_formKey.currentState!.validate()) {
       String username = usernameController.text;
@@ -47,22 +46,49 @@ class _WelcomePageState extends State<WelcomePage> {
         SnackBar(content: Text("Đăng nhập thành công\nTài khoản: $username")),
       );
 
-      // 🔥 THÊM ĐOẠN CODE CHUYỂN HƯỚNG VÀO ĐÂY ĐỂ VÀO TRANG CHỦ
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) =>
-              const WakaShell(), // Gọi class màn hình Trang chủ của bạn kia
-        ),
-        (route) =>
-            false, // Dòng này cực kỳ quan trọng: xóa sạch các màn hình trước đó (Welcome, Login) để user không bấm nút Back quay lại màn Login được nữa.
-      );
+      _navigateToHome();
     }
   }
 
+  // 🌟 Hàm đăng nhập Google
+  Future<void> _loginWithGoogle() async {
+    final user = await _authService.signInWithGoogle();
+    if (user != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Đăng nhập Google thành công!\nXin chào ${user.displayName}"),
+        ),
+      );
+      _navigateToHome();
+    }
+  }
+
+  // 🌟 Hàm đăng nhập Facebook
+  Future<void> _loginWithFacebook() async {
+    final user = await _authService.signInWithFacebook();
+    if (user != null && mounted) {
+      final name = user['name'] ?? 'người dùng Facebook';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Đăng nhập Facebook thành công!\nXin chào $name"),
+        ),
+      );
+      _navigateToHome();
+    }
+  }
+
+  // 🌟 Điều hướng vào màn hình Trang chủ WakaShell
+  void _navigateToHome() {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WakaShell(),
+      ),
+      (route) => false,
+    );
+  }
+
   // Danh sách đường dẫn ảnh bìa sách thật
-  // Bỏ ảnh vào assets/images/covers/ rồi đặt tên đúng như dưới đây
-  // (hoặc đổi tên trong list này cho khớp tên file ông có)
   final List<String> coverImages = const [
     'assets/images/covers/cover1.jpg',
     'assets/images/covers/cover2.jpg',
@@ -100,12 +126,11 @@ class _WelcomePageState extends State<WelcomePage> {
                   final path = coverImages[index % coverImages.length];
                   return Container(
                     margin: const EdgeInsets.all(2),
-                    color: const Color(0xFF2C2C2C), // màu nền dự phòng
+                    color: const Color(0xFF2C2C2C),
                     child: Image.asset(
                       path,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        // Nếu chưa có ảnh, hiện màu xám thay vì crash app
                         return Container(color: const Color(0xFF2C2C2C));
                       },
                     ),
@@ -374,13 +399,20 @@ class _WelcomePageState extends State<WelcomePage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // Social login icons
+                    // 🌟 Social login icons (Đã kết nối hàm xử lý sự kiện onTap)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _socialIcon(Icons.apple),
-                        _socialIcon(Icons.facebook),
-                        _socialIcon(Icons.g_mobiledata, size: 32),
+                        _socialIcon(
+                          Icons.facebook,
+                          onTap: _loginWithFacebook,
+                        ),
+                        _socialIcon(
+                          Icons.g_mobiledata,
+                          size: 38,
+                          onTap: _loginWithGoogle,
+                        ),
                         _socialIcon(Icons.credit_card),
                       ],
                     ),
@@ -395,15 +427,23 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
-  Widget _socialIcon(IconData icon, {double size = 26}) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white30, width: 1.2),
+  // 🌟 Widget nút Social (Có hỗ trợ nhận sự kiện onTap)
+  Widget _socialIcon(
+    IconData icon, {
+    double size = 26,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 64,
+        height: 64,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white30, width: 1.2),
+        ),
+        child: Icon(icon, color: Colors.white, size: size),
       ),
-      child: Icon(icon, color: Colors.white, size: size),
     );
   }
 }
