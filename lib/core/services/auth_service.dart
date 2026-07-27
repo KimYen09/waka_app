@@ -2,17 +2,14 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn(scopes: ['email', 'profile']);
 
   /// Đăng nhập bằng Google
   Future<GoogleSignInAccount?> signInWithGoogle() async {
     try {
       final account = await _googleSignIn.signIn();
       return account;
-    } catch (e) {
-      print('Lỗi đăng nhập Google: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -26,9 +23,7 @@ class AuthService {
       if (result.status == LoginStatus.success) {
         return await FacebookAuth.instance.getUserData();
       }
-    } catch (e) {
-      print('Lỗi đăng nhập Facebook: $e');
-    }
+    } catch (_) {}
     return null;
   }
 }

@@ -5,6 +5,7 @@ import '../../shared/navigation/app_navigation.dart';
 import '../../shared/widgets/icons/acorn_icon.dart';
 import '../welcome/welcome_screen.dart';
 import 'account_info_screen.dart';
+import 'purchases_screen.dart';
 import 'profile_constants.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -29,7 +30,11 @@ class ProfileScreen extends StatelessWidget {
                 child: _ProfileSectionTitle(
                   title: 'Đơn hàng',
                   action: 'Chi tiết đơn hàng',
-                  onTap: () {},
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const PurchasesScreen(),
+                    ),
+                  ),
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 14)),

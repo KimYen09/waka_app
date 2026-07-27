@@ -1,13 +1,14 @@
 import '../constants/api_endpoints.dart';
 import 'local_books_service.dart';
+import 'waka_rest_api_service.dart';
 import 'waka_scraper_service.dart';
 
 class WakaApiStore {
-  WakaApiStore({WakaScraperService? scraper, LocalBooksService? localBooks})
-    : _scraper = scraper ?? const WakaScraperService(),
+  WakaApiStore({WakaRestApiService? api, LocalBooksService? localBooks})
+    : _api = api ?? const WakaRestApiService(),
       _localBooks = localBooks ?? const LocalBooksService();
 
-  final WakaScraperService _scraper;
+  final WakaRestApiService _api;
   final LocalBooksService _localBooks;
   WakaScrapeResult? _homeCache;
   WakaScrapeResult? _allBooksCache;
@@ -96,10 +97,10 @@ class WakaApiStore {
 
   Future<WakaScrapeResult> _fetchHomeWithFallback() async {
     try {
-      final result = await _scraper.scrapeHome();
+      final result = await _api.getBooks(maxPages: 1);
       if (result.books.isNotEmpty) return result;
     } on Object {
-      // Continue to local JSON when waka.vn is unavailable.
+      // Continue to local JSON when the REST API is unavailable.
     }
 
     try {
@@ -115,12 +116,10 @@ class WakaApiStore {
     required int maxPagesPerCategory,
   }) async {
     try {
-      final result = await _scraper.scrapeAllBooks(
-        maxPagesPerCategory: maxPagesPerCategory,
-      );
+      final result = await _api.getBooks(maxPages: maxPagesPerCategory);
       if (result.books.isNotEmpty) return result;
     } on Object {
-      // Continue to local JSON when waka.vn is unavailable.
+      // Continue to local JSON when the REST API is unavailable.
     }
 
     try {
@@ -156,8 +155,12 @@ class WakaApiStore {
             (book) => WakaScrapedBook(
               title: book.title,
               url: book.url,
-              imageUrl: '',
+              imageUrl: book.imageUrl,
               section: book.section,
+              id: book.id,
+              price: book.price,
+              discountPercent: book.discountPercent,
+              isFeatured: book.isFeatured,
             ),
           )
           .toList(growable: false),

@@ -27,6 +27,10 @@ class LocalBooksService {
             url: book['url'] as String? ?? '',
             imageUrl: shouldUseRemoteImage ? imageUrl : '',
             section: book['section'] as String? ?? '',
+            id: _asInt(book['id']),
+            price: _asInt(book['price']),
+            discountPercent: _asInt(book['discountPercent']),
+            isFeatured: book['isFeatured'] == true,
           );
         })
         .where((book) => book.title.isNotEmpty)
@@ -48,6 +52,11 @@ class LocalBooksService {
       books: _withExpandedSections(books),
       scrapedAt: DateTime.now(),
     );
+  }
+
+  int _asInt(Object? value) {
+    if (value is num) return value.round();
+    return double.tryParse('$value')?.round() ?? 0;
   }
 
   List<WakaScrapedBook> _withExpandedSections(List<WakaScrapedBook> books) {

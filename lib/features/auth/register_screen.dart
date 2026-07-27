@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/auth_api_service.dart';
+import '../../main.dart';
 import '../../shared/navigation/app_navigation.dart';
 
 class RegisterPage extends StatefulWidget {
@@ -17,10 +19,12 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController passwordController = TextEditingController();
   final TextEditingController confirmPasswordController =
       TextEditingController();
+  final _authApi = const AuthApiService();
 
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
   bool agreeTerms = true;
+  bool _isSubmitting = false;
 
   final List<String> coverImages = const [
     'assets/images/covers/cover1.jpg',
@@ -51,15 +55,34 @@ class _RegisterPageState extends State<RegisterPage> {
     return RegExp(r'^0[0-9]{9}$').hasMatch(value);
   }
 
-  // Hàm xử lý đăng ký
-  void register() {
-    if (_formKey.currentState!.validate()) {
-      String identifier = identifierController.text;
+  Future<void> register() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+    if (!agreeTerms) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Tạo tài khoản thành công\nTài khoản: $identifier"),
-        ),
+        const SnackBar(content: Text('Bạn cần đồng ý với điều khoản sử dụng.')),
       );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+    try {
+      await _authApi.register(
+        identifier: identifierController.text,
+        password: passwordController.text,
+      );
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const WakaShell()),
+        (route) => false,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
@@ -201,8 +224,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           return "Vui lòng nhập mật khẩu";
                         }
 
-                        if (value.length <= 6) {
-                          return "Mật khẩu phải trên 6 ký tự";
+                        if (value.length < 6) {
+                          return "Mật khẩu phải có ít nhất 6 ký tự";
                         }
 
                         return null;
@@ -247,22 +270,31 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: register,
+                        onPressed: _isSubmitting ? null : register,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00E5A0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
-                          "TIẾP TỤC",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: 1,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Text(
+                                "TIẾP TỤC",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),

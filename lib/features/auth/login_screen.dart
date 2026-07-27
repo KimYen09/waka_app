@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/services/auth_service.dart';
+
+import '../../core/services/auth_api_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
@@ -16,10 +17,12 @@ class WelcomePage extends StatefulWidget {
 class _WelcomePageState extends State<WelcomePage> {
   // Key để kiểm tra Form
   final _formKey = GlobalKey<FormState>();
-  final AuthService _authService = AuthService();
+
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final _authApi = const AuthApiService();
   bool obscurePassword = true;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -38,57 +41,33 @@ class _WelcomePageState extends State<WelcomePage> {
     return RegExp(r'^0[0-9]{9}$').hasMatch(value);
   }
 
-  // Hàm xử lý đăng nhập thường
-  void login() {
-    if (_formKey.currentState!.validate()) {
-      String username = usernameController.text;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Đăng nhập thành công\nTài khoản: $username")),
+  Future<void> login() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await _authApi.login(
+        identifier: usernameController.text,
+        password: passwordController.text,
       );
-
-      _navigateToHome();
-    }
-  }
-
-  // 🌟 Hàm đăng nhập Google
-  Future<void> _loginWithGoogle() async {
-    final user = await _authService.signInWithGoogle();
-    if (user != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Đăng nhập Google thành công!\nXin chào ${user.displayName}"),
-        ),
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const WakaShell()),
+        (route) => false,
       );
-      _navigateToHome();
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
     }
-  }
-
-  // 🌟 Hàm đăng nhập Facebook
-  Future<void> _loginWithFacebook() async {
-    final user = await _authService.signInWithFacebook();
-    if (user != null && mounted) {
-      final name = user['name'] ?? 'người dùng Facebook';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("Đăng nhập Facebook thành công!\nXin chào $name"),
-        ),
-      );
-      _navigateToHome();
-    }
-  }
-
-  // 🌟 Điều hướng vào màn hình Trang chủ WakaShell
-  void _navigateToHome() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const WakaShell(),
-      ),
-      (route) => false,
-    );
   }
 
   // Danh sách đường dẫn ảnh bìa sách thật
+  // Bỏ ảnh vào assets/images/covers/ rồi đặt tên đúng như dưới đây
+  // (hoặc đổi tên trong list này cho khớp tên file ông có)
   final List<String> coverImages = const [
     'assets/images/covers/cover1.jpg',
     'assets/images/covers/cover2.jpg',
@@ -126,11 +105,12 @@ class _WelcomePageState extends State<WelcomePage> {
                   final path = coverImages[index % coverImages.length];
                   return Container(
                     margin: const EdgeInsets.all(2),
-                    color: const Color(0xFF2C2C2C),
+                    color: const Color(0xFF2C2C2C), // màu nền dự phòng
                     child: Image.asset(
                       path,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
+                        // Nếu chưa có ảnh, hiện màu xám thay vì crash app
                         return Container(color: const Color(0xFF2C2C2C));
                       },
                     ),
@@ -296,8 +276,8 @@ class _WelcomePageState extends State<WelcomePage> {
                             return "Vui lòng nhập mật khẩu";
                           }
 
-                          if (value.length <= 6) {
-                            return "Mật khẩu phải trên 6 ký tự";
+                          if (value.length < 6) {
+                            return "Mật khẩu phải có ít nhất 6 ký tự";
                           }
 
                           return null;
@@ -311,22 +291,31 @@ class _WelcomePageState extends State<WelcomePage> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: login,
+                        onPressed: _isSubmitting ? null : login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF00E5A0),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(30),
                           ),
                         ),
-                        child: const Text(
-                          "ĐĂNG NHẬP",
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                            letterSpacing: 1,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Colors.black,
+                                ),
+                              )
+                            : const Text(
+                                "ĐĂNG NHẬP",
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -399,20 +388,13 @@ class _WelcomePageState extends State<WelcomePage> {
                     ),
                     const SizedBox(height: 24),
 
-                    // 🌟 Social login icons (Đã kết nối hàm xử lý sự kiện onTap)
+                    // Social login icons
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _socialIcon(Icons.apple),
-                        _socialIcon(
-                          Icons.facebook,
-                          onTap: _loginWithFacebook,
-                        ),
-                        _socialIcon(
-                          Icons.g_mobiledata,
-                          size: 38,
-                          onTap: _loginWithGoogle,
-                        ),
+                        _socialIcon(Icons.facebook),
+                        _socialIcon(Icons.g_mobiledata, size: 32),
                         _socialIcon(Icons.credit_card),
                       ],
                     ),
@@ -427,23 +409,15 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
-  // 🌟 Widget nút Social (Có hỗ trợ nhận sự kiện onTap)
-  Widget _socialIcon(
-    IconData icon, {
-    double size = 26,
-    VoidCallback? onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white30, width: 1.2),
-        ),
-        child: Icon(icon, color: Colors.white, size: size),
+  Widget _socialIcon(IconData icon, {double size = 26}) {
+    return Container(
+      width: 64,
+      height: 64,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white30, width: 1.2),
       ),
+      child: Icon(icon, color: Colors.white, size: size),
     );
   }
 }

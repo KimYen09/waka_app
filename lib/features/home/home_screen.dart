@@ -1,13 +1,17 @@
 import 'dart:async';
 
-
 import 'package:flutter/material.dart';
 
 import '../../core/services/local_banners_service.dart';
 import '../../core/services/waka_api_store.dart';
+import '../../core/services/waka_discovery_store.dart';
 import '../../core/services/waka_scraper_service.dart';
 import '../../core/theme/app_theme.dart';
-import '../../shared/widgets/icons/acorn_icon.dart';
+import '../categories/categories_screen.dart';
+import '../membership/membership_plans_screen.dart';
+import '../reader/book_detail_screen.dart';
+import '../shop/shop_constants.dart';
+import '../shop/shop_flow_screens.dart';
 
 const _homeIllustrationAsset = 'assets/images/welcome_books.jpg';
 
@@ -23,6 +27,9 @@ class HomeBook {
     this.imageUrl = '',
     this.section = '',
     this.url = '',
+    this.author = '',
+    this.rank = 0,
+    this.recommendationReason = '',
   });
 
   final String title;
@@ -35,9 +42,20 @@ class HomeBook {
   final String imageUrl;
   final String section;
   final String url;
+  final String author;
+  final int rank;
+  final String recommendationReason;
 }
 
 const dailyBooks = [
+  HomeBook(
+    title: 'Điểm số quyền lực',
+    colors: [Color(0xFFF2EEE4), Color(0xFFB60000)],
+    icon: Icons.trending_up_rounded,
+    price: '99.000đ',
+    section: 'Tài chính cá nhân',
+    url: 'https://waka.vn/reader/diem-so-quyen-luc-rRvV6W.html',
+  ),
   HomeBook(
     title: 'Xuyên không giả làm bạn gái tổng tài',
     colors: [Color(0xFF141414), Color(0xFF513016)],
@@ -170,6 +188,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _apiStore = WakaApiStore();
+  final _discoveryStore = WakaDiscoveryStore();
   final _bannerService = const LocalBannersService();
   final _searchController = TextEditingController();
   bool _isSearching = false;
@@ -179,6 +198,8 @@ class _HomeScreenState extends State<HomeScreen> {
   String _apiErrorMessage = '';
   List<WakaHomeBanner> _homeBanners = const [];
   List<HomeBook> _apiBooks = const [];
+  List<WakaRankingEntry> _rankingEntries = const [];
+  List<WakaRecommendationEntry> _recommendationEntries = const [];
 
   List<HomeBook> get _filteredBooks {
     final sourceBooks = _allBooks;
@@ -223,6 +244,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   List<HomeBook> get _apiRankingBooks {
+    if (_rankingEntries.isNotEmpty) {
+      return _rankingEntries
+          .map(_mapRankingEntryToHomeBook)
+          .toList(growable: false);
+    }
     return _booksFromWaka(
       sectionQueries: const ['Bảng Xếp Hạng', 'Top', 'Xếp hạng'],
       backupTitleQueries: const [
@@ -234,6 +260,21 @@ class _HomeScreenState extends State<HomeScreen> {
         'đọc vị',
       ],
       fallbackBooks: rankingBooks,
+    );
+  }
+
+  List<HomeBook> get _apiRecommendationBooks {
+    if (_recommendationEntries.isNotEmpty) {
+      return _recommendationEntries
+          .map(_mapRecommendationEntryToHomeBook)
+          .toList(growable: false);
+    }
+    return _booksFromWaka(
+      sectionQueries: const ['Sách Hiệu Sồi', 'Sách Hội viên', 'Sách điện tử'],
+      backupTitleQueries: const ['tiền', 'đầu tư', 'đàm phán', 'yêu', 'học'],
+      fallbackBooks: skillBooks,
+      limit: 20,
+      minItems: 10,
     );
   }
 
@@ -373,14 +414,23 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      final books = await _apiStore.getAllBooks(
+      final booksFuture = _apiStore.getAllBooks(
         forceRefresh: forceRefresh,
         maxPagesPerCategory: 18,
       );
+      final rankingsFuture = _discoveryStore.getRankings(limit: 20);
+      final recommendationsFuture = _discoveryStore.getRecommendations(
+        limit: 20,
+      );
+      final books = await booksFuture;
+      final rankings = await rankingsFuture;
+      final recommendations = await recommendationsFuture;
       if (!mounted) return;
 
       setState(() {
         _apiBooks = books.map(_mapApiBookToHomeBook).toList();
+        _rankingEntries = rankings;
+        _recommendationEntries = recommendations;
         _isLoadingApi = false;
       });
     } on Object catch (error) {
@@ -496,6 +546,16 @@ class _HomeScreenState extends State<HomeScreen> {
                 onClear: _clearSearch,
                 onClose: _closeSearch,
                 selectedCategoryIndex: _selectedCategoryIndex,
+                onPlans: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const MembershipPlansScreen(),
+                  ),
+                ),
+                onCart: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ShopCartScreen(),
+                  ),
+                ),
               ),
             ),
             if (!hasSearchText && !showingCategoryPage) ...[
@@ -584,6 +644,20 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverToBoxAdapter(child: _BookShelf(books: _apiRankingBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Waka đề xuất',
+                  onTap: () => _openSectionBooks(
+                    'Waka đề xuất',
+                    _apiRecommendationBooks,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(
+                child: _BookShelf(books: _apiRecommendationBooks),
+              ),
               const SliverToBoxAdapter(child: SizedBox(height: 34)),
               SliverToBoxAdapter(
                 child: _SectionTitle(
@@ -744,6 +818,62 @@ HomeBook _mapApiBookToHomeBook(WakaScrapedBook book) {
   );
 }
 
+HomeBook _mapRankingEntryToHomeBook(WakaRankingEntry entry) {
+  return _mapDiscoveryBookToHomeBook(
+    entry.book,
+    rank: entry.rank,
+    badge: 'ĐỌC NHIỀU',
+    badgeColor: const Color(0xFF3177F5),
+  );
+}
+
+HomeBook _mapRecommendationEntryToHomeBook(WakaRecommendationEntry entry) {
+  return _mapDiscoveryBookToHomeBook(
+    entry.book,
+    badge: 'WAKA ĐỀ XUẤT',
+    badgeColor: WakaColors.accent,
+    recommendationReason: entry.reason,
+  );
+}
+
+HomeBook _mapDiscoveryBookToHomeBook(
+  WakaDiscoveryBook book, {
+  int rank = 0,
+  required String badge,
+  required Color badgeColor,
+  String recommendationReason = '',
+}) {
+  final salePrice = book.price > 0
+      ? (book.price * (1 - book.discountPercent / 100)).round()
+      : 0;
+  return HomeBook(
+    title: book.title,
+    author: book.author,
+    colors: _colorsForTitle(book.title),
+    icon: _iconForTitle(book.title),
+    badge: badge,
+    badgeColor: badgeColor,
+    price: salePrice > 0 ? _formatHomePrice(salePrice) : '',
+    imageUrl: book.imageUrl,
+    section: book.section,
+    url: book.url,
+    rank: rank,
+    recommendationReason: recommendationReason,
+    assetAlignment: Alignment.topCenter,
+  );
+}
+
+String _formatHomePrice(int value) {
+  final text = value.toString();
+  final buffer = StringBuffer();
+  for (var index = 0; index < text.length; index++) {
+    buffer.write(text[index]);
+    final remaining = text.length - index - 1;
+    if (remaining > 0 && remaining % 3 == 0) buffer.write('.');
+  }
+  return '${buffer.toString()}đ';
+}
+
 List<Color> _colorsForTitle(String title) {
   final normalized = _homeNormalize(title);
   if (normalized.contains('world cup') || normalized.contains('bong da')) {
@@ -847,6 +977,8 @@ class _HomeHeader extends StatelessWidget {
     required this.onClear,
     required this.onClose,
     required this.selectedCategoryIndex,
+    required this.onPlans,
+    required this.onCart,
   });
 
   final TextEditingController controller;
@@ -857,6 +989,8 @@ class _HomeHeader extends StatelessWidget {
   final VoidCallback onClear;
   final VoidCallback onClose;
   final int selectedCategoryIndex;
+  final VoidCallback onPlans;
+  final VoidCallback onCart;
 
   @override
   Widget build(BuildContext context) {
@@ -865,7 +999,21 @@ class _HomeHeader extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 13, 16, 0),
         child: Row(
           children: [
-            const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CategoriesScreen(),
+                  ),
+                );
+              },
+              child: const Icon(
+                Icons.grid_view_rounded,
+                color: Colors.white,
+                size: 30,
+              ),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Container(
@@ -941,42 +1089,54 @@ class _HomeHeader extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 13, 16, 0),
       child: Row(
         children: [
-          const Icon(Icons.grid_view_rounded, color: Colors.white, size: 30),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: WakaColors.gold, width: 1.2),
-            ),
-            child: Row(
-              children: [
-                selectedCategoryIndex == 2
-                    ? const AcornIcon(color: WakaColors.gold, size: 18)
-                    : const Icon(
-                        Icons.workspace_premium_outlined,
-                        color: WakaColors.gold,
-                        size: 18,
-                      ),
-                const SizedBox(width: 5),
-                Text(
-                  selectedCategoryIndex == 2 ? 'Nạp Sồi' : 'Gói cước',
-                  style: const TextStyle(
-                    color: WakaColors.gold,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    height: 1,
-                  ),
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const CategoriesScreen(),
                 ),
-              ],
+              );
+            },
+            child: const Icon(
+              Icons.grid_view_rounded,
+              color: Colors.white,
+              size: 30,
+            ),
+          ),
+          const Spacer(),
+          InkWell(
+            onTap: onPlans,
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: WakaColors.gold, width: 1.2),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.workspace_premium_outlined,
+                    color: WakaColors.gold,
+                    size: 18,
+                  ),
+                  SizedBox(width: 5),
+                  Text(
+                    'Gói cước',
+                    style: TextStyle(
+                      color: WakaColors.gold,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      height: 1,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 18),
-          const Icon(
-            Icons.add_shopping_cart_rounded,
-            color: Colors.white,
-            size: 28,
-          ),
+          _HomeCartButton(onTap: onCart),
           const SizedBox(width: 18),
           IconButton(
             visualDensity: VisualDensity.compact,
@@ -988,6 +1148,57 @@ class _HomeHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeCartButton extends StatelessWidget {
+  const _HomeCartButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton(
+      tooltip: 'Giỏ hàng',
+      visualDensity: VisualDensity.compact,
+      onPressed: onTap,
+      icon: ValueListenableBuilder<List<ShopProduct>>(
+        valueListenable: shopCartProducts,
+        builder: (context, products, _) => Stack(
+          clipBehavior: Clip.none,
+          children: [
+            const Icon(
+              Icons.add_shopping_cart_rounded,
+              color: Colors.white,
+              size: 28,
+            ),
+            if (products.isNotEmpty)
+              Positioned(
+                top: -7,
+                right: -8,
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 17),
+                  height: 17,
+                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFF2F6E),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '${products.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -1104,127 +1315,130 @@ class _WakaWebBannerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final accent = book.colors[index % book.colors.length];
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.42),
-              blurRadius: 18,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            _BookArtwork(book: book),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.18),
-                    accent.withValues(alpha: 0.46),
-                    Colors.black.withValues(alpha: 0.84),
-                  ],
-                ),
+    return GestureDetector(
+      onTap: () => _openBookDetail(context, book),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.42),
+                blurRadius: 18,
+                offset: const Offset(0, 10),
               ),
-            ),
-            Positioned(
-              left: 18,
-              top: 18,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 5,
-                ),
+            ],
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              _BookArtwork(book: book),
+              DecoratedBox(
                 decoration: BoxDecoration(
-                  color: WakaColors.gold,
-                  borderRadius: BorderRadius.circular(99),
-                ),
-                child: const Text(
-                  'WAKA ĐỀ XUẤT',
-                  style: TextStyle(
-                    color: Colors.black,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.18),
+                      accent.withValues(alpha: 0.46),
+                      Colors.black.withValues(alpha: 0.84),
+                    ],
                   ),
                 ),
               ),
-            ),
-            Positioned(
-              left: 18,
-              right: 118,
-              bottom: 22,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    book.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
+              Positioned(
+                left: 18,
+                top: 18,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: WakaColors.gold,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: const Text(
+                    'WAKA ĐỀ XUẤT',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 11,
                       fontWeight: FontWeight.w900,
-                      height: 1.05,
+                      height: 1,
                     ),
                   ),
-                  const SizedBox(height: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 13,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: WakaColors.accent,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: const Text(
-                      'Đọc ngay',
-                      style: TextStyle(
-                        color: Colors.black,
-                        fontSize: 13,
+                ),
+              ),
+              Positioned(
+                left: 18,
+                right: 118,
+                bottom: 22,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        height: 1,
+                        height: 1.05,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-            Positioned(
-              right: 18,
-              bottom: 18,
-              child: Container(
-                width: 72,
-                height: 104,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.42),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.34),
-                      blurRadius: 14,
-                      offset: const Offset(0, 8),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 13,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: WakaColors.accent,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: const Text(
+                        'Đọc ngay',
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: _BookArtwork(book: book),
               ),
-            ),
-          ],
+              Positioned(
+                right: 18,
+                bottom: 18,
+                child: Container(
+                  width: 72,
+                  height: 104,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.42),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.34),
+                        blurRadius: 14,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _BookArtwork(book: book),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1562,93 +1776,99 @@ class _FeaturedCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasRemoteImage = book.imageUrl.isNotEmpty;
 
-    return Container(
-      width: width,
-      height: 410,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.34),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          _BookArtwork(book: book),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: book.colors
-                    .map(
-                      (color) =>
-                          color.withValues(alpha: hasRemoteImage ? 0.10 : 0.62),
-                    )
-                    .toList(),
-              ),
+    return GestureDetector(
+      onTap: () => _openBookDetail(context, book),
+      child: Container(
+        width: width,
+        height: 410,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.34),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
             ),
-          ),
-          DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Colors.transparent,
-                  Colors.black.withValues(alpha: hasRemoteImage ? 0.20 : 0.58),
-                ],
-              ),
-            ),
-          ),
-          if (!hasRemoteImage)
-            Center(
-              child: Icon(
-                book.icon,
-                color: Colors.white.withValues(alpha: 0.64),
-                size: 92,
-              ),
-            ),
-          Positioned(
-            left: 22,
-            right: 22,
-            bottom: 50,
-            child: Text(
-              book.title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 30,
-                fontWeight: FontWeight.w900,
-                height: 1.02,
-              ),
-            ),
-          ),
-          Positioned(
-            right: 18,
-            bottom: 18,
-            child: Container(
-              width: 54,
-              height: 54,
+          ],
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            _BookArtwork(book: book),
+            DecoratedBox(
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withValues(alpha: 0.42),
-              ),
-              child: const Icon(
-                Icons.menu_book_rounded,
-                color: Colors.white,
-                size: 32,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: book.colors
+                      .map(
+                        (color) => color.withValues(
+                          alpha: hasRemoteImage ? 0.10 : 0.62,
+                        ),
+                      )
+                      .toList(),
+                ),
               ),
             ),
-          ),
-        ],
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(
+                      alpha: hasRemoteImage ? 0.20 : 0.58,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            if (!hasRemoteImage)
+              Center(
+                child: Icon(
+                  book.icon,
+                  color: Colors.white.withValues(alpha: 0.64),
+                  size: 92,
+                ),
+              ),
+            Positioned(
+              left: 22,
+              right: 22,
+              bottom: 50,
+              child: Text(
+                book.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w900,
+                  height: 1.02,
+                ),
+              ),
+            ),
+            Positioned(
+              right: 18,
+              bottom: 18,
+              child: Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withValues(alpha: 0.42),
+                ),
+                child: const Icon(
+                  Icons.menu_book_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1786,6 +2006,33 @@ void _openHomeBookList(
   Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => _HomeBookListScreen(title: title, books: books),
+    ),
+  );
+}
+
+void _openBookDetail(BuildContext context, HomeBook book) {
+  final normalized = _homeNormalize(book.title);
+  final author = book.author.isNotEmpty
+      ? book.author
+      : normalized.contains('diem so quyen luc') ||
+            normalized.contains('thoat no') ||
+            normalized.contains('dam kiem tien')
+      ? 'Marcus Phung'
+      : 'Waka Books';
+  Navigator.of(context).push(
+    MaterialPageRoute<void>(
+      builder: (_) => BookDetailScreen(
+        book: BookDetailData(
+          title: book.title,
+          author: author,
+          imageUrl: book.imageUrl,
+          sourceUrl: book.url,
+          price: book.price.isEmpty ? '99.000đ' : book.price,
+          section: book.section.isEmpty ? 'Sách điện tử' : book.section,
+          colors: book.colors,
+          icon: book.icon,
+        ),
+      ),
     ),
   );
 }
@@ -2381,7 +2628,7 @@ class _BookShelf extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(horizontal: 10),
         scrollDirection: Axis.horizontal,
-        itemBuilder: (context, index) => _BookCard(book: books[index]),
+        itemBuilder: (context, index) => HomeBookCard(book: books[index]),
         separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemCount: books.length,
       ),
@@ -2500,53 +2747,76 @@ class _BookGridCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _BookCoverImage(book: book),
-        const SizedBox(height: 9),
-        Text(
-          book.title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            height: 1.16,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _BookCard extends StatelessWidget {
-  const _BookCard({required this.book});
-
-  final HomeBook book;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 145,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openBookDetail(context, book),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _BookCoverImage(book: book),
-          const SizedBox(height: 12),
+          const SizedBox(height: 9),
           Text(
             book.title,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 20.5,
+              fontSize: 16,
               fontWeight: FontWeight.w500,
               height: 1.16,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class HomeBookCard extends StatelessWidget {
+  const HomeBookCard({super.key, required this.book, this.onTap});
+
+  final HomeBook book;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap ?? () => _openBookDetail(context, book),
+      child: SizedBox(
+        width: 145,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _BookCoverImage(book: book),
+            const SizedBox(height: 12),
+            Text(
+              book.title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 20.5,
+                fontWeight: FontWeight.w500,
+                height: 1.16,
+              ),
+            ),
+            if (book.recommendationReason.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(
+                book.recommendationReason,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: WakaColors.accent,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -2638,6 +2908,36 @@ class _BookCoverImage extends StatelessWidget {
               ),
             ),
           ),
+          if (book.rank > 0)
+            Positioned(
+              left: 0,
+              bottom: 0,
+              child: Container(
+                width: 42,
+                height: 42,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: switch (book.rank) {
+                    1 => const Color(0xFFFFB51F),
+                    2 => const Color(0xFF9DA8B8),
+                    3 => const Color(0xFFC47A44),
+                    _ => Colors.black.withValues(alpha: 0.72),
+                  },
+                  borderRadius: const BorderRadius.only(
+                    topRight: Radius.circular(8),
+                  ),
+                ),
+                child: Text(
+                  '${book.rank}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );

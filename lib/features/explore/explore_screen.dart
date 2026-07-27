@@ -100,8 +100,11 @@ class _ExploreScreenState extends State<ExploreScreen> {
                       ),
                     ),
                     Spacer(),
-                    Icon(Icons.search_rounded,
-                        color: WakaColors.text, size: 30),
+                    Icon(
+                      Icons.search_rounded,
+                      color: WakaColors.text,
+                      size: 30,
+                    ),
                   ],
                 ),
               ),
@@ -123,9 +126,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         alignment: Alignment.center,
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.white
-                              : WakaColors.surface,
+                          color: isSelected ? Colors.white : WakaColors.surface,
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: Text(
@@ -284,9 +285,6 @@ class _Post {
   final String? imageUrl; // 👈 Đã thêm field URL ảnh bài viết
 }
 
-
-    
-  
 // ----------------------------------------------------------------------
 // Post card (feed "Thông tin" - Đã cập nhật Image.network)
 // ----------------------------------------------------------------------
@@ -338,8 +336,11 @@ class _PostCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: 4),
-                        Icon(Icons.verified_rounded,
-                            color: WakaColors.accent, size: 16),
+                        Icon(
+                          Icons.verified_rounded,
+                          color: WakaColors.accent,
+                          size: 16,
+                        ),
                       ],
                     ),
                     Text(
@@ -390,8 +391,11 @@ class _PostCard extends StatelessWidget {
                   width: double.infinity,
                   color: WakaColors.surface,
                   child: const Center(
-                    child: Icon(Icons.image_not_supported_rounded,
-                        color: Colors.white24, size: 40),
+                    child: Icon(
+                      Icons.image_not_supported_rounded,
+                      color: Colors.white24,
+                      size: 40,
+                    ),
                   ),
                 ),
               ),
