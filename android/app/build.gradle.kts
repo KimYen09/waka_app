@@ -29,6 +29,18 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        // App ID của Facebook là dữ liệu công khai nhưng tuỳ theo môi trường.
+        // Đặt FACEBOOK_APP_ID trong android/gradle.properties trước khi build Android.
+        val facebookAppId = providers.gradleProperty("FACEBOOK_APP_ID")
+            .orElse("")
+            .get()
+        val facebookClientToken = providers.gradleProperty("FACEBOOK_CLIENT_TOKEN")
+            .orElse("")
+            .get()
+        resValue("string", "facebook_app_id", facebookAppId)
+        resValue("string", "facebook_client_token", facebookClientToken)
+        resValue("string", "fb_login_protocol_scheme", "fb$facebookAppId")
     }
 
     buildTypes {

@@ -74,4 +74,4 @@ async function me(req, res) {
   res.json({ success: true, data: rows[0] });
 }
 
-module.exports = { register, login, me };
+module.exports = { register, login, me, createToken };

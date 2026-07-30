@@ -55,6 +55,22 @@ class AuthApiService {
     return _readAuthResult(response);
   }
 
+  Future<AuthResult> loginWithGoogle(String idToken) async {
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiGoogleLogin),
+      {'idToken': idToken},
+    );
+    return _readAuthResult(response);
+  }
+
+  Future<AuthResult> loginWithFacebook(String accessToken) async {
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiFacebookLogin),
+      {'accessToken': accessToken},
+    );
+    return _readAuthResult(response);
+  }
+
   AuthResult _readAuthResult(Map<String, Object?> response) {
     final data = response['data'];
     if (data is! Map<String, Object?>) {

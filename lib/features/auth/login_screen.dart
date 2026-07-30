@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/services/auth_api_service.dart';
+import '../../core/services/auth_service.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
@@ -21,6 +22,7 @@ class _WelcomePageState extends State<WelcomePage> {
   final TextEditingController usernameController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   final _authApi = const AuthApiService();
+  final _socialAuth = AuthService();
   bool obscurePassword = true;
   bool _isSubmitting = false;
 
@@ -53,6 +55,27 @@ class _WelcomePageState extends State<WelcomePage> {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const WakaShell()),
+        (route) => false,
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _socialLogin(Future<AuthResult?> Function() action) async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await action();
+      if (result == null || !mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute<void>(builder: (_) => const WakaShell()),
         (route) => false,
       );
     } on Object catch (error) {
@@ -393,8 +416,19 @@ class _WelcomePageState extends State<WelcomePage> {
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
                         _socialIcon(Icons.apple),
-                        _socialIcon(Icons.facebook),
-                        _socialIcon(Icons.g_mobiledata, size: 32),
+                        _socialIcon(
+                          Icons.facebook,
+                          label: 'Facebook',
+                          onTap: () =>
+                              _socialLogin(_socialAuth.signInWithFacebook),
+                        ),
+                        _socialIcon(
+                          Icons.g_mobiledata,
+                          size: 32,
+                          label: 'Google',
+                          onTap: () =>
+                              _socialLogin(_socialAuth.signInWithGoogle),
+                        ),
                         _socialIcon(Icons.credit_card),
                       ],
                     ),
@@ -409,15 +443,28 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
-  Widget _socialIcon(IconData icon, {double size = 26}) {
-    return Container(
-      width: 64,
-      height: 64,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white30, width: 1.2),
+  Widget _socialIcon(
+    IconData icon, {
+    double size = 26,
+    String? label,
+    VoidCallback? onTap,
+  }) {
+    return Semantics(
+      button: onTap != null,
+      label: label,
+      child: InkWell(
+        onTap: _isSubmitting ? null : onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white30, width: 1.2),
+          ),
+          child: Icon(icon, color: Colors.white, size: size),
+        ),
       ),
-      child: Icon(icon, color: Colors.white, size: size),
     );
   }
 }

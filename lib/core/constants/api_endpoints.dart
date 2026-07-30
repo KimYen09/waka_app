@@ -20,6 +20,8 @@ abstract final class ApiEndpoints {
   static final String apiRankings = '$apiBaseUrl/rankings';
   static final String apiRecommendations = '$apiBaseUrl/recommendations';
   static final String apiLogin = '$apiBaseUrl/auth/login';
+  static final String apiGoogleLogin = '$apiBaseUrl/auth/social/google';
+  static final String apiFacebookLogin = '$apiBaseUrl/auth/social/facebook';
   static final String apiRegister = '$apiBaseUrl/auth/register';
   static final String apiMe = '$apiBaseUrl/auth/me';
   static final String apiCart = '$apiBaseUrl/cart';

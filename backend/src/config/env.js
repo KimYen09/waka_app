@@ -15,6 +15,9 @@ module.exports = {
   corsOrigin: process.env.CORS_ORIGIN || '*',
   jwtSecret: required('JWT_SECRET', 'development-only-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
+  facebookAppId: process.env.FACEBOOK_APP_ID || '',
+  facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
   database: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),
