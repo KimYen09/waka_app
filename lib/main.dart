@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'core/services/auth_api_service.dart';
 import 'features/offer/offer_screen.dart';
+import 'features/admin/admin_dashboard_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/library/library_screen.dart';
 import 'features/home/home_screen.dart';
@@ -40,9 +42,15 @@ class _WakaShellState extends State<WakaShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Quyền được kiểm tra thêm tại shell để mọi luồng đăng nhập (mật khẩu,
+    // Google, Facebook) đều không thể đưa quản trị viên về nhầm giao diện đọc.
+    if (AuthSession.current?.user.isAdmin ?? false) {
+      return const AdminDashboardScreen();
+    }
+
     final pages = <Widget>[
       const HomeScreen(),
-      const ShopScreen(),      
+      const ShopScreen(),
       const OffersScreen(),
       const ExploreScreen(),
       const LibraryScreen(),
@@ -73,5 +81,3 @@ class _WakaShellState extends State<WakaShell> {
     );
   }
 }
-
-

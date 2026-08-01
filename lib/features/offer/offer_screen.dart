@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../home/home_screen.dart';
+import '../purchase/digital_purchase_sheet.dart';
 
 class OffersScreen extends StatelessWidget {
   const OffersScreen({super.key});
@@ -338,7 +339,17 @@ class _FlashSaleSectionState extends State<_FlashSaleSection> {
         ),
         const SizedBox(height: 16),
         GestureDetector(
-          onTap: () {},
+          onTap: () => showDigitalBookPurchase(
+            context,
+            DigitalPurchaseItem(
+              productId: digitalProductIdForBook(current.title),
+              title: current.title,
+              price: current.newPrice ?? current.oldPrice ?? '0đ',
+              imageUrl: current.imageUrl,
+              colors: [current.color, Colors.black],
+              icon: Icons.menu_book_rounded,
+            ),
+          ),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
             decoration: BoxDecoration(

@@ -73,16 +73,52 @@ class CommerceOrder {
   const CommerceOrder({
     required this.id,
     required this.status,
+    required this.paymentMethod,
+    required this.paymentStatus,
     required this.total,
     required this.createdAt,
     required this.itemCount,
+    required this.shippingRecipient,
+    required this.shippingAddress,
+    required this.shippingEvents,
   });
 
   final int id;
   final String status;
+  final String paymentMethod;
+  final String paymentStatus;
   final num total;
   final DateTime? createdAt;
   final int itemCount;
+  final String shippingRecipient;
+  final String shippingAddress;
+  final List<CommerceShippingEvent> shippingEvents;
+}
+
+class CommerceShippingEvent {
+  const CommerceShippingEvent({
+    required this.status,
+    required this.location,
+    required this.description,
+    required this.createdAt,
+  });
+
+  final String status;
+  final String location;
+  final String description;
+  final DateTime? createdAt;
+}
+
+class CommerceCheckoutResult {
+  const CommerceCheckoutResult({
+    required this.orderId,
+    required this.status,
+    required this.paymentStatus,
+  });
+
+  final int orderId;
+  final String status;
+  final String paymentStatus;
 }
 
 class CommerceApiService {
@@ -117,10 +153,34 @@ class CommerceApiService {
     );
   }
 
-  Future<void> checkout(List<int> bookIds) async {
-    await client.postJson(Uri.parse(ApiEndpoints.apiCheckout), {
+  Future<CommerceCheckoutResult> checkout(
+    List<int> bookIds, {
+    String? voucherCode,
+    required String paymentMethod,
+    required Map<String, Object?> shippingAddress,
+    String? orderCode,
+  }) async {
+    final body = <String, Object?>{
       'bookIds': bookIds,
-    }, bearerToken: _token);
+      'paymentMethod': paymentMethod,
+      'shippingAddress': shippingAddress,
+    };
+    if (voucherCode case final String code) body['voucherCode'] = code;
+    if (orderCode case final String code) body['orderCode'] = code;
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiCheckout),
+      body,
+      bearerToken: _token,
+    );
+    final data = _dataMap(response);
+    final payment = data['payment'] is Map<String, Object?>
+        ? data['payment'] as Map<String, Object?>
+        : const <String, Object?>{};
+    return CommerceCheckoutResult(
+      orderId: _int(data['orderId']),
+      status: data['status'] as String? ?? 'confirmed',
+      paymentStatus: payment['status'] as String? ?? 'pending',
+    );
   }
 
   Future<List<MembershipPlan>> getMembershipPlans() async {
@@ -174,10 +234,26 @@ class CommerceApiService {
         .map(
           (item) => CommerceOrder(
             id: _int(item['id']),
-            status: item['status'] as String? ?? 'pending',
+            status: item['status'] as String? ?? 'confirmed',
+            paymentMethod: item['paymentMethod'] as String? ?? 'cod',
+            paymentStatus: item['paymentStatus'] as String? ?? 'pending',
             total: _num(item['total']),
             createdAt: _date(item['createdAt']),
             itemCount: (item['items'] as List<Object?>? ?? const []).length,
+            shippingRecipient: item['shippingRecipient'] as String? ?? '',
+            shippingAddress: item['shippingAddress'] as String? ?? '',
+            shippingEvents:
+                (item['shippingEvents'] as List<Object?>? ?? const [])
+                    .whereType<Map<String, Object?>>()
+                    .map(
+                      (event) => CommerceShippingEvent(
+                        status: event['status'] as String? ?? 'confirmed',
+                        location: event['location'] as String? ?? '',
+                        description: event['description'] as String? ?? '',
+                        createdAt: _date(event['createdAt']),
+                      ),
+                    )
+                    .toList(growable: false),
           ),
         )
         .toList(growable: false);

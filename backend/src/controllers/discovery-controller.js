@@ -38,6 +38,7 @@ async function listRankings(req, res) {
      INNER JOIN books b ON b.id = r.book_id
      LEFT JOIN categories c ON c.id = b.category_id
      WHERE r.period = ? AND r.content_type = ?
+       AND b.moderation_status = 'approved' AND b.is_locked = FALSE
      ORDER BY r.rank_position
      LIMIT ?`,
     [period, contentType, limit],
@@ -71,6 +72,7 @@ async function listRecommendations(req, res) {
      INNER JOIN books b ON b.id = r.book_id
      LEFT JOIN categories c ON c.id = b.category_id
      WHERE r.content_type = ?
+       AND b.moderation_status = 'approved' AND b.is_locked = FALSE
      ORDER BY r.position
      LIMIT ?`,
     [contentType, limit],

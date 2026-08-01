@@ -4,6 +4,7 @@ const catalog = require('../controllers/catalog-controller');
 const discovery = require('../controllers/discovery-controller');
 const userContent = require('../controllers/user-content-controller');
 const commerce = require('../controllers/commerce-controller');
+const admin = require('../controllers/admin-controller');
 const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
@@ -27,5 +28,7 @@ router.get('/membership-plans', commerce.listMembershipPlans);
 router.get('/memberships/me', requireAuth, commerce.listMyMemberships);
 router.post('/memberships/purchase', requireAuth, commerce.purchaseMembership);
 router.get('/payments', requireAuth, commerce.listPayments);
+router.get('/author-application/me', requireAuth, admin.myAuthorApplication);
+router.post('/author-application', requireAuth, admin.submitAuthorApplication);
 
 module.exports = router;

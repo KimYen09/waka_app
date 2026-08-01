@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../purchase/digital_purchase_sheet.dart';
 import 'reader_screen.dart';
 
 class BookDetailData {
@@ -70,6 +71,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void _openReader() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => ReaderScreen(book: widget.book)),
+    );
+  }
+
+  Future<void> _buyDigitalBook() {
+    final book = widget.book;
+    return showDigitalBookPurchase(
+      context,
+      DigitalPurchaseItem(
+        productId: digitalProductIdForBook(book.title),
+        title: book.title,
+        price: book.price,
+        imageUrl: book.imageUrl,
+        colors: book.colors,
+        icon: book.icon,
+      ),
     );
   }
 
@@ -242,6 +258,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                 onFavorite: () => setState(() => _isFavorite = !_isFavorite),
                 onShare: _shareBook,
                 onRead: _openReader,
+                onBuy: _buyDigitalBook,
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -342,6 +359,7 @@ class _BookHero extends StatelessWidget {
     required this.onFavorite,
     required this.onShare,
     required this.onRead,
+    required this.onBuy,
   });
 
   final BookDetailData book;
@@ -349,6 +367,7 @@ class _BookHero extends StatelessWidget {
   final VoidCallback onFavorite;
   final VoidCallback onShare;
   final VoidCallback onRead;
+  final VoidCallback onBuy;
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +424,9 @@ class _BookHero extends StatelessWidget {
                         children: [
                           _MiniBookCover(book: book, width: 180),
                           const SizedBox(width: 18),
-                          Expanded(child: _AccessCard(book: book)),
+                          Expanded(
+                            child: _AccessCard(book: book, onBuy: onBuy),
+                          ),
                         ],
                       ),
                     ),
@@ -631,9 +652,10 @@ class _MemberCornerBadge extends StatelessWidget {
 }
 
 class _AccessCard extends StatelessWidget {
-  const _AccessCard({required this.book});
+  const _AccessCard({required this.book, required this.onBuy});
 
   final BookDetailData book;
+  final VoidCallback onBuy;
 
   @override
   Widget build(BuildContext context) {
@@ -678,17 +700,21 @@ class _AccessCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: const Text(
-              'MUA SÁCH',
-              style: TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.w900,
+          GestureDetector(
+            key: const ValueKey('book-detail-buy-button'),
+            onTap: onBuy,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              child: const Text(
+                'MUA SÁCH',
+                style: TextStyle(
+                  color: Colors.black,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
             ),
           ),

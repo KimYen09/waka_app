@@ -32,6 +32,14 @@ class RestApiClient {
     return _send('POST', uri, body: body, bearerToken: bearerToken);
   }
 
+  Future<Map<String, Object?>> patchJson(
+    Uri uri,
+    Map<String, Object?> body, {
+    String? bearerToken,
+  }) {
+    return _send('PATCH', uri, body: body, bearerToken: bearerToken);
+  }
+
   Future<Map<String, Object?>> deleteJson(Uri uri, {String? bearerToken}) {
     return _send('DELETE', uri, bearerToken: bearerToken);
   }

@@ -2,6 +2,7 @@ const cors = require('cors');
 const express = require('express');
 const env = require('./config/env');
 const authRoutes = require('./routes/auth-routes');
+const adminRoutes = require('./routes/admin-routes');
 const catalogRoutes = require('./routes/catalog-routes');
 const { notFound, errorHandler } = require('./middleware/error-handler');
 
@@ -15,6 +16,7 @@ app.get('/health', (req, res) => {
   res.json({ success: true, data: { status: 'ok' } });
 });
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api', catalogRoutes);
 
 app.use(notFound);

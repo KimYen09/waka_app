@@ -42,8 +42,15 @@ async function removeFavorite(req, res) {
 
 async function listOrders(req, res) {
   const [orders] = await pool.execute(
-    `SELECT id, status, total, created_at AS createdAt
-     FROM orders WHERE user_id = ? ORDER BY id DESC`,
+    `SELECT o.id, o.order_code AS orderCode, o.status, o.total,
+      o.payment_method AS paymentMethod, p.status AS paymentStatus,
+      o.shipping_recipient AS shippingRecipient,
+      o.shipping_phone AS shippingPhone,
+      o.shipping_address AS shippingAddress,
+      o.created_at AS createdAt, o.updated_at AS updatedAt
+     FROM orders o
+     LEFT JOIN payments p ON p.order_id = o.id
+     WHERE o.user_id = ? ORDER BY o.id DESC`,
     [req.user.id],
   );
   if (!orders.length) return res.json({ success: true, data: [] });
@@ -58,9 +65,18 @@ async function listOrders(req, res) {
      WHERE oi.order_id IN (${placeholders})`,
     ids,
   );
+  const [events] = await pool.execute(
+    `SELECT id, order_id AS orderId, status, location, description,
+      created_at AS createdAt
+     FROM shipping_events
+     WHERE order_id IN (${placeholders})
+     ORDER BY created_at, id`,
+    ids,
+  );
   const data = orders.map((order) => ({
     ...order,
     items: items.filter((item) => item.orderId === order.id),
+    shippingEvents: events.filter((event) => event.orderId === order.id),
   }));
   return res.json({ success: true, data });
 }

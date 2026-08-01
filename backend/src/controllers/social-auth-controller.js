@@ -96,13 +96,17 @@ async function findOrCreateSocialUser({
   try {
     await connection.beginTransaction();
     const [existing] = await connection.execute(
-      `SELECT u.id, u.identifier, u.display_name AS displayName
+      `SELECT u.id, u.identifier, u.display_name AS displayName,
+        u.role, u.account_status AS accountStatus
        FROM social_accounts sa
        INNER JOIN users u ON u.id = sa.user_id
        WHERE sa.provider = ? AND sa.provider_user_id = ? LIMIT 1 FOR UPDATE`,
       [provider, providerUserId],
     );
     if (existing.length) {
+      if (existing[0].accountStatus === 'locked') {
+        throw new HttpError(403, 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.');
+      }
       await connection.commit();
       return existing[0];
     }
@@ -122,6 +126,8 @@ async function findOrCreateSocialUser({
       id: result.insertId,
       identifier,
       displayName: String(displayName || '').trim() || null,
+      role: 'reader',
+      accountStatus: 'active',
     };
     await connection.commit();
     return user;

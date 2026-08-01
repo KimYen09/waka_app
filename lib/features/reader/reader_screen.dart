@@ -375,6 +375,9 @@ class _ReaderScreenState extends State<ReaderScreen>
                           textColor: _textColor,
                           fontSize: _fontSize,
                           lineHeight: _lineHeight,
+                          onChapterSelected: (chapterIndex) {
+                            _goToPage(_pageForChapter(chapterIndex));
+                          },
                         ),
                       );
                     },
@@ -407,6 +410,17 @@ class _ReaderScreenState extends State<ReaderScreen>
                   onProgressChanged: _seek,
                   onContents: _showTableOfContents,
                   onSettings: _showReaderSettings,
+                ),
+              ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 220),
+                right: 16,
+                bottom: _showControls ? 122 : 14,
+                child: _ReaderPageIndicator(
+                  currentPage: _currentPage,
+                  pageCount: _pages.length,
+                  backgroundColor: _backgroundColor,
+                  textColor: _textColor,
                 ),
               ),
             ],
@@ -568,6 +582,7 @@ class _ReaderPage extends StatelessWidget {
     required this.textColor,
     required this.fontSize,
     required this.lineHeight,
+    required this.onChapterSelected,
   });
 
   final _ReaderPageData page;
@@ -576,6 +591,7 @@ class _ReaderPage extends StatelessWidget {
   final Color textColor;
   final double fontSize;
   final double lineHeight;
+  final ValueChanged<int> onChapterSelected;
 
   TextStyle get _bodyStyle => TextStyle(
     color: textColor,
@@ -594,6 +610,7 @@ class _ReaderPage extends StatelessWidget {
         chapters: chapters,
         textColor: textColor,
         fontSize: fontSize,
+        onChapterSelected: onChapterSelected,
       ),
       _ReaderPageKind.chapter => _ChapterPage(
         page: page,
@@ -742,11 +759,13 @@ class _ContentsPage extends StatelessWidget {
     required this.chapters,
     required this.textColor,
     required this.fontSize,
+    required this.onChapterSelected,
   });
 
   final List<_ReaderChapter> chapters;
   final Color textColor;
   final double fontSize;
+  final ValueChanged<int> onChapterSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -770,16 +789,38 @@ class _ContentsPage extends StatelessWidget {
             chapters.length,
             (index) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(
-                'Chương ${index + 1}.  ${chapters[index].title}',
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: fontSize + 1,
-                  fontFamily: 'serif',
-                  fontFamilyFallback: const ['Noto Serif'],
-                  height: 1.25,
+              child: InkWell(
+                key: ValueKey('reader-contents-chapter-$index'),
+                onTap: () => onChapterSelected(index),
+                borderRadius: BorderRadius.circular(10),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Chương ${index + 1}.  ${chapters[index].title}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: textColor,
+                            fontSize: fontSize + 1,
+                            fontFamily: 'serif',
+                            fontFamilyFallback: const ['Noto Serif'],
+                            height: 1.25,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        color: textColor.withValues(alpha: 0.52),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -986,6 +1027,55 @@ class _ReaderTopBar extends StatelessWidget {
               ),
               const SizedBox(width: 4),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReaderPageIndicator extends StatelessWidget {
+  const _ReaderPageIndicator({
+    required this.currentPage,
+    required this.pageCount,
+    required this.backgroundColor,
+    required this.textColor,
+  });
+
+  final int currentPage;
+  final int pageCount;
+  final Color backgroundColor;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    final label = 'Trang ${currentPage + 1} / $pageCount';
+    return IgnorePointer(
+      child: Semantics(
+        label: label,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor.withValues(alpha: 0.88),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: textColor.withValues(alpha: 0.16)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            child: Text(
+              label,
+              style: TextStyle(
+                color: textColor.withValues(alpha: 0.72),
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ),
       ),

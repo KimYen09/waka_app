@@ -97,7 +97,10 @@ class _ShopScreenState extends State<ShopScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.loadApiData) _loadShopBooks();
+    if (widget.loadApiData) {
+      _loadShopBooks();
+      syncShopCartFromServer();
+    }
   }
 
   Future<void> _loadShopBooks() async {
@@ -135,20 +138,23 @@ class _ShopScreenState extends State<ShopScreen> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(
-              child: _ShopHeader(
-                controller: _searchController,
-                hasSearchText: _searchText.isNotEmpty,
-                onChanged: _onSearchChanged,
-                onClear: _clearSearch,
-                onCart: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ShopCartScreen(),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _ShopHeaderDelegate(
+                child: _ShopHeader(
+                  controller: _searchController,
+                  hasSearchText: _searchText.isNotEmpty,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                  onCart: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ShopCartScreen(),
+                    ),
                   ),
-                ),
-                onChat: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ShopChatScreen(),
+                  onChat: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ShopChatScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -498,9 +504,9 @@ class _ShopHeader extends StatelessWidget {
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints.tightFor(width: 32),
               onPressed: onCart,
-              icon: ValueListenableBuilder<List<ShopProduct>>(
-                valueListenable: shopCartProducts,
-                builder: (context, products, _) => Stack(
+              icon: ValueListenableBuilder<int>(
+                valueListenable: shopCartItemCount,
+                builder: (context, itemCount, _) => Stack(
                   clipBehavior: Clip.none,
                   children: [
                     const Icon(
@@ -508,21 +514,21 @@ class _ShopHeader extends StatelessWidget {
                       color: Colors.white,
                       size: 25,
                     ),
-                    if (products.isNotEmpty)
+                    if (itemCount > 0)
                       Positioned(
                         top: -6,
                         right: -7,
                         child: Container(
-                          constraints: const BoxConstraints(minWidth: 16),
-                          height: 16,
-                          padding: const EdgeInsets.symmetric(horizontal: 3),
+                          constraints: const BoxConstraints(minWidth: 18),
+                          height: 18,
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
                           alignment: Alignment.center,
-                          decoration: const BoxDecoration(
+                          decoration: BoxDecoration(
                             color: Color(0xFFFF2F6E),
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(9),
                           ),
                           child: Text(
-                            '${products.length}',
+                            itemCount > 99 ? '99+' : '$itemCount',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 9,
@@ -552,6 +558,35 @@ class _ShopHeader extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ShopHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _ShopHeaderDelegate({required this.child});
+
+  final Widget child;
+
+  @override
+  double get minExtent => ShopLayout.headerHeight;
+
+  @override
+  double get maxExtent => ShopLayout.headerHeight;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return ColoredBox(
+      key: const ValueKey('shop-sticky-header'),
+      color: WakaColors.background,
+      child: child,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _ShopHeaderDelegate oldDelegate) =>
+      oldDelegate.child != child;
 }
 
 class _ShopSectionTitle extends StatelessWidget {

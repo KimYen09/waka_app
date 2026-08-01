@@ -10,7 +10,6 @@ import '../../core/theme/app_theme.dart';
 import '../categories/categories_screen.dart';
 import '../membership/membership_plans_screen.dart';
 import '../reader/book_detail_screen.dart';
-import '../shop/shop_constants.dart';
 import '../shop/shop_flow_screens.dart';
 
 const _homeIllustrationAsset = 'assets/images/welcome_books.jpg';
@@ -180,7 +179,9 @@ const allHomeBooks = [
 ];
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.loadApiData = true});
+
+  final bool loadApiData;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -390,8 +391,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    _loadHomeBanners();
-    _loadHomeApi();
+    if (widget.loadApiData) {
+      _loadHomeBanners();
+      _loadHomeApi();
+    }
   }
 
   Future<void> _loadHomeBanners() async {
@@ -536,24 +539,28 @@ class _HomeScreenState extends State<HomeScreen> {
         child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
-            SliverToBoxAdapter(
-              child: _HomeHeader(
-                controller: _searchController,
-                isSearching: _isSearching,
-                hasSearchText: hasSearchText,
-                onSearchTap: _openSearch,
-                onChanged: _onSearchChanged,
-                onClear: _clearSearch,
-                onClose: _closeSearch,
-                selectedCategoryIndex: _selectedCategoryIndex,
-                onPlans: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const MembershipPlansScreen(),
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _HomeHeaderDelegate(
+                backgroundColor: _screenBackground,
+                child: _HomeHeader(
+                  controller: _searchController,
+                  isSearching: _isSearching,
+                  hasSearchText: hasSearchText,
+                  onSearchTap: _openSearch,
+                  onChanged: _onSearchChanged,
+                  onClear: _clearSearch,
+                  onClose: _closeSearch,
+                  selectedCategoryIndex: _selectedCategoryIndex,
+                  onPlans: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const MembershipPlansScreen(),
+                    ),
                   ),
-                ),
-                onCart: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ShopCartScreen(),
+                  onCart: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const ShopCartScreen(),
+                    ),
                   ),
                 ),
               ),
@@ -1153,6 +1160,40 @@ class _HomeHeader extends StatelessWidget {
   }
 }
 
+class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _HomeHeaderDelegate({
+    required this.child,
+    required this.backgroundColor,
+  });
+
+  static const double _height = 64;
+  final Widget child;
+  final Color backgroundColor;
+
+  @override
+  double get minExtent => _height;
+
+  @override
+  double get maxExtent => _height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return SizedBox.expand(
+      key: const ValueKey('home-sticky-header'),
+      child: ColoredBox(color: backgroundColor, child: child),
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) =>
+      oldDelegate.child != child ||
+      oldDelegate.backgroundColor != backgroundColor;
+}
+
 class _HomeCartButton extends StatelessWidget {
   const _HomeCartButton({required this.onTap});
 
@@ -1164,9 +1205,9 @@ class _HomeCartButton extends StatelessWidget {
       tooltip: 'Giỏ hàng',
       visualDensity: VisualDensity.compact,
       onPressed: onTap,
-      icon: ValueListenableBuilder<List<ShopProduct>>(
-        valueListenable: shopCartProducts,
-        builder: (context, products, _) => Stack(
+      icon: ValueListenableBuilder<int>(
+        valueListenable: shopCartItemCount,
+        builder: (context, itemCount, _) => Stack(
           clipBehavior: Clip.none,
           children: [
             const Icon(
@@ -1174,21 +1215,21 @@ class _HomeCartButton extends StatelessWidget {
               color: Colors.white,
               size: 28,
             ),
-            if (products.isNotEmpty)
+            if (itemCount > 0)
               Positioned(
                 top: -7,
                 right: -8,
                 child: Container(
-                  constraints: const BoxConstraints(minWidth: 17),
-                  height: 17,
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  constraints: const BoxConstraints(minWidth: 18),
+                  height: 18,
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(
+                  decoration: BoxDecoration(
                     color: Color(0xFFFF2F6E),
-                    shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(9),
                   ),
                   child: Text(
-                    '${products.length}',
+                    itemCount > 99 ? '99+' : '$itemCount',
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,

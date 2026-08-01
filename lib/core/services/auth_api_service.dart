@@ -6,11 +6,17 @@ class AuthUser {
     required this.id,
     required this.identifier,
     this.displayName,
+    this.role = 'reader',
+    this.accountStatus = 'active',
   });
 
   final int id;
   final String identifier;
   final String? displayName;
+  final String role;
+  final String accountStatus;
+
+  bool get isAdmin => role == 'admin' && accountStatus == 'active';
 }
 
 class AuthResult {
@@ -87,6 +93,8 @@ class AuthApiService {
         id: (userData['id'] as num?)?.toInt() ?? 0,
         identifier: userData['identifier'] as String? ?? '',
         displayName: userData['displayName'] as String?,
+        role: userData['role'] as String? ?? 'reader',
+        accountStatus: userData['accountStatus'] as String? ?? 'active',
       ),
       token: token,
     );

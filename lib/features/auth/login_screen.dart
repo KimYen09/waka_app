@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/auth_service.dart';
+import '../admin/admin_dashboard_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
@@ -47,16 +48,12 @@ class _WelcomePageState extends State<WelcomePage> {
     if (_isSubmitting || !_formKey.currentState!.validate()) return;
     setState(() => _isSubmitting = true);
     try {
-      await _authApi.login(
+      final result = await _authApi.login(
         identifier: usernameController.text,
         password: passwordController.text,
       );
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const WakaShell()),
-        (route) => false,
-      );
+      _openAuthenticatedArea(result);
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -73,11 +70,7 @@ class _WelcomePageState extends State<WelcomePage> {
     try {
       final result = await action();
       if (result == null || !mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute<void>(builder: (_) => const WakaShell()),
-        (route) => false,
-      );
+      _openAuthenticatedArea(result);
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -86,6 +79,13 @@ class _WelcomePageState extends State<WelcomePage> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  void _openAuthenticatedArea(AuthResult result) {
+    AppNavigation.replaceAll(
+      context,
+      result.user.isAdmin ? const AdminDashboardScreen() : const WakaShell(),
+    );
   }
 
   // Danh sách đường dẫn ảnh bìa sách thật

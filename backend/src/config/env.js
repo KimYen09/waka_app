@@ -18,6 +18,10 @@ module.exports = {
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   facebookAppId: process.env.FACEBOOK_APP_ID || '',
   facebookAppSecret: process.env.FACEBOOK_APP_SECRET || '',
+  adminIdentifiers: String(process.env.ADMIN_IDENTIFIERS || '')
+    .split(',')
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean),
   database: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),

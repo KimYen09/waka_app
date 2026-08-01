@@ -34,7 +34,7 @@ async function listBooks(req, res) {
   const search = String(req.query.search || '').trim();
   const categoryId = Number.parseInt(req.query.categoryId, 10);
 
-  const filters = [];
+  const filters = ["b.moderation_status = 'approved'", 'b.is_locked = FALSE'];
   const params = [];
   if (search) {
     filters.push('(b.title LIKE ? OR b.author LIKE ?)');
@@ -44,7 +44,7 @@ async function listBooks(req, res) {
     filters.push('b.category_id = ?');
     params.push(categoryId);
   }
-  const where = filters.length ? ` WHERE ${filters.join(' AND ')}` : '';
+  const where = ` WHERE ${filters.join(' AND ')}`;
 
   const [countRows] = await pool.execute(
     `SELECT COUNT(*) AS total FROM books b${where}`,
@@ -67,7 +67,12 @@ async function getBook(req, res) {
   const id = Number.parseInt(req.params.id, 10);
   if (!Number.isInteger(id)) throw new HttpError(400, 'Mã sách không hợp lệ.');
 
-  const [rows] = await pool.execute(`${bookSelect} WHERE b.id = ? LIMIT 1`, [id]);
+  const [rows] = await pool.execute(
+    `${bookSelect}
+     WHERE b.id = ? AND b.moderation_status = 'approved' AND b.is_locked = FALSE
+     LIMIT 1`,
+    [id],
+  );
   if (!rows.length) throw new HttpError(404, 'Không tìm thấy sách.');
   res.json({ success: true, data: mapBook(rows[0]) });
 }

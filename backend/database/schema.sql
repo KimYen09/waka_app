@@ -9,6 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
   identifier VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(120),
+  role ENUM('reader', 'author', 'admin') NOT NULL DEFAULT 'reader',
+  account_status ENUM('active', 'locked') NOT NULL DEFAULT 'active',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -34,9 +36,56 @@ CREATE TABLE IF NOT EXISTS categories (
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS authors (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NULL UNIQUE,
+  display_name VARCHAR(160) NOT NULL,
+  pen_name VARCHAR(160) NOT NULL DEFAULT '',
+  email VARCHAR(255) NOT NULL DEFAULT '',
+  phone VARCHAR(30) NOT NULL DEFAULT '',
+  bio TEXT,
+  avatar_url TEXT,
+  status ENUM('active', 'locked') NOT NULL DEFAULT 'active',
+  lock_reason VARCHAR(500),
+  approved_by BIGINT UNSIGNED NULL,
+  approved_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_authors_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_authors_approved_by
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_authors_status (status),
+  INDEX idx_authors_display_name (display_name)
+);
+
+CREATE TABLE IF NOT EXISTS author_applications (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL UNIQUE,
+  real_name VARCHAR(160) NOT NULL,
+  pen_name VARCHAR(160) NOT NULL DEFAULT '',
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(30) NOT NULL DEFAULT '',
+  bio TEXT,
+  identity_document_url TEXT,
+  portfolio_url TEXT,
+  status ENUM('pending', 'approved', 'rejected') NOT NULL DEFAULT 'pending',
+  review_note VARCHAR(500),
+  reviewed_by BIGINT UNSIGNED NULL,
+  reviewed_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_author_applications_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_author_applications_reviewed_by
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_author_applications_status_created (status, created_at)
+);
+
 CREATE TABLE IF NOT EXISTS books (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   category_id BIGINT UNSIGNED,
+  author_id BIGINT UNSIGNED NULL,
   title VARCHAR(255) NOT NULL,
   author VARCHAR(160) NOT NULL DEFAULT '',
   description TEXT,
@@ -45,12 +94,28 @@ CREATE TABLE IF NOT EXISTS books (
   price DECIMAL(12, 2) NOT NULL DEFAULT 0,
   discount_percent TINYINT UNSIGNED NOT NULL DEFAULT 0,
   is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+  moderation_status ENUM('draft', 'pending', 'approved', 'rejected')
+    NOT NULL DEFAULT 'approved',
+  moderation_note VARCHAR(500),
+  is_locked BOOLEAN NOT NULL DEFAULT FALSE,
+  lock_reason VARCHAR(500),
+  submitted_by BIGINT UNSIGNED NULL,
+  reviewed_by BIGINT UNSIGNED NULL,
+  reviewed_at DATETIME NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_books_category
     FOREIGN KEY (category_id) REFERENCES categories(id)
     ON DELETE SET NULL,
+  CONSTRAINT fk_books_author
+    FOREIGN KEY (author_id) REFERENCES authors(id) ON DELETE SET NULL,
+  CONSTRAINT fk_books_submitted_by
+    FOREIGN KEY (submitted_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_books_reviewed_by
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_books_category_id (category_id),
+  INDEX idx_books_author_id (author_id),
+  INDEX idx_books_moderation_locked (moderation_status, is_locked),
   INDEX idx_books_title (title)
 );
 
@@ -116,12 +181,23 @@ CREATE TABLE IF NOT EXISTS favorites (
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL,
-  status ENUM('pending', 'paid', 'cancelled') NOT NULL DEFAULT 'pending',
+  order_code VARCHAR(80),
+  payment_method ENUM('cod', 'bank_qr') NOT NULL DEFAULT 'cod',
+  status ENUM(
+    'payment_review', 'confirmed', 'packing', 'in_transit',
+    'at_hub', 'out_for_delivery', 'delivered', 'cancelled'
+  ) NOT NULL DEFAULT 'confirmed',
   total DECIMAL(12, 2) NOT NULL DEFAULT 0,
+  shipping_recipient VARCHAR(160) NOT NULL DEFAULT '',
+  shipping_phone VARCHAR(30) NOT NULL DEFAULT '',
+  shipping_address TEXT,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_orders_user
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE RESTRICT,
-  INDEX idx_orders_user_id (user_id)
+  INDEX idx_orders_user_id (user_id),
+  INDEX idx_orders_status_created (status, created_at),
+  INDEX idx_orders_code (order_code)
 );
 
 CREATE TABLE IF NOT EXISTS order_items (
@@ -134,6 +210,21 @@ CREATE TABLE IF NOT EXISTS order_items (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   CONSTRAINT fk_order_items_book
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE RESTRICT
+);
+
+CREATE TABLE IF NOT EXISTS shipping_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id BIGINT UNSIGNED NOT NULL,
+  status VARCHAR(40) NOT NULL,
+  location VARCHAR(255) NOT NULL DEFAULT '',
+  description VARCHAR(500) NOT NULL DEFAULT '',
+  created_by BIGINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_shipping_events_order
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  CONSTRAINT fk_shipping_events_creator
+    FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+  INDEX idx_shipping_events_order_created (order_id, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS cart_items (
@@ -189,7 +280,8 @@ CREATE TABLE IF NOT EXISTS payments (
   provider VARCHAR(40) NOT NULL DEFAULT 'demo',
   transaction_ref VARCHAR(80) NOT NULL UNIQUE,
   amount DECIMAL(12, 2) NOT NULL,
-  status ENUM('pending', 'paid', 'failed', 'refunded') NOT NULL DEFAULT 'pending',
+  status ENUM('pending', 'proof_submitted', 'paid', 'failed', 'refunded')
+    NOT NULL DEFAULT 'pending',
   paid_at DATETIME NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT fk_payments_user

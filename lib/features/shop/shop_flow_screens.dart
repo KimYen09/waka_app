@@ -5,11 +5,33 @@ import '../../core/services/auth_api_service.dart';
 import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/navigation/app_navigation.dart';
+import 'shop_checkout_screen.dart';
 import 'shop_constants.dart';
 
 final ValueNotifier<List<ShopProduct>> shopCartProducts = ValueNotifier(
   const <ShopProduct>[],
 );
+final ValueNotifier<int> shopCartItemCount = ValueNotifier(0);
+
+typedef ShopCartLoader = Future<CommerceCart> Function();
+
+Future<CommerceCart?> syncShopCartFromServer({ShopCartLoader? loadCart}) async {
+  if (!AuthSession.isSignedIn) return null;
+  try {
+    final cart = await (loadCart ?? const CommerceApiService().getCart)();
+    shopCartProducts.value = cart.items
+        .map(_productFromServerCart)
+        .toList(growable: false);
+    shopCartItemCount.value = cart.items.fold(
+      0,
+      (sum, item) => sum + item.quantity,
+    );
+    return cart;
+  } on Object {
+    // Preserve the local cart if synchronization temporarily fails.
+    return null;
+  }
+}
 
 void addShopProductToCart(ShopProduct product) {
   final current = shopCartProducts.value;
@@ -20,10 +42,11 @@ void addShopProductToCart(ShopProduct product) {
   );
   if (exists) return;
   shopCartProducts.value = [...current, product];
+  shopCartItemCount.value += 1;
   _saveCartItemToServer(product, 1);
 }
 
-void removeShopProductFromCart(ShopProduct product) {
+void removeShopProductFromCart(ShopProduct product, {int quantity = 1}) {
   shopCartProducts.value = shopCartProducts.value
       .where(
         (item) => product.url.isNotEmpty
@@ -31,6 +54,10 @@ void removeShopProductFromCart(ShopProduct product) {
             : item.title != product.title,
       )
       .toList(growable: false);
+  shopCartItemCount.value = (shopCartItemCount.value - quantity).clamp(
+    0,
+    shopCartItemCount.value,
+  );
   _removeCartItemFromServer(product);
 }
 
@@ -597,15 +624,14 @@ class _ShopCartScreenState extends State<ShopCartScreen> {
   }
 
   Future<void> _loadServerCart() async {
-    if (!AuthSession.isSignedIn) return;
-    try {
-      final cart = await const CommerceApiService().getCart();
-      if (!context.mounted) return;
-      shopCartProducts.value = cart.items.map(_productFromServerCart).toList();
-      setState(() {});
-    } on Object {
-      // Keep the in-memory cart when the API cannot be reached.
-    }
+    final cart = await syncShopCartFromServer();
+    if (cart == null || !context.mounted) return;
+    final products = shopCartProducts.value;
+    setState(() {
+      for (var index = 0; index < products.length; index++) {
+        _quantities[_keyOf(products[index])] = cart.items[index].quantity;
+      }
+    });
   }
 
   String _keyOf(ShopProduct product) => product.url.isNotEmpty
@@ -661,6 +687,10 @@ class _ShopCartScreenState extends State<ShopCartScreen> {
                       final next = (_quantities[key] ?? 1) + change;
                       if (next < 1) return;
                       setState(() => _quantities[key] = next);
+                      shopCartItemCount.value = products.fold(
+                        0,
+                        (sum, item) => sum + (_quantities[_keyOf(item)] ?? 1),
+                      );
                       _saveCartItemToServer(product, next);
                     },
                     onVoucher: () async {
@@ -756,36 +786,73 @@ class _ShopCartScreenState extends State<ShopCartScreen> {
     final selectedProducts = products
         .where((product) => _selectedKeys.contains(_keyOf(product)))
         .toList(growable: false);
-    if (selectedProducts.any((product) => product.backendBookId <= 0)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Hãy tải lại Waka Shop để đồng bộ sản phẩm trước khi thanh toán.',
-          ),
+    final subtotal = selectedProducts.fold<int>(
+      0,
+      (sum, product) =>
+          sum +
+          _priceValue(product.price) * (_quantities[_keyOf(product)] ?? 1),
+    );
+    final voucherDiscount = _voucher?.discountFor(subtotal) ?? 0;
+    final completedOrderId = await Navigator.of(context).push<int>(
+      MaterialPageRoute(
+        builder: (_) => ShopCheckoutScreen(
+          lines: [
+            for (final product in selectedProducts)
+              ShopCheckoutLine(
+                product: product,
+                quantity: _quantities[_keyOf(product)] ?? 1,
+              ),
+          ],
+          voucherName: _voucher?.title,
+          voucherDiscount: voucherDiscount,
+          onSubmitOrder:
+              (paymentMethod, voucher, shippingAddress, orderCode) async {
+                if (selectedProducts.any(
+                  (product) => product.backendBookId <= 0,
+                )) {
+                  throw StateError(
+                    'Hãy tải lại Waka Shop để đồng bộ sản phẩm trước khi tạo đơn.',
+                  );
+                }
+                final result = await const CommerceApiService().checkout(
+                  selectedProducts
+                      .map((product) => product.backendBookId)
+                      .toList(),
+                  voucherCode: voucher?.id,
+                  paymentMethod: paymentMethod == ShopPaymentMethod.bankQr
+                      ? 'bank_qr'
+                      : 'cod',
+                  shippingAddress: shippingAddress.toJson(),
+                  orderCode: orderCode,
+                );
+                return result.orderId;
+              },
         ),
-      );
-      return;
-    }
-    try {
-      await const CommerceApiService().checkout(
-        selectedProducts.map((product) => product.backendBookId).toList(),
-      );
+      ),
+    );
+    if (completedOrderId != null) {
       final selected = selectedProducts.toSet();
       shopCartProducts.value = products
           .where((product) => !selected.contains(product))
           .toList(growable: false);
       if (!context.mounted) return;
-      setState(() => _selectedKeys.clear());
+      setState(() {
+        for (final product in selectedProducts) {
+          _quantities.remove(_keyOf(product));
+        }
+        _selectedKeys.clear();
+      });
+      shopCartItemCount.value = shopCartProducts.value.fold(
+        0,
+        (sum, product) => sum + (_quantities[_keyOf(product)] ?? 1),
+      );
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Thanh toán demo thành công. Đơn hàng đã được lưu.'),
+        SnackBar(
+          content: Text(
+            'Đã tạo đơn #$completedOrderId. Theo dõi tiến trình trong Hồ sơ > Đơn hàng.',
+          ),
         ),
       );
-    } on Object catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
     }
   }
 }
@@ -954,7 +1021,10 @@ class _CartContent extends StatelessWidget {
                     ),
                     IconButton(
                       tooltip: 'Xóa khỏi giỏ',
-                      onPressed: () => removeShopProductFromCart(product),
+                      onPressed: () => removeShopProductFromCart(
+                        product,
+                        quantity: quantity,
+                      ),
                       icon: const Icon(
                         Icons.delete_outline_rounded,
                         color: Colors.white60,
@@ -1093,16 +1163,23 @@ class _QuantityButton extends StatelessWidget {
 }
 
 class _CartVoucher {
-  const _CartVoucher(this.title, this.description, this.percent);
+  const _CartVoucher(
+    this.title,
+    this.description,
+    this.percent,
+    this.minimumSubtotal,
+  );
   final String title;
   final String description;
   final int percent;
-  int discountFor(int subtotal) => (subtotal * percent / 100).round();
+  final int minimumSubtotal;
+  int discountFor(int subtotal) =>
+      subtotal < minimumSubtotal ? 0 : (subtotal * percent / 100).round();
 }
 
 const _cartVouchers = <_CartVoucher>[
-  _CartVoucher('Giảm 10%', 'Áp dụng cho đơn từ 100.000đ', 10),
-  _CartVoucher('Giảm 15%', 'Áp dụng cho đơn từ 250.000đ', 15),
+  _CartVoucher('Giảm 10%', 'Áp dụng cho đơn từ 100.000đ', 10, 100000),
+  _CartVoucher('Giảm 15%', 'Áp dụng cho đơn từ 250.000đ', 15, 250000),
 ];
 
 class ShopProductTile extends StatelessWidget {

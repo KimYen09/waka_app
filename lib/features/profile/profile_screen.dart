@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../core/services/auth_api_service.dart';
 import '../../shared/navigation/app_navigation.dart';
 import '../../shared/widgets/icons/acorn_icon.dart';
 import '../welcome/welcome_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 import 'account_info_screen.dart';
 import 'purchases_screen.dart';
 import 'profile_constants.dart';
@@ -810,16 +812,35 @@ class _MapChartPainter extends CustomPainter {
 class _ProfileMenuCard extends StatelessWidget {
   const _ProfileMenuCard();
 
-  static const _items = [
-    (Icons.history_rounded, 'Lịch sử giao dịch'),
-    (Icons.notifications_none_rounded, 'Thông báo'),
-    (Icons.location_on_outlined, 'Địa chỉ'),
-    (Icons.settings_outlined, 'Thông tin chung'),
-    (Icons.help_outline_rounded, 'Trợ giúp và góp ý'),
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final items = <({IconData icon, String title, VoidCallback? onTap})>[
+      if (AuthSession.current?.user.isAdmin ?? false)
+        (
+          icon: Icons.admin_panel_settings_outlined,
+          title: 'Trung tâm quản trị',
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const AdminDashboardScreen(),
+            ),
+          ),
+        ),
+      (
+        icon: Icons.history_rounded,
+        title: 'Đơn hàng và vận chuyển',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const PurchasesScreen()),
+        ),
+      ),
+      (icon: Icons.notifications_none_rounded, title: 'Thông báo', onTap: null),
+      (icon: Icons.location_on_outlined, title: 'Địa chỉ', onTap: null),
+      (icon: Icons.settings_outlined, title: 'Thông tin chung', onTap: null),
+      (
+        icon: Icons.help_outline_rounded,
+        title: 'Trợ giúp và góp ý',
+        onTap: null,
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: ProfileLayout.horizontalPadding,
@@ -831,9 +852,13 @@ class _ProfileMenuCard extends StatelessWidget {
         ),
         child: Column(
           children: [
-            for (var i = 0; i < _items.length; i++) ...[
-              _ProfileMenuItem(icon: _items[i].$1, title: _items[i].$2),
-              if (i != _items.length - 1)
+            for (var i = 0; i < items.length; i++) ...[
+              _ProfileMenuItem(
+                icon: items[i].icon,
+                title: items[i].title,
+                onTap: items[i].onTap,
+              ),
+              if (i != items.length - 1)
                 const Divider(
                   height: 1,
                   thickness: 0.7,
@@ -850,43 +875,47 @@ class _ProfileMenuCard extends StatelessWidget {
 }
 
 class _ProfileMenuItem extends StatelessWidget {
-  const _ProfileMenuItem({required this.icon, required this.title});
+  const _ProfileMenuItem({required this.icon, required this.title, this.onTap});
 
   final IconData icon;
   final String title;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: ProfileLayout.menuItemHeight,
-      child: Row(
-        children: [
-          const SizedBox(width: 14),
-          Icon(icon, color: WakaColors.accent, size: 30),
-          const SizedBox(width: 18),
-          Expanded(
-            child: FittedBox(
-              alignment: Alignment.centerLeft,
-              fit: BoxFit.scaleDown,
-              child: Text(
-                title,
-                maxLines: 1,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: ProfileFontSizes.menuItem,
-                  fontWeight: FontWeight.w500,
-                  height: 1,
+    return InkWell(
+      onTap: onTap,
+      child: SizedBox(
+        height: ProfileLayout.menuItemHeight,
+        child: Row(
+          children: [
+            const SizedBox(width: 14),
+            Icon(icon, color: WakaColors.accent, size: 30),
+            const SizedBox(width: 18),
+            Expanded(
+              child: FittedBox(
+                alignment: Alignment.centerLeft,
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: ProfileFontSizes.menuItem,
+                    fontWeight: FontWeight.w500,
+                    height: 1,
+                  ),
                 ),
               ),
             ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: WakaColors.mutedText,
-            size: 28,
-          ),
-          const SizedBox(width: 14),
-        ],
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: WakaColors.mutedText,
+              size: 28,
+            ),
+            const SizedBox(width: 14),
+          ],
+        ),
       ),
     );
   }
@@ -902,7 +931,10 @@ class _LogoutButton extends StatelessWidget {
         horizontal: ProfileLayout.horizontalPadding,
       ),
       child: GestureDetector(
-        onTap: () => AppNavigation.replaceAll(context, const WelcomeScreen()),
+        onTap: () {
+          AuthSession.clear();
+          AppNavigation.replaceAll(context, const WelcomeScreen());
+        },
         behavior: HitTestBehavior.opaque,
         child: Container(
           height: ProfileLayout.logoutButtonHeight,

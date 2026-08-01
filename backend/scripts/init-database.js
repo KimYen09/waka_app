@@ -13,6 +13,18 @@ function slugify(value) {
     .replace(/(^-|-$)/g, '');
 }
 
+async function ensureColumn(connection, table, column, definition) {
+  const [rows] = await connection.execute(
+    `SELECT 1 FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?
+     LIMIT 1`,
+    [table, column],
+  );
+  if (!rows.length) {
+    await connection.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+  }
+}
+
 async function init() {
   const connection = await mysql.createConnection({
     host: env.database.host,
@@ -26,6 +38,95 @@ async function init() {
     const schemaPath = path.join(__dirname, '../database/schema.sql');
     await connection.query(await fs.readFile(schemaPath, 'utf8'));
     await connection.changeUser({ database: env.database.database });
+
+    await ensureColumn(
+      connection,
+      'users',
+      'role',
+      "ENUM('reader', 'author', 'admin') NOT NULL DEFAULT 'reader'",
+    );
+    await ensureColumn(
+      connection,
+      'users',
+      'account_status',
+      "ENUM('active', 'locked') NOT NULL DEFAULT 'active'",
+    );
+    await ensureColumn(connection, 'books', 'author_id', 'BIGINT UNSIGNED NULL');
+    await ensureColumn(
+      connection,
+      'books',
+      'moderation_status',
+      "ENUM('draft', 'pending', 'approved', 'rejected') NOT NULL DEFAULT 'approved'",
+    );
+    await ensureColumn(connection, 'books', 'moderation_note', 'VARCHAR(500) NULL');
+    await ensureColumn(
+      connection,
+      'books',
+      'is_locked',
+      'BOOLEAN NOT NULL DEFAULT FALSE',
+    );
+    await ensureColumn(connection, 'books', 'lock_reason', 'VARCHAR(500) NULL');
+    await ensureColumn(connection, 'books', 'submitted_by', 'BIGINT UNSIGNED NULL');
+    await ensureColumn(connection, 'books', 'reviewed_by', 'BIGINT UNSIGNED NULL');
+    await ensureColumn(connection, 'books', 'reviewed_at', 'DATETIME NULL');
+    await ensureColumn(connection, 'orders', 'order_code', 'VARCHAR(80) NULL');
+    await ensureColumn(
+      connection,
+      'orders',
+      'payment_method',
+      "ENUM('cod', 'bank_qr') NOT NULL DEFAULT 'cod'",
+    );
+    await ensureColumn(
+      connection,
+      'orders',
+      'shipping_recipient',
+      "VARCHAR(160) NOT NULL DEFAULT ''",
+    );
+    await ensureColumn(
+      connection,
+      'orders',
+      'shipping_phone',
+      "VARCHAR(30) NOT NULL DEFAULT ''",
+    );
+    await ensureColumn(connection, 'orders', 'shipping_address', 'TEXT NULL');
+    await ensureColumn(
+      connection,
+      'orders',
+      'updated_at',
+      'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP',
+    );
+    await connection.query(
+      `ALTER TABLE orders MODIFY status ENUM(
+        'pending', 'paid', 'payment_review', 'confirmed', 'packing',
+        'in_transit', 'at_hub', 'out_for_delivery', 'delivered', 'cancelled'
+       ) NOT NULL DEFAULT 'confirmed'`,
+    );
+    await connection.query(
+      "UPDATE orders SET status = 'confirmed' WHERE status IN ('pending', 'paid')",
+    );
+    await connection.query(
+      `ALTER TABLE orders MODIFY status ENUM(
+        'payment_review', 'confirmed', 'packing', 'in_transit',
+        'at_hub', 'out_for_delivery', 'delivered', 'cancelled'
+       ) NOT NULL DEFAULT 'confirmed'`,
+    );
+    await connection.query(
+      `ALTER TABLE payments MODIFY status
+       ENUM('pending', 'proof_submitted', 'paid', 'failed', 'refunded')
+       NOT NULL DEFAULT 'pending'`,
+    );
+
+    if (env.adminIdentifiers.length) {
+      const placeholders = env.adminIdentifiers.map(() => '?').join(',');
+      await connection.execute(
+        `UPDATE users u
+         LEFT JOIN social_accounts sa ON sa.user_id = u.id
+         SET u.role = 'admin', u.account_status = 'active'
+         WHERE LOWER(u.identifier) IN (${placeholders})
+            OR LOWER(sa.email) IN (${placeholders})`,
+        [...env.adminIdentifiers, ...env.adminIdentifiers],
+      );
+    }
 
     const booksPath = path.join(__dirname, '../../assets/data/books.json');
     const source = JSON.parse(await fs.readFile(booksPath, 'utf8'));

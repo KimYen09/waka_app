@@ -5,6 +5,7 @@ async function listCategories(req, res) {
     `SELECT c.id, c.name, c.slug, COUNT(b.id) AS bookCount
      FROM categories c
      LEFT JOIN books b ON b.category_id = c.id
+       AND b.moderation_status = 'approved' AND b.is_locked = FALSE
      GROUP BY c.id
      ORDER BY c.name`,
   );
@@ -21,6 +22,7 @@ async function listOffers(req, res) {
      INNER JOIN books b ON b.id = o.book_id
      WHERE (o.starts_at IS NULL OR o.starts_at <= NOW())
        AND (o.ends_at IS NULL OR o.ends_at >= NOW())
+       AND b.moderation_status = 'approved' AND b.is_locked = FALSE
      ORDER BY o.discount_percent DESC, o.id DESC`,
   );
   res.json({ success: true, data: rows });

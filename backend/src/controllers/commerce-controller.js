@@ -1,6 +1,15 @@
 const pool = require('../config/database');
 const HttpError = require('../utils/http-error');
 
+const checkoutVouchers = new Map([
+  ['WAKA10', { percent: 10, minimumSubtotal: 100000 }],
+  ['WAKA15', { percent: 15, minimumSubtotal: 250000 }],
+]);
+
+function cleanText(value, maxLength = 500) {
+  return String(value || '').trim().slice(0, maxLength);
+}
+
 function mapPlan(row) {
   return {
     id: row.id,
@@ -40,6 +49,7 @@ async function listCart(req, res) {
      FROM cart_items ci
      INNER JOIN books b ON b.id = ci.book_id
      WHERE ci.user_id = ?
+       AND b.moderation_status = 'approved' AND b.is_locked = FALSE
      ORDER BY ci.updated_at DESC`,
     [req.user.id],
   );
@@ -54,7 +64,12 @@ async function upsertCartItem(req, res) {
   if (!Number.isInteger(bookId) || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
     throw new HttpError(422, 'Sản phẩm hoặc số lượng không hợp lệ.');
   }
-  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
+  const [books] = await pool.execute(
+    `SELECT id FROM books
+     WHERE id = ? AND moderation_status = 'approved' AND is_locked = FALSE
+     LIMIT 1`,
+    [bookId],
+  );
   if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
   await pool.execute(
     `INSERT INTO cart_items (user_id, book_id, quantity) VALUES (?, ?, ?)
@@ -72,11 +87,30 @@ async function removeCartItem(req, res) {
 }
 
 async function checkoutCart(req, res) {
+  const voucherCode = typeof req.body.voucherCode === 'string'
+    ? req.body.voucherCode.trim().toUpperCase()
+    : '';
   const requestedBookIds = [...new Set(
     (Array.isArray(req.body.bookIds) ? req.body.bookIds : [])
       .map((value) => Number.parseInt(value, 10))
       .filter(Number.isInteger),
   )];
+  const paymentMethod = req.body.paymentMethod === 'bank_qr' ? 'bank_qr' : 'cod';
+  const requestedOrderCode = cleanText(req.body.orderCode, 80);
+  const address = req.body.shippingAddress && typeof req.body.shippingAddress === 'object'
+    ? req.body.shippingAddress
+    : {};
+  const recipient = cleanText(address.recipient, 160);
+  const phone = cleanText(address.phone, 30);
+  const fullAddress = [
+    cleanText(address.streetAddress, 255),
+    cleanText(address.ward, 160),
+    cleanText(address.district, 160),
+    cleanText(address.province, 160),
+  ].filter(Boolean).join(', ');
+  if (!recipient || !phone || !fullAddress) {
+    throw new HttpError(422, 'Vui lòng cung cấp đầy đủ địa chỉ nhận hàng.');
+  }
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -88,15 +122,45 @@ async function checkoutCart(req, res) {
         ROUND(b.price * (1 - b.discount_percent / 100), 2) AS unitPrice
        FROM cart_items ci
        INNER JOIN books b ON b.id = ci.book_id
-       WHERE ci.user_id = ?${selection} FOR UPDATE`,
+       WHERE ci.user_id = ?${selection}
+         AND b.moderation_status = 'approved' AND b.is_locked = FALSE
+       FOR UPDATE`,
       [req.user.id, ...requestedBookIds],
     );
     if (!rows.length) throw new HttpError(422, 'Giỏ hàng đang trống.');
 
-    const total = rows.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
+    const subtotal = rows.reduce(
+      (sum, item) => sum + Number(item.unitPrice) * item.quantity,
+      0,
+    );
+    const voucher = voucherCode ? checkoutVouchers.get(voucherCode) : null;
+    if (voucherCode && !voucher) {
+      throw new HttpError(422, 'Voucher không hợp lệ.');
+    }
+    if (voucher && subtotal < voucher.minimumSubtotal) {
+      throw new HttpError(422, 'Đơn hàng chưa đủ điều kiện áp dụng voucher.');
+    }
+    const discount = voucher
+      ? Math.round(subtotal * voucher.percent / 100)
+      : 0;
+    const total = Math.max(0, subtotal - discount);
+    const orderStatus = paymentMethod === 'bank_qr' ? 'payment_review' : 'confirmed';
+    const orderCode = requestedOrderCode || `WAKA${Date.now()}`;
     const [orderResult] = await connection.execute(
-      'INSERT INTO orders (user_id, status, total) VALUES (?, ?, ?)',
-      [req.user.id, 'paid', total],
+      `INSERT INTO orders
+        (user_id, order_code, payment_method, status, total,
+         shipping_recipient, shipping_phone, shipping_address)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        req.user.id,
+        orderCode,
+        paymentMethod,
+        orderStatus,
+        total,
+        recipient,
+        phone,
+        fullAddress,
+      ],
     );
     for (const item of rows) {
       await connection.execute(
@@ -105,12 +169,40 @@ async function checkoutCart(req, res) {
         [orderResult.insertId, item.bookId, item.quantity, item.unitPrice],
       );
     }
-    const transactionRef = `DEMO-ORDER-${Date.now()}-${orderResult.insertId}`;
+    const transactionRef = paymentMethod === 'bank_qr'
+      ? orderCode
+      : `COD-${Date.now()}-${orderResult.insertId}`;
+    const paymentStatus = paymentMethod === 'bank_qr' ? 'proof_submitted' : 'pending';
     const [paymentResult] = await connection.execute(
       `INSERT INTO payments
         (user_id, order_id, provider, transaction_ref, amount, status, paid_at)
-       VALUES (?, ?, 'demo', ?, ?, 'paid', NOW())`,
-      [req.user.id, orderResult.insertId, transactionRef, total],
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [
+        req.user.id,
+        orderResult.insertId,
+        paymentMethod,
+        transactionRef,
+        total,
+        paymentStatus,
+      ],
+    );
+    await connection.execute(
+      `INSERT INTO shipping_events
+        (order_id, status, location, description, created_by)
+       VALUES (?, ?, ?, ?, NULL)`,
+      paymentMethod === 'bank_qr'
+        ? [
+          orderResult.insertId,
+          'payment_review',
+          'Thanh toán trực tuyến',
+          'Khách hàng đã báo chuyển khoản. Đang chờ quản trị viên xác nhận.',
+        ]
+        : [
+          orderResult.insertId,
+          'confirmed',
+          'Nhà sách Waka',
+          'Đơn COD đã được tiếp nhận. Thanh toán khi giao hàng thành công.',
+        ],
     );
     if (requestedBookIds.length) {
       await connection.execute(
@@ -126,9 +218,18 @@ async function checkoutCart(req, res) {
       success: true,
       data: {
         orderId: orderResult.insertId,
-        status: 'paid',
+        orderCode,
+        paymentMethod,
+        status: orderStatus,
+        subtotal,
+        discount,
+        voucherCode: voucherCode || null,
         total,
-        payment: { id: paymentResult.insertId, transactionRef, status: 'paid' },
+        payment: {
+          id: paymentResult.insertId,
+          transactionRef,
+          status: paymentStatus,
+        },
       },
     });
   } catch (error) {
