@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '/../../core/theme/app_theme.dart';
+import '../../core/theme/app_theme.dart';
 import '../welcome/welcome_constants.dart';
 import '../auth/login_screen.dart';
 import '../auth/register_screen.dart';
