@@ -10,12 +10,28 @@ class AuthService {
   AuthService({AuthApiService? authApi})
     : _authApi = authApi ?? const AuthApiService();
 
+  /// Web OAuth client ID của Firebase project `waka-demo-50aac`.
+  ///
+  /// Đây là dữ liệu công khai — nó đã nằm sẵn trong
+  /// `android/app/google-services.json` (mục `client_type: 3`) vốn được commit
+  /// lên git. Thứ phải giữ bí mật là *client secret*, dự án này không dùng tới.
+  ///
+  /// Đặt mặc định ở đây để bấm Run trong IDE cũng chạy được, khỏi phải nhớ cờ
+  /// `--dart-define`. Khi đổi sang Firebase project khác thì truyền
+  /// `--dart-define=GOOGLE_SERVER_CLIENT_ID=...` để ghi đè, không cần sửa code.
+  ///
+  /// Giá trị này phải luôn trùng `GOOGLE_CLIENT_ID` trong `backend/.env`.
+  static const _defaultGoogleClientId =
+      '382518666644-kj6vff51vhdc8kv7jech1acjvvvian4q.apps.googleusercontent.com';
+
   static const _googleWebClientId = String.fromEnvironment(
     'GOOGLE_WEB_CLIENT_ID',
+    defaultValue: _defaultGoogleClientId,
   );
 
   static const _googleServerClientId = String.fromEnvironment(
     'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: _defaultGoogleClientId,
   );
 
   GoogleSignIn? _googleSignIn;

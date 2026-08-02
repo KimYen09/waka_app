@@ -69,6 +69,45 @@ class UserMembership {
   final DateTime? expiresAt;
 }
 
+/// Sách người dùng đã đánh dấu yêu thích (`GET /api/favorites`).
+class FavoriteBook {
+  const FavoriteBook({
+    required this.bookId,
+    required this.title,
+    required this.author,
+    required this.imageUrl,
+    required this.price,
+    required this.discountPercent,
+    required this.createdAt,
+  });
+
+  final int bookId;
+  final String title;
+  final String author;
+  final String imageUrl;
+  final num price;
+  final int discountPercent;
+  final DateTime? createdAt;
+
+  /// Giá sau khi trừ phần trăm giảm.
+  num get unitPrice => price * (1 - discountPercent / 100);
+}
+
+/// Một dòng sách trong đơn hàng (`items` của `GET /api/orders`).
+class CommerceOrderItem {
+  const CommerceOrderItem({
+    required this.bookId,
+    required this.title,
+    required this.quantity,
+    required this.unitPrice,
+  });
+
+  final int bookId;
+  final String title;
+  final int quantity;
+  final num unitPrice;
+}
+
 class CommerceOrder {
   const CommerceOrder({
     required this.id,
@@ -78,6 +117,7 @@ class CommerceOrder {
     required this.total,
     required this.createdAt,
     required this.itemCount,
+    required this.items,
     required this.shippingRecipient,
     required this.shippingAddress,
     required this.shippingEvents,
@@ -90,6 +130,7 @@ class CommerceOrder {
   final num total;
   final DateTime? createdAt;
   final int itemCount;
+  final List<CommerceOrderItem> items;
   final String shippingRecipient;
   final String shippingAddress;
   final List<CommerceShippingEvent> shippingEvents;
@@ -222,6 +263,44 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
+  /// Danh sách sách đã đánh dấu yêu thích, mới nhất trước.
+  Future<List<FavoriteBook>> getFavorites() async {
+    final response = await client.getJson(
+      Uri.parse(ApiEndpoints.apiFavorites),
+      bearerToken: _token,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(
+          (item) => FavoriteBook(
+            bookId: _int(item['id']),
+            title: item['title'] as String? ?? '',
+            author: item['author'] as String? ?? '',
+            imageUrl: item['imageUrl'] as String? ?? '',
+            price: _num(item['price']),
+            discountPercent: _int(item['discountPercent']),
+            createdAt: _date(item['createdAt']),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  /// Backend dùng `INSERT IGNORE` nên gọi lại nhiều lần vẫn an toàn.
+  Future<void> addFavorite(int bookId) async {
+    await client.postJson(Uri.parse(ApiEndpoints.apiFavorites), {
+      'bookId': bookId,
+    }, bearerToken: _token);
+  }
+
+  Future<void> removeFavorite(int bookId) async {
+    await client.deleteJson(
+      Uri.parse('${ApiEndpoints.apiFavorites}/$bookId'),
+      bearerToken: _token,
+    );
+  }
+
   Future<List<CommerceOrder>> getOrders() async {
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiOrders),
@@ -240,6 +319,17 @@ class CommerceApiService {
             total: _num(item['total']),
             createdAt: _date(item['createdAt']),
             itemCount: (item['items'] as List<Object?>? ?? const []).length,
+            items: (item['items'] as List<Object?>? ?? const [])
+                .whereType<Map<String, Object?>>()
+                .map(
+                  (line) => CommerceOrderItem(
+                    bookId: _int(line['bookId']),
+                    title: line['title'] as String? ?? '',
+                    quantity: _int(line['quantity']),
+                    unitPrice: _num(line['unitPrice']),
+                  ),
+                )
+                .toList(growable: false),
             shippingRecipient: item['shippingRecipient'] as String? ?? '',
             shippingAddress: item['shippingAddress'] as String? ?? '',
             shippingEvents:

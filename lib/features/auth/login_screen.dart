@@ -392,11 +392,8 @@ class _WelcomePageState extends State<WelcomePage> {
                     SocialAuthRow(
                       label: 'Hoặc đăng nhập với',
                       enabled: !_isSubmitting,
-                      showPlaceholders: true,
                       onGoogle: () =>
                           _socialLogin(_socialAuth.signInWithGoogle),
-                      onFacebook: () =>
-                          _socialLogin(_socialAuth.signInWithFacebook),
                     ),
                     const SizedBox(height: 40),
                   ],

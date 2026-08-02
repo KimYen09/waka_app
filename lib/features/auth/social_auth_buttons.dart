@@ -8,7 +8,7 @@ class SocialAuthRow extends StatelessWidget {
     required this.label,
     required this.enabled,
     required this.onGoogle,
-    required this.onFacebook,
+    this.onFacebook,
     this.showPlaceholders = false,
   });
 
@@ -18,7 +18,9 @@ class SocialAuthRow extends StatelessWidget {
   /// Tắt toàn bộ nút trong lúc màn cha đang gọi API.
   final bool enabled;
   final VoidCallback onGoogle;
-  final VoidCallback onFacebook;
+
+  /// Bỏ trống thì không hiện nút Facebook.
+  final VoidCallback? onFacebook;
 
   /// Hiện thêm hai biểu tượng Apple/thẻ chưa được nối luồng đăng nhập.
   final bool showPlaceholders;
@@ -45,11 +47,12 @@ class SocialAuthRow extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             if (showPlaceholders) const SocialAuthIcon(icon: Icons.apple),
-            SocialAuthIcon(
-              icon: Icons.facebook,
-              label: 'Facebook',
-              onTap: enabled ? onFacebook : null,
-            ),
+            if (onFacebook != null)
+              SocialAuthIcon(
+                icon: Icons.facebook,
+                label: 'Facebook',
+                onTap: enabled ? onFacebook : null,
+              ),
             SocialAuthIcon(
               icon: Icons.g_mobiledata,
               size: 32,
