@@ -6,6 +6,7 @@ import '../admin/admin_dashboard_screen.dart';
 import 'register_screen.dart';
 import 'forgot_password_screen.dart';
 import 'auth_background.dart';
+import 'social_auth_buttons.dart';
 import '../../main.dart';
 import '../../shared/navigation/app_navigation.dart';
 
@@ -388,49 +389,14 @@ class _WelcomePageState extends State<WelcomePage> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Hoặc đăng nhập với
-                    Row(
-                      children: const [
-                        Expanded(
-                          child: Divider(color: Colors.white24, thickness: 1),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 12),
-                          child: Text(
-                            "Hoặc đăng nhập với",
-                            style: TextStyle(
-                              color: Colors.white70,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(color: Colors.white24, thickness: 1),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Social login icons
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _socialIcon(Icons.apple),
-                        _socialIcon(
-                          Icons.facebook,
-                          label: 'Facebook',
-                          onTap: () =>
-                              _socialLogin(_socialAuth.signInWithFacebook),
-                        ),
-                        _socialIcon(
-                          Icons.g_mobiledata,
-                          size: 32,
-                          label: 'Google',
-                          onTap: () =>
-                              _socialLogin(_socialAuth.signInWithGoogle),
-                        ),
-                        _socialIcon(Icons.credit_card),
-                      ],
+                    SocialAuthRow(
+                      label: 'Hoặc đăng nhập với',
+                      enabled: !_isSubmitting,
+                      showPlaceholders: true,
+                      onGoogle: () =>
+                          _socialLogin(_socialAuth.signInWithGoogle),
+                      onFacebook: () =>
+                          _socialLogin(_socialAuth.signInWithFacebook),
                     ),
                     const SizedBox(height: 40),
                   ],
@@ -443,28 +409,4 @@ class _WelcomePageState extends State<WelcomePage> {
     );
   }
 
-  Widget _socialIcon(
-    IconData icon, {
-    double size = 26,
-    String? label,
-    VoidCallback? onTap,
-  }) {
-    return Semantics(
-      button: onTap != null,
-      label: label,
-      child: InkWell(
-        onTap: _isSubmitting ? null : onTap,
-        customBorder: const CircleBorder(),
-        child: Container(
-          width: 64,
-          height: 64,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white30, width: 1.2),
-          ),
-          child: Icon(icon, color: Colors.white, size: size),
-        ),
-      ),
-    );
-  }
 }

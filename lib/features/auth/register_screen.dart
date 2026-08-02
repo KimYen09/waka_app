@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../core/services/auth_api_service.dart';
+import '../../core/services/auth_service.dart';
 import '../../main.dart';
 import '../../shared/navigation/app_navigation.dart';
+import '../admin/admin_dashboard_screen.dart';
+import 'social_auth_buttons.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -20,6 +23,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController confirmPasswordController =
       TextEditingController();
   final _authApi = const AuthApiService();
+  final _socialAuth = AuthService();
 
   bool obscurePassword = true;
   bool obscureConfirmPassword = true;
@@ -66,16 +70,12 @@ class _RegisterPageState extends State<RegisterPage> {
 
     setState(() => _isSubmitting = true);
     try {
-      await _authApi.register(
+      final result = await _authApi.register(
         identifier: identifierController.text,
         password: passwordController.text,
       );
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => const WakaShell()),
-        (route) => false,
-      );
+      _openAuthenticatedArea(result);
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -84,6 +84,32 @@ class _RegisterPageState extends State<RegisterPage> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  /// Đăng ký bằng Google/Facebook: tài khoản mạng xã hội chưa tồn tại sẽ được
+  /// backend tạo mới, đã tồn tại thì đăng nhập luôn.
+  Future<void> _socialLogin(Future<AuthResult?> Function() action) async {
+    if (_isSubmitting) return;
+    setState(() => _isSubmitting = true);
+    try {
+      final result = await action();
+      if (result == null || !mounted) return;
+      _openAuthenticatedArea(result);
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  void _openAuthenticatedArea(AuthResult result) {
+    AppNavigation.replaceAll(
+      context,
+      result.user.isAdmin ? const AdminDashboardScreen() : const WakaShell(),
+    );
   }
 
   @override
@@ -353,7 +379,17 @@ class _RegisterPageState extends State<RegisterPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 28),
+
+                    SocialAuthRow(
+                      label: 'Hoặc đăng ký với',
+                      enabled: !_isSubmitting,
+                      onGoogle: () =>
+                          _socialLogin(_socialAuth.signInWithGoogle),
+                      onFacebook: () =>
+                          _socialLogin(_socialAuth.signInWithFacebook),
+                    ),
+                    const SizedBox(height: 28),
 
                     Center(
                       child: GestureDetector(

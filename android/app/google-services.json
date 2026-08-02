@@ -1,26 +1,44 @@
 {
   "project_info": {
-    "project_number": "184617420406",
-    "project_id": "wiki-app-c2746",
-    "storage_bucket": "wiki-app-c2746.firebasestorage.app"
+    "project_number": "382518666644",
+    "project_id": "waka-demo-50aac",
+    "storage_bucket": "waka-demo-50aac.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:184617420406:android:bb610172f28e3b0583c157",
+        "mobilesdk_app_id": "1:382518666644:android:65b9d626ec6aaf33595b81",
         "android_client_info": {
           "package_name": "com.example.waka_demo"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "382518666644-rdicoquiujsj5ca66f12v1fp62glcd6b.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.waka_demo",
+            "certificate_hash": "866ebffa2b651d4b792f4d80c764ca22ab18ff9a"
+          }
+        },
+        {
+          "client_id": "382518666644-kj6vff51vhdc8kv7jech1acjvvvian4q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
-          "current_key": "AIzaSyDwVdSTyMqU6jpGnAP31OBks5ac_PvIamg"
+          "current_key": "AIzaSyB4sbyHLjnfGvUdbOKRMiosSPYhRBpVUvw"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "382518666644-kj6vff51vhdc8kv7jech1acjvvvian4q.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }
