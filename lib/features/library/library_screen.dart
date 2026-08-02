@@ -51,6 +51,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           if (!seenBookIds.add(item.bookId)) continue;
           purchased.add(
             _ShelfBook(
+              bookId: item.bookId,
               title: item.title,
               subtitle: 'Số lượng ${item.quantity}',
               imageUrl: '',
@@ -64,6 +65,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
         _favorites = favorites
             .map(
               (book) => _ShelfBook(
+                bookId: book.bookId,
                 title: book.title,
                 subtitle: book.author.isEmpty ? 'Waka' : book.author,
                 imageUrl: book.imageUrl,
@@ -82,11 +84,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
-  void _openBook(_ShelfBook book) {
-    Navigator.of(context).push(
+  Future<void> _openBook(_ShelfBook book) async {
+    await Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => BookDetailScreen(
           book: BookDetailData(
+            bookId: book.bookId,
             title: book.title,
             author: book.subtitle,
             imageUrl: book.imageUrl,
@@ -97,6 +100,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       ),
     );
+    // Người dùng có thể vừa bỏ tim ở màn chi tiết, nạp lại cho khớp.
+    if (mounted) await _load();
   }
 
   @override
@@ -260,11 +265,13 @@ class _LibraryScreenState extends State<LibraryScreen> {
 /// Dữ liệu tối giản đủ để vẽ một ô sách trong lưới.
 class _ShelfBook {
   const _ShelfBook({
+    required this.bookId,
     required this.title,
     required this.subtitle,
     required this.imageUrl,
   });
 
+  final int bookId;
   final String title;
   final String subtitle;
   final String imageUrl;

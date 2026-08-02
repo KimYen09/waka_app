@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../purchase/digital_purchase_sheet.dart';
 import 'reader_screen.dart';
@@ -10,6 +12,7 @@ class BookDetailData {
     required this.title,
     required this.colors,
     required this.icon,
+    this.bookId = 0,
     this.author = 'Waka Books',
     this.imageUrl = '',
     this.sourceUrl = '',
@@ -17,6 +20,10 @@ class BookDetailData {
     this.section = 'Sách điện tử',
     this.description = '',
   });
+
+  /// Id sách ở backend. Bằng 0 với dữ liệu mẫu/hardcode chưa đồng bộ máy chủ,
+  /// khi đó nút Yêu thích không gọi API được.
+  final int bookId;
 
   final String title;
   final String author;
@@ -64,9 +71,75 @@ class BookDetailScreen extends StatefulWidget {
 }
 
 class _BookDetailScreenState extends State<BookDetailScreen> {
+  static const _commerce = CommerceApiService();
+
   bool _isFavorite = false;
+  bool _isSavingFavorite = false;
   bool _showFullDescription = false;
   bool _showMemberOffer = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavoriteState();
+  }
+
+  /// Đọc trạng thái tim hiện tại để mở lại màn không bị lệch với máy chủ.
+  Future<void> _loadFavoriteState() async {
+    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    try {
+      final favorites = await _commerce.getFavorites();
+      if (!mounted) return;
+      setState(() {
+        _isFavorite = favorites.any(
+          (item) => item.bookId == widget.book.bookId,
+        );
+      });
+    } on Object {
+      // Không chặn việc đọc sách nếu API tạm thời lỗi.
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isSavingFavorite) return;
+    if (widget.book.bookId <= 0) {
+      _showMessage(
+        'Cuốn này là dữ liệu mẫu chưa có trên máy chủ nên chưa lưu được vào '
+        'Yêu thích.',
+      );
+      return;
+    }
+    if (!AuthSession.isSignedIn) {
+      _showMessage('Bạn cần đăng nhập để lưu sách yêu thích.');
+      return;
+    }
+
+    // Đổi giao diện trước cho mượt, hỏng thì trả lại trạng thái cũ.
+    final next = !_isFavorite;
+    setState(() {
+      _isFavorite = next;
+      _isSavingFavorite = true;
+    });
+    try {
+      if (next) {
+        await _commerce.addFavorite(widget.book.bookId);
+      } else {
+        await _commerce.removeFavorite(widget.book.bookId);
+      }
+      if (!mounted) return;
+      _showMessage(
+        next
+            ? 'Đã thêm vào Thư viện › Yêu thích.'
+            : 'Đã bỏ khỏi danh sách Yêu thích.',
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _isFavorite = !next);
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _isSavingFavorite = false);
+    }
+  }
 
   void _openReader() {
     Navigator.of(context).push(
@@ -137,7 +210,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   label: _isFavorite ? 'Bỏ yêu thích' : 'Yêu thích',
                   onTap: () {
                     Navigator.pop(sheetContext);
-                    setState(() => _isFavorite = !_isFavorite);
+                    _toggleFavorite();
                   },
                 ),
                 _ActionTile(
@@ -255,7 +328,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               _BookHero(
                 book: widget.book,
                 isFavorite: _isFavorite,
-                onFavorite: () => setState(() => _isFavorite = !_isFavorite),
+                onFavorite: _toggleFavorite,
                 onShare: _shareBook,
                 onRead: _openReader,
                 onBuy: _buyDigitalBook,

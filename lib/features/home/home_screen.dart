@@ -19,6 +19,7 @@ class HomeBook {
     required this.title,
     required this.colors,
     required this.icon,
+    this.bookId = 0,
     this.badge = 'HỘI VIÊN',
     this.badgeColor = const Color(0xFFFFB51F),
     this.price = '',
@@ -30,6 +31,9 @@ class HomeBook {
     this.rank = 0,
     this.recommendationReason = '',
   });
+
+  /// Id sách ở backend, bằng 0 với dữ liệu mẫu tĩnh trong file này.
+  final int bookId;
 
   final String title;
   final List<Color> colors;
@@ -815,6 +819,7 @@ String _homeNormalize(String value) {
 HomeBook _mapApiBookToHomeBook(WakaScrapedBook book) {
   final colors = _colorsForTitle(book.title);
   return HomeBook(
+    bookId: book.id,
     title: book.title,
     colors: colors,
     icon: _iconForTitle(book.title),
@@ -854,6 +859,7 @@ HomeBook _mapDiscoveryBookToHomeBook(
       ? (book.price * (1 - book.discountPercent / 100)).round()
       : 0;
   return HomeBook(
+    bookId: book.id,
     title: book.title,
     author: book.author,
     colors: _colorsForTitle(book.title),
@@ -2064,6 +2070,7 @@ void _openBookDetail(BuildContext context, HomeBook book) {
     MaterialPageRoute<void>(
       builder: (_) => BookDetailScreen(
         book: BookDetailData(
+          bookId: book.bookId,
           title: book.title,
           author: author,
           imageUrl: book.imageUrl,
