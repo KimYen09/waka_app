@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/services/auth_api_service.dart';
+import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'book_detail_screen.dart';
 
@@ -22,14 +26,17 @@ class _ReaderScreenState extends State<ReaderScreen>
   late final PageController _pageController;
   late final AnimationController _openingController;
   late final Animation<double> _openingProgress;
+  final CommerceApiService _commerceService = const CommerceApiService();
 
   bool _isOpening = true;
   bool _showControls = false;
   bool _isBookmarked = false;
   int _currentPage = 0;
+  int _lastSavedPage = -1;
   double _fontSize = 20;
   double _lineHeight = 1.65;
   _ReaderPalette _palette = _ReaderPalette.light;
+  Timer? _saveProgressTimer;
 
   List<_ReaderChapter> get _chapters => _sampleChapters(widget.book);
   List<_ReaderPageData> get _pages => _buildReaderPages(_chapters);
@@ -72,13 +79,56 @@ class _ReaderScreenState extends State<ReaderScreen>
       }
     });
     _openingController.forward();
+    unawaited(_loadSavedProgress());
   }
 
   @override
   void dispose() {
+    _saveProgressTimer?.cancel();
+    unawaited(_persistProgress(force: true));
     _openingController.dispose();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadSavedProgress() async {
+    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    try {
+      final savedPage = await _commerceService.getReadingProgress(widget.book.bookId);
+      if (!mounted || savedPage == null) return;
+      final safePage = savedPage.clamp(0, _pages.length - 1);
+      if (_pages.isEmpty) return;
+      setState(() {
+        _currentPage = safePage;
+        _lastSavedPage = safePage;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_pageController.hasClients) return;
+        _pageController.jumpToPage(safePage);
+      });
+    } on Object {
+      // Bỏ qua lỗi sync tiến trình đọc nếu backend tạm thời lỗi.
+    }
+  }
+
+  void _scheduleProgressSave() {
+    _saveProgressTimer?.cancel();
+    _saveProgressTimer = Timer(const Duration(seconds: 2), () {
+      unawaited(_persistProgress());
+    });
+  }
+
+  Future<void> _persistProgress({bool force = false}) async {
+    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    final page = _currentPage;
+    if (!force && page == _lastSavedPage) return;
+    try {
+      await _commerceService.saveReadingProgress(widget.book.bookId, page);
+      if (!mounted) return;
+      setState(() => _lastSavedPage = page);
+    } on Object {
+      // Bỏ qua lỗi lưu tiến trình để không làm gián đoạn trải nghiệm đọc.
+    }
   }
 
   void _seek(double value) {
@@ -363,6 +413,7 @@ class _ReaderScreenState extends State<ReaderScreen>
                         _currentPage = index;
                         _showControls = false;
                       });
+                      _scheduleProgressSave();
                     },
                     itemBuilder: (context, index) {
                       return _ZoomableReaderPage(

@@ -26,6 +26,7 @@ abstract final class ApiEndpoints {
   static final String apiMe = '$apiBaseUrl/auth/me';
   static final String apiCart = '$apiBaseUrl/cart';
   static final String apiFavorites = '$apiBaseUrl/favorites';
+  static final String apiDownloads = '$apiBaseUrl/downloads';
   static final String apiOrders = '$apiBaseUrl/orders';
   static final String apiCheckout = '$apiBaseUrl/checkout';
   static final String apiMembershipPlans = '$apiBaseUrl/membership-plans';

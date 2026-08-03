@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Waka App",
+      "request": "launch",
+      "type": "dart",
+      "args": [
+        "--dart-define", 
+        "GOOGLE_SERVER_CLIENT_ID=184617420406-jnjfvmlbva9ds5rhjipkq039tg0p93pn.apps.googleusercontent.com"
+      ]
+    }
+  ]
+}

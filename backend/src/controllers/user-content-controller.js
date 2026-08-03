@@ -140,10 +140,117 @@ async function createOrder(req, res) {
   }
 }
 
+async function upsertProgress(req, res) {
+  const bookId = Number.parseInt(req.body.bookId, 10);
+  const currentPage = Number.parseInt(req.body.currentPage, 10);
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    throw new HttpError(422, 'Mã sách không hợp lệ.');
+  }
+  if (!Number.isInteger(currentPage) || currentPage < 0) {
+    throw new HttpError(422, 'Số trang hiện tại không hợp lệ.');
+  }
+
+  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
+  if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
+
+  await pool.execute(
+    `INSERT INTO reading_progress (user_id, book_id, current_page)
+     VALUES (?, ?, ?)
+     ON DUPLICATE KEY UPDATE current_page = VALUES(current_page), updated_at = CURRENT_TIMESTAMP`,
+    [req.user.id, bookId, currentPage],
+  );
+
+  res.status(200).json({
+    success: true,
+    data: { bookId, currentPage },
+  });
+}
+
+async function getProgress(req, res) {
+  const bookId = Number.parseInt(req.params.bookId, 10);
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    throw new HttpError(400, 'Mã sách không hợp lệ.');
+  }
+
+  const [rows] = await pool.execute(
+    `SELECT book_id AS bookId, current_page AS currentPage,
+      updated_at AS updatedAt
+     FROM reading_progress
+     WHERE user_id = ? AND book_id = ?
+     LIMIT 1`,
+    [req.user.id, bookId],
+  );
+
+  if (!rows.length) {
+    return res.json({ success: true, data: null });
+  }
+
+  res.json({ success: true, data: rows[0] });
+}
+
+async function listProgress(req, res) {
+  const [rows] = await pool.execute(
+    `SELECT rp.book_id AS bookId, rp.current_page AS currentPage,
+      rp.updated_at AS updatedAt, b.title, b.author, b.image_url AS imageUrl,
+      b.source_url AS sourceUrl
+     FROM reading_progress rp
+     INNER JOIN books b ON b.id = rp.book_id
+     WHERE rp.user_id = ?
+     ORDER BY rp.updated_at DESC`,
+    [req.user.id],
+  );
+
+  res.json({ success: true, data: rows });
+}
+
+async function listDownloads(req, res) {
+  const [rows] = await pool.execute(
+    `SELECT b.id, b.title, b.author, b.image_url AS imageUrl,
+      b.source_url AS sourceUrl, d.created_at AS downloadedAt
+     FROM downloads d
+     INNER JOIN books b ON b.id = d.book_id
+     WHERE d.user_id = ?
+     ORDER BY d.created_at DESC`,
+    [req.user.id],
+  );
+  res.json({ success: true, data: rows });
+}
+
+async function addDownload(req, res) {
+  const bookId = Number.parseInt(req.body.bookId, 10);
+  if (!Number.isInteger(bookId)) throw new HttpError(422, 'Mã sách không hợp lệ.');
+
+  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
+  if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
+
+  await pool.execute(
+    'INSERT IGNORE INTO downloads (user_id, book_id) VALUES (?, ?)',
+    [req.user.id, bookId],
+  );
+  res.status(201).json({ success: true, data: { bookId } });
+}
+
+async function removeDownload(req, res) {
+  const bookId = Number.parseInt(req.params.bookId, 10);
+  if (!Number.isInteger(bookId)) throw new HttpError(400, 'Mã sách không hợp lệ.');
+
+  await pool.execute('DELETE FROM downloads WHERE user_id = ? AND book_id = ?', [
+    req.user.id,
+    bookId,
+  ]);
+  res.status(204).end();
+}
+
 module.exports = {
   listFavorites,
   addFavorite,
   removeFavorite,
   listOrders,
   createOrder,
+  upsertProgress,
+  getProgress,
+  listProgress,
+  listDownloads,
+  addDownload,
+  removeDownload,
 };

@@ -8,8 +8,8 @@ import '../reader/book_detail_screen.dart';
 /// Màn "Thư viện" - header (avatar + tabs) đứng yên khi cuộn, phần dưới cuộn qua.
 ///
 /// Tab "Đã mua" lấy từ `GET /api/orders`, tab "Yêu thích" lấy từ
-/// `GET /api/favorites`. Hai tab "Tiếp tục" và "Tải xuống" hiện chưa có bảng
-/// tương ứng trong backend nên tạm hiển thị trạng thái rỗng thay vì bịa dữ liệu.
+/// `GET /api/favorites`, tab "Tải xuống" lấy từ `GET /api/downloads`.
+/// Tab "Tiếp tục" vẫn chưa có bảng lịch sử đọc nếu muốn lưu tiến độ đọc.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
@@ -26,6 +26,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
   String _error = '';
   List<_ShelfBook> _favorites = const [];
   List<_ShelfBook> _purchased = const [];
+  List<_ShelfBook> _downloaded = const [];
+  List<_ShelfBook> _readingProgress = const [];
 
   @override
   void initState() {
@@ -42,6 +44,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
     try {
       final favorites = await _service.getFavorites();
       final orders = await _service.getOrders();
+      final downloads = await _service.getDownloads();
+      List<_ShelfBook> readingProgress = const [];
+      try {
+        final progressBooks = await _service.getReadingProgressBooks();
+        readingProgress = progressBooks
+            .map(
+              (progress) => _ShelfBook(
+                bookId: progress.bookId,
+                title: progress.title,
+                subtitle: progress.author.isEmpty ? 'Waka' : progress.author,
+                imageUrl: progress.imageUrl,
+              ),
+            )
+            .toList(growable: false);
+      } on Object {
+        // Nếu API progress lỗi thì vẫn hiển thị các tab còn lại bình thường.
+        readingProgress = const [];
+      }
 
       // Một cuốn có thể nằm trong nhiều đơn, chỉ giữ lần xuất hiện đầu tiên.
       final seenBookIds = <int>{};
@@ -73,6 +93,17 @@ class _LibraryScreenState extends State<LibraryScreen> {
             )
             .toList(growable: false);
         _purchased = purchased;
+        _downloaded = downloads
+            .map(
+              (book) => _ShelfBook(
+                bookId: book.bookId,
+                title: book.title,
+                subtitle: book.author.isEmpty ? 'Waka' : book.author,
+                imageUrl: book.imageUrl,
+              ),
+            )
+            .toList(growable: false);
+        _readingProgress = readingProgress;
         _isLoading = false;
       });
     } on Object catch (error) {
@@ -204,25 +235,47 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ];
     }
 
-    // Hai tab này cần bảng tiến độ đọc / tệp đã tải, backend chưa có.
-    if (_selectedTab == 0 || _selectedTab == 3) {
+    if (_selectedTab == 0) {
+      if (_readingProgress.isEmpty) {
+        return [
+          SliverToBoxAdapter(
+            child: _LibraryNotice(
+              icon: Icons.auto_stories_outlined,
+              message:
+                  'Chưa có sách nào đang đọc dở. Hãy mở một cuốn sách và lật '
+                  'trang để tiến trình được lưu lại.',
+            ),
+          ),
+        ];
+      }
+
       return [
-        SliverToBoxAdapter(
-          child: _LibraryNotice(
-            icon: _selectedTab == 0
-                ? Icons.auto_stories_outlined
-                : Icons.download_outlined,
-            message: _selectedTab == 0
-                ? 'Chưa có sách nào đang đọc dở. Tính năng lưu tiến độ đọc '
-                      'cần backend bổ sung bảng lịch sử đọc.'
-                : 'Chưa có sách tải xuống. Tính năng đọc ngoại tuyến cần '
-                      'backend bổ sung bảng tệp đã tải.',
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          sliver: SliverGrid(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 20,
+              childAspectRatio: 0.56,
+            ),
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _LibraryBookCard(
+                book: _readingProgress[index],
+                onTap: () => _openBook(_readingProgress[index]),
+              ),
+              childCount: _readingProgress.length,
+            ),
           ),
         ),
       ];
     }
 
-    final books = _selectedTab == 1 ? _purchased : _favorites;
+    final books = _selectedTab == 1
+        ? _purchased
+        : _selectedTab == 2
+            ? _favorites
+            : _downloaded;
     if (books.isEmpty) {
       return [
         SliverToBoxAdapter(

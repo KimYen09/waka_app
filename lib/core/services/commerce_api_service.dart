@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../constants/api_endpoints.dart';
 import 'auth_api_service.dart';
 import 'rest_api_client.dart';
@@ -91,6 +95,44 @@ class FavoriteBook {
 
   /// Giá sau khi trừ phần trăm giảm.
   num get unitPrice => price * (1 - discountPercent / 100);
+}
+
+class DownloadedBook {
+  const DownloadedBook({
+    required this.bookId,
+    required this.title,
+    required this.author,
+    required this.imageUrl,
+    required this.sourceUrl,
+    required this.downloadedAt,
+  });
+
+  final int bookId;
+  final String title;
+  final String author;
+  final String imageUrl;
+  final String sourceUrl;
+  final DateTime? downloadedAt;
+}
+
+class ReadingProgressBook {
+  const ReadingProgressBook({
+    required this.bookId,
+    required this.title,
+    required this.author,
+    required this.imageUrl,
+    required this.sourceUrl,
+    required this.currentPage,
+    required this.updatedAt,
+  });
+
+  final int bookId;
+  final String title;
+  final String author;
+  final String imageUrl;
+  final String sourceUrl;
+  final int currentPage;
+  final DateTime? updatedAt;
 }
 
 /// Một dòng sách trong đơn hàng (`items` của `GET /api/orders`).
@@ -287,6 +329,56 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
+  Future<List<DownloadedBook>> getDownloads() async {
+    final response = await client.getJson(
+      Uri.parse(ApiEndpoints.apiDownloads),
+      bearerToken: _token,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(_downloadedBookFromJson)
+        .toList(growable: false);
+  }
+
+  Future<void> addDownload(int bookId) async {
+    await client.postJson(
+      Uri.parse(ApiEndpoints.apiDownloads),
+      {'bookId': bookId},
+      bearerToken: _token,
+    );
+  }
+
+  Future<void> removeDownload(int bookId) async {
+    await client.deleteJson(
+      Uri.parse('${ApiEndpoints.apiDownloads}/$bookId'),
+      bearerToken: _token,
+    );
+  }
+
+  Future<void> saveReadingProgress(int bookId, int page) async {
+    await client.postJson(
+      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress'),
+      {'bookId': bookId, 'currentPage': page},
+      bearerToken: _token,
+    );
+  }
+
+  Future<int?> getReadingProgress(int bookId) async {
+    final response = await client.getJson(
+      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress/$bookId'),
+      bearerToken: _token,
+    );
+    final data = response['data'];
+    if (data is Map<String, Object?>) {
+      final page = data['currentPage'];
+      if (page is num) return page.toInt();
+      return int.tryParse('$page');
+    }
+    return null;
+  }
+
   /// Backend dùng `INSERT IGNORE` nên gọi lại nhiều lần vẫn an toàn.
   Future<void> addFavorite(int bookId) async {
     await client.postJson(Uri.parse(ApiEndpoints.apiFavorites), {
@@ -349,6 +441,19 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
+  Future<List<ReadingProgressBook>> getReadingProgressBooks() async {
+    final response = await client.getJson(
+      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress'),
+      bearerToken: _token,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(_readingProgressBookFromJson)
+        .toList(growable: false);
+  }
+
   String get _token {
     final token = AuthSession.current?.token;
     if (token == null || token.isEmpty) {
@@ -367,6 +472,27 @@ class CommerceApiService {
         price: _num(json['price']),
         discountPercent: _int(json['discountPercent']),
         unitPrice: _num(json['unitPrice']),
+      );
+
+  DownloadedBook _downloadedBookFromJson(Map<String, Object?> json) =>
+      DownloadedBook(
+        bookId: _int(json['id']),
+        title: json['title'] as String? ?? '',
+        author: json['author'] as String? ?? '',
+        imageUrl: json['imageUrl'] as String? ?? '',
+        sourceUrl: json['sourceUrl'] as String? ?? '',
+        downloadedAt: _date(json['downloadedAt']),
+      );
+
+  ReadingProgressBook _readingProgressBookFromJson(Map<String, Object?> json) =>
+      ReadingProgressBook(
+        bookId: _int(json['bookId']),
+        title: json['title'] as String? ?? '',
+        author: json['author'] as String? ?? '',
+        imageUrl: json['imageUrl'] as String? ?? '',
+        sourceUrl: json['sourceUrl'] as String? ?? '',
+        currentPage: _int(json['currentPage']),
+        updatedAt: _date(json['updatedAt']),
       );
 
   MembershipPlan _planFromJson(Map<String, Object?> json) => MembershipPlan(

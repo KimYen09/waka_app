@@ -75,6 +75,8 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   bool _isFavorite = false;
   bool _isSavingFavorite = false;
+  bool _isDownloaded = false;
+  bool _isSavingDownload = false;
   bool _showFullDescription = false;
   bool _showMemberOffer = true;
 
@@ -82,6 +84,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   void initState() {
     super.initState();
     _loadFavoriteState();
+    _loadDownloadedState();
   }
 
   /// Đọc trạng thái tim hiện tại để mở lại màn không bị lệch với máy chủ.
@@ -92,6 +95,21 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       if (!mounted) return;
       setState(() {
         _isFavorite = favorites.any(
+          (item) => item.bookId == widget.book.bookId,
+        );
+      });
+    } on Object {
+      // Không chặn việc đọc sách nếu API tạm thời lỗi.
+    }
+  }
+
+  Future<void> _loadDownloadedState() async {
+    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    try {
+      final downloads = await _commerce.getDownloads();
+      if (!mounted) return;
+      setState(() {
+        _isDownloaded = downloads.any(
           (item) => item.bookId == widget.book.bookId,
         );
       });
@@ -138,6 +156,43 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       _showMessage(error.toString());
     } finally {
       if (mounted) setState(() => _isSavingFavorite = false);
+    }
+  }
+
+  Future<void> _toggleDownload() async {
+    if (_isSavingDownload) return;
+    if (widget.book.bookId <= 0) {
+      _showMessage(
+        'Cuốn này là dữ liệu mẫu chưa có trên máy chủ nên chưa tải được.',
+      );
+      return;
+    }
+    if (!AuthSession.isSignedIn) {
+      _showMessage('Bạn cần đăng nhập để tải sách về.');
+      return;
+    }
+
+    final next = !_isDownloaded;
+    setState(() {
+      _isDownloaded = next;
+      _isSavingDownload = true;
+    });
+    try {
+      if (next) {
+        await _commerce.addDownload(widget.book.bookId);
+      } else {
+        await _commerce.removeDownload(widget.book.bookId);
+      }
+      if (!mounted) return;
+      _showMessage(
+        next ? 'Đã thêm vào Thư viện › Tải xuống.' : 'Đã xóa khỏi mục Tải xuống.',
+      );
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _isDownloaded = !next);
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) setState(() => _isSavingDownload = false);
     }
   }
 
@@ -222,12 +277,12 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   },
                 ),
                 _ActionTile(
-                  icon: Icons.download_rounded,
-                  label: 'Tải sách',
+                  icon: _isDownloaded ? Icons.check_circle_rounded : Icons.download_rounded,
+                  label: _isDownloaded ? 'Đã tải' : 'Tải sách',
                   trailing: const _MemberPill(),
                   onTap: () {
                     Navigator.pop(sheetContext);
-                    _showMessage('Tính năng tải sách dành cho Hội viên.');
+                    _toggleDownload();
                   },
                 ),
                 _ActionTile(
