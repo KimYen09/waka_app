@@ -8,8 +8,9 @@ import '../reader/book_detail_screen.dart';
 /// Màn "Thư viện" - header (avatar + tabs) đứng yên khi cuộn, phần dưới cuộn qua.
 ///
 /// Tab "Đã mua" lấy từ `GET /api/orders`, tab "Yêu thích" lấy từ
-/// `GET /api/favorites`, tab "Tải xuống" lấy từ `GET /api/downloads`.
-/// Tab "Tiếp tục" vẫn chưa có bảng lịch sử đọc nếu muốn lưu tiến độ đọc.
+/// `GET /api/favorites`, tab "Tải xuống" lấy từ `GET /api/downloads`, tab
+/// "Tiếp tục" lấy từ `GET /api/progress` — được ghi lại mỗi khi lật trang ở
+/// màn đọc sách.
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({super.key});
 
@@ -277,18 +278,24 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ? _favorites
             : _downloaded;
     if (books.isEmpty) {
-      return [
-        SliverToBoxAdapter(
-          child: _LibraryNotice(
-            icon: _selectedTab == 1
-                ? Icons.shopping_bag_outlined
-                : Icons.favorite_border_rounded,
-            message: _selectedTab == 1
-                ? 'Bạn chưa mua cuốn sách nào. Ghé Waka Shop để chọn sách nhé.'
-                : 'Chưa có sách yêu thích. Bấm biểu tượng trái tim ở màn chi '
-                      'tiết sách để thêm vào đây.',
-          ),
+      final (icon, message) = switch (_selectedTab) {
+        1 => (
+          Icons.shopping_bag_outlined,
+          'Bạn chưa mua cuốn sách nào. Ghé Waka Shop để chọn sách nhé.',
         ),
+        3 => (
+          Icons.download_outlined,
+          'Chưa có sách tải xuống. Bấm biểu tượng tải ở màn chi tiết sách để '
+              'thêm vào đây.',
+        ),
+        _ => (
+          Icons.favorite_border_rounded,
+          'Chưa có sách yêu thích. Bấm biểu tượng trái tim ở màn chi tiết '
+              'sách để thêm vào đây.',
+        ),
+      };
+      return [
+        SliverToBoxAdapter(child: _LibraryNotice(icon: icon, message: message)),
       ];
     }
 

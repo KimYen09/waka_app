@@ -1,7 +1,3 @@
-import 'dart:convert';
-
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-
 import '../constants/api_endpoints.dart';
 import 'auth_api_service.dart';
 import 'rest_api_client.dart';
@@ -359,7 +355,7 @@ class CommerceApiService {
 
   Future<void> saveReadingProgress(int bookId, int page) async {
     await client.postJson(
-      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress'),
+      Uri.parse(ApiEndpoints.apiProgress),
       {'bookId': bookId, 'currentPage': page},
       bearerToken: _token,
     );
@@ -367,7 +363,7 @@ class CommerceApiService {
 
   Future<int?> getReadingProgress(int bookId) async {
     final response = await client.getJson(
-      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress/$bookId'),
+      Uri.parse('${ApiEndpoints.apiProgress}/$bookId'),
       bearerToken: _token,
     );
     final data = response['data'];
@@ -443,7 +439,7 @@ class CommerceApiService {
 
   Future<List<ReadingProgressBook>> getReadingProgressBooks() async {
     final response = await client.getJson(
-      Uri.parse('${ApiEndpoints.apiBaseUrl}/progress'),
+      Uri.parse(ApiEndpoints.apiProgress),
       bearerToken: _token,
     );
     final data = response['data'];
