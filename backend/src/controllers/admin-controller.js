@@ -373,7 +373,8 @@ async function updatePaymentStatus(req, res) {
   try {
     await connection.beginTransaction();
     const [rows] = await connection.execute(
-      'SELECT order_id, membership_id FROM payments WHERE id = ? LIMIT 1 FOR UPDATE',
+      `SELECT user_id AS userId, order_id, membership_id, status AS previousStatus
+       FROM payments WHERE id = ? LIMIT 1 FOR UPDATE`,
       [id],
     );
     if (!rows.length) throw new HttpError(404, 'Không tìm thấy giao dịch.');
@@ -417,6 +418,69 @@ async function updatePaymentStatus(req, res) {
         'UPDATE user_memberships SET status = \'cancelled\' WHERE id = ?',
         [payment.membership_id],
       );
+    }
+    if (payment.membership_id && status === 'paid') {
+      const [memberships] = await connection.execute(
+        `SELECT um.id, um.user_id AS userId, um.status,
+          mp.duration_days AS durationDays
+         FROM user_memberships um
+         INNER JOIN membership_plans mp ON mp.id = um.plan_id
+         WHERE um.id = ? LIMIT 1 FOR UPDATE`,
+        [payment.membership_id],
+      );
+      const membership = memberships[0];
+      if (membership && membership.status === 'pending') {
+        const [activeRows] = await connection.execute(
+          `SELECT id, expires_at AS expiresAt FROM user_memberships
+           WHERE user_id = ? AND status = 'active' AND expires_at > NOW()
+           ORDER BY expires_at DESC LIMIT 1 FOR UPDATE`,
+          [membership.userId],
+        );
+        const current = activeRows[0];
+        const now = new Date();
+        const base = current && new Date(current.expiresAt) > now
+          ? new Date(current.expiresAt)
+          : now;
+        const expiresAt = new Date(
+          base.getTime() + Number(membership.durationDays) * 86400000,
+        );
+        if (current) {
+          await connection.execute(
+            "UPDATE user_memberships SET status = 'cancelled' WHERE id = ?",
+            [current.id],
+          );
+        }
+        await connection.execute(
+          `UPDATE user_memberships
+           SET status = 'active', started_at = NOW(), expires_at = ?
+           WHERE id = ?`,
+          [expiresAt, membership.id],
+        );
+      }
+    }
+    if (payment.membership_id && payment.previousStatus !== status) {
+      const notification = status === 'paid'
+        ? {
+          type: 'membership_approved',
+          title: 'Gói Hội viên đã được kích hoạt',
+          body: 'Admin đã xác nhận chuyển khoản. Bạn có thể đọc toàn bộ sách và chương Hội viên ngay bây giờ.',
+        }
+        : (status === 'failed' || status === 'refunded')
+          ? {
+            type: 'membership_rejected',
+            title: 'Giao dịch gói chưa được chấp nhận',
+            body: status === 'refunded'
+              ? 'Giao dịch đã được chuyển sang trạng thái hoàn tiền.'
+              : 'Admin không xác nhận được khoản chuyển tiền. Vui lòng kiểm tra và thử lại.',
+          }
+          : null;
+      if (notification) {
+        await connection.execute(
+          `INSERT INTO notifications (user_id, type, title, body)
+           VALUES (?, ?, ?, ?)`,
+          [payment.userId, notification.type, notification.title, notification.body],
+        );
+      }
     }
     await connection.commit();
   } catch (error) {
@@ -886,6 +950,54 @@ async function lockAuthor(req, res) {
   res.json({ success: true, data: mapAuthor(rows[0]) });
 }
 
+async function listReviews(req, res) {
+  const status = text(req.query.status, 20);
+  const search = text(req.query.search, 120);
+  const filters = [];
+  const params = [];
+  if (status === 'visible' || status === 'locked') {
+    filters.push('br.status = ?');
+    params.push(status);
+  }
+  if (search) {
+    filters.push('(br.comment LIKE ? OR b.title LIKE ? OR u.identifier LIKE ?)');
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+  }
+  const where = filters.length ? ` WHERE ${filters.join(' AND ')}` : '';
+  const [rows] = await pool.execute(
+    `SELECT br.id, br.book_id AS bookId, b.title AS bookTitle,
+      br.user_id AS userId, u.identifier, u.display_name AS displayName,
+      br.rating, br.comment, br.is_anonymous AS isAnonymous,
+      br.status, br.lock_reason AS lockReason,
+      br.created_at AS createdAt, br.updated_at AS updatedAt
+     FROM book_reviews br
+     INNER JOIN books b ON b.id = br.book_id
+     INNER JOIN users u ON u.id = br.user_id${where}
+     ORDER BY br.id DESC LIMIT 300`,
+    params,
+  );
+  res.json({
+    success: true,
+    data: rows.map((row) => ({ ...row, isAnonymous: Boolean(row.isAnonymous) })),
+  });
+}
+
+async function lockReview(req, res) {
+  const id = optionalId(req.params.id);
+  if (!id) throw new HttpError(400, 'Mã bình luận không hợp lệ.');
+  const locked = Boolean(req.body.locked);
+  const reason = locked ? text(req.body.reason, 500) : '';
+  if (locked && !reason) throw new HttpError(422, 'Vui lòng nhập lý do khóa bình luận.');
+  const [result] = await pool.execute(
+    `UPDATE book_reviews SET status = ?, lock_reason = ?, locked_by = ?,
+      locked_at = ? WHERE id = ?`,
+    [locked ? 'locked' : 'visible', reason || null, locked ? req.user.id : null,
+      locked ? new Date() : null, id],
+  );
+  if (!result.affectedRows) throw new HttpError(404, 'Không tìm thấy bình luận.');
+  res.json({ success: true, data: { id, status: locked ? 'locked' : 'visible' } });
+}
+
 module.exports = {
   dashboard,
   listBooks,
@@ -900,6 +1012,8 @@ module.exports = {
   listAuthors,
   updateAuthor,
   lockAuthor,
+  listReviews,
+  lockReview,
   listOrders,
   updateOrderStatus,
   addShippingEvent,

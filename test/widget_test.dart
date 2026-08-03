@@ -64,6 +64,9 @@ class _FakeLocationRepository implements ShopLocationRepository {
 class _FakeAdminRepository implements AdminRepository {
   int createBookCalls = 0;
 
+  @override
+  Future<void> lockReview(int id, bool locked, {String reason = ''}) async {}
+
   final snapshot = const AdminSnapshot(
     metrics: AdminMetrics(
       totalBooks: 8,

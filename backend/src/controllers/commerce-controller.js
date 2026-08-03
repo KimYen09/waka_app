@@ -272,6 +272,8 @@ async function listMyMemberships(req, res) {
 async function purchaseMembership(req, res) {
   const planId = Number.parseInt(req.body.planId, 10);
   if (!Number.isInteger(planId)) throw new HttpError(422, 'Gói cước không hợp lệ.');
+  const requestedTransactionRef = cleanText(req.body.transactionRef, 80);
+  if (!requestedTransactionRef) throw new HttpError(422, 'Thiếu nội dung chuyển khoản.');
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -282,32 +284,99 @@ async function purchaseMembership(req, res) {
     );
     const plan = plans[0];
     if (!plan) throw new HttpError(404, 'Gói cước không còn hiệu lực.');
-    const startedAt = new Date();
-    const expiresAt = new Date(startedAt.getTime() + Number(plan.durationDays) * 86400000);
+    const now = new Date();
+    const [pendingRows] = await connection.execute(
+      `SELECT id FROM user_memberships
+       WHERE user_id = ? AND status = 'pending' LIMIT 1 FOR UPDATE`,
+      [req.user.id],
+    );
+    if (pendingRows.length) {
+      throw new HttpError(409, 'Bạn đang có một giao dịch gói chờ quản trị viên duyệt.');
+    }
+    const [activeRows] = await connection.execute(
+      `SELECT um.id, um.started_at AS startedAt, um.expires_at AS expiresAt,
+        mp.price, mp.title
+       FROM user_memberships um
+       INNER JOIN membership_plans mp ON mp.id = um.plan_id
+       WHERE um.user_id = ? AND um.status = 'active' AND um.expires_at > NOW()
+       ORDER BY um.expires_at DESC LIMIT 1 FOR UPDATE`,
+      [req.user.id],
+    );
+    const current = activeRows[0];
+    if (current && Number(plan.price) < Number(current.price)) {
+      throw new HttpError(
+        422,
+        `Bạn đang dùng ${current.title}. Chỉ có thể gia hạn hoặc nâng cấp gói.`,
+      );
+    }
     const [membershipResult] = await connection.execute(
       `INSERT INTO user_memberships (user_id, plan_id, status, started_at, expires_at)
-       VALUES (?, ?, 'active', ?, ?)`,
-      [req.user.id, plan.id, startedAt, expiresAt],
+       VALUES (?, ?, 'pending', ?, ?)`,
+      [req.user.id, plan.id, now, now],
     );
-    const transactionRef = `DEMO-PLAN-${Date.now()}-${membershipResult.insertId}`;
+    const membershipId = membershipResult.insertId;
+    const startedAt = now;
+    const expiresAt = now;
+    const transactionRef = requestedTransactionRef;
     const [paymentResult] = await connection.execute(
       `INSERT INTO payments
         (user_id, membership_id, provider, transaction_ref, amount, status, paid_at)
-       VALUES (?, ?, 'demo', ?, ?, 'paid', NOW())`,
-      [req.user.id, membershipResult.insertId, transactionRef, plan.price],
+       VALUES (?, ?, 'bank_qr', ?, ?, 'proof_submitted', NULL)`,
+      [req.user.id, membershipId, transactionRef, plan.price],
     );
     await connection.commit();
     res.status(201).json({
       success: true,
       data: {
-        membershipId: membershipResult.insertId,
+        membershipId,
+        planId: plan.id,
         planTitle: plan.title,
-        status: 'active',
+        price: Number(plan.price),
+        status: 'pending',
         startedAt,
         expiresAt,
-        payment: { id: paymentResult.insertId, transactionRef, status: 'paid' },
+        payment: {
+          id: paymentResult.insertId,
+          transactionRef,
+          status: 'proof_submitted',
+        },
       },
     });
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+}
+
+async function cancelMembership(req, res) {
+  const connection = await pool.getConnection();
+  try {
+    await connection.beginTransaction();
+    const [memberships] = await connection.execute(
+      `SELECT id FROM user_memberships
+       WHERE user_id = ? AND status IN ('active', 'pending') FOR UPDATE`,
+      [req.user.id],
+    );
+    if (!memberships.length) {
+      throw new HttpError(404, 'Bạn không có đăng ký nào để hủy.');
+    }
+    const ids = memberships.map((item) => item.id);
+    const placeholders = ids.map(() => '?').join(',');
+    await connection.execute(
+      `UPDATE user_memberships SET status = 'cancelled'
+       WHERE id IN (${placeholders})`,
+      ids,
+    );
+    await connection.execute(
+      `UPDATE payments SET status = 'failed'
+       WHERE membership_id IN (${placeholders})
+         AND status IN ('pending', 'proof_submitted')`,
+      ids,
+    );
+    await connection.commit();
+    res.json({ success: true, data: { cancelled: ids.length } });
   } catch (error) {
     await connection.rollback();
     throw error;
@@ -327,6 +396,28 @@ async function listPayments(req, res) {
   res.json({ success: true, data: rows });
 }
 
+async function listNotifications(req, res) {
+  const [rows] = await pool.execute(
+    `SELECT id, type, title, body, is_read AS isRead, created_at AS createdAt
+     FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 100`,
+    [req.user.id],
+  );
+  res.json({
+    success: true,
+    data: rows.map((item) => ({ ...item, isRead: Boolean(item.isRead) })),
+  });
+}
+
+async function markNotificationRead(req, res) {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id)) throw new HttpError(400, 'Mã thông báo không hợp lệ.');
+  await pool.execute(
+    'UPDATE notifications SET is_read = TRUE WHERE id = ? AND user_id = ?',
+    [id, req.user.id],
+  );
+  res.json({ success: true, data: { id, isRead: true } });
+}
+
 module.exports = {
   listCart,
   upsertCartItem,
@@ -335,5 +426,8 @@ module.exports = {
   listMembershipPlans,
   listMyMemberships,
   purchaseMembership,
+  cancelMembership,
   listPayments,
+  listNotifications,
+  markNotificationRead,
 };

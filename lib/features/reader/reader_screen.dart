@@ -31,6 +31,7 @@ class _ReaderScreenState extends State<ReaderScreen>
   bool _isOpening = true;
   bool _showControls = false;
   bool _isBookmarked = false;
+  bool _hasMembership = false;
   int _currentPage = 0;
   int _lastSavedPage = -1;
   double _fontSize = 20;
@@ -39,7 +40,8 @@ class _ReaderScreenState extends State<ReaderScreen>
   Timer? _saveProgressTimer;
 
   List<_ReaderChapter> get _chapters => _sampleChapters(widget.book);
-  List<_ReaderPageData> get _pages => _buildReaderPages(_chapters);
+  List<_ReaderPageData> get _pages =>
+      _buildReaderPages(_chapters, hasFullAccess: _hasMembership);
 
   double get _progress {
     if (_pages.length <= 1) return 0;
@@ -80,6 +82,18 @@ class _ReaderScreenState extends State<ReaderScreen>
     });
     _openingController.forward();
     unawaited(_loadSavedProgress());
+    _loadMembershipAccess();
+  }
+
+  Future<void> _loadMembershipAccess() async {
+    if (!AuthSession.isSignedIn) return;
+    try {
+      final membership = await const CommerceApiService().getActiveMembership();
+      if (!mounted || membership == null) return;
+      setState(() => _hasMembership = true);
+    } on Object {
+      // Khi không xác minh được quyền, chỉ hiển thị nội dung xem trước.
+    }
   }
 
   @override
@@ -94,7 +108,9 @@ class _ReaderScreenState extends State<ReaderScreen>
   Future<void> _loadSavedProgress() async {
     if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
     try {
-      final savedPage = await _commerceService.getReadingProgress(widget.book.bookId);
+      final savedPage = await _commerceService.getReadingProgress(
+        widget.book.bookId,
+      );
       if (!mounted || savedPage == null) return;
       final safePage = savedPage.clamp(0, _pages.length - 1);
       if (_pages.isEmpty) return;
@@ -204,17 +220,20 @@ class _ReaderScreenState extends State<ReaderScreen>
                       indent: 22,
                     ),
                     itemBuilder: (context, index) {
+                      final locked = !_hasMembership && index > 0;
                       final targetPage = _pageForChapter(index);
                       final active = _pages[_currentPage].chapterIndex == index;
                       return ListTile(
-                        onTap: () {
-                          Navigator.pop(sheetContext);
-                          _pageController.animateToPage(
-                            targetPage,
-                            duration: const Duration(milliseconds: 380),
-                            curve: Curves.easeOutCubic,
-                          );
-                        },
+                        onTap: locked
+                            ? null
+                            : () {
+                                Navigator.pop(sheetContext);
+                                _pageController.animateToPage(
+                                  targetPage,
+                                  duration: const Duration(milliseconds: 380),
+                                  curve: Curves.easeOutCubic,
+                                );
+                              },
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: 22,
                           vertical: 7,
@@ -242,6 +261,12 @@ class _ReaderScreenState extends State<ReaderScreen>
                                 : FontWeight.w500,
                           ),
                         ),
+                        trailing: locked
+                            ? const Icon(
+                                Icons.lock_outline_rounded,
+                                color: Colors.white38,
+                              )
+                            : null,
                       );
                     },
                   ),
@@ -427,8 +452,10 @@ class _ReaderScreenState extends State<ReaderScreen>
                           fontSize: _fontSize,
                           lineHeight: _lineHeight,
                           onChapterSelected: (chapterIndex) {
+                            if (!_hasMembership && chapterIndex > 0) return;
                             _goToPage(_pageForChapter(chapterIndex));
                           },
+                          hasFullAccess: _hasMembership,
                         ),
                       );
                     },
@@ -634,6 +661,7 @@ class _ReaderPage extends StatelessWidget {
     required this.fontSize,
     required this.lineHeight,
     required this.onChapterSelected,
+    required this.hasFullAccess,
   });
 
   final _ReaderPageData page;
@@ -643,6 +671,7 @@ class _ReaderPage extends StatelessWidget {
   final double fontSize;
   final double lineHeight;
   final ValueChanged<int> onChapterSelected;
+  final bool hasFullAccess;
 
   TextStyle get _bodyStyle => TextStyle(
     color: textColor,
@@ -662,6 +691,7 @@ class _ReaderPage extends StatelessWidget {
         textColor: textColor,
         fontSize: fontSize,
         onChapterSelected: onChapterSelected,
+        hasFullAccess: hasFullAccess,
       ),
       _ReaderPageKind.chapter => _ChapterPage(
         page: page,
@@ -811,12 +841,14 @@ class _ContentsPage extends StatelessWidget {
     required this.textColor,
     required this.fontSize,
     required this.onChapterSelected,
+    required this.hasFullAccess,
   });
 
   final List<_ReaderChapter> chapters;
   final Color textColor;
   final double fontSize;
   final ValueChanged<int> onChapterSelected;
+  final bool hasFullAccess;
 
   @override
   Widget build(BuildContext context) {
@@ -842,7 +874,9 @@ class _ContentsPage extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: InkWell(
                 key: ValueKey('reader-contents-chapter-$index'),
-                onTap: () => onChapterSelected(index),
+                onTap: !hasFullAccess && index > 0
+                    ? null
+                    : () => onChapterSelected(index),
                 borderRadius: BorderRadius.circular(10),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
@@ -867,7 +901,9 @@ class _ContentsPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Icon(
-                        Icons.chevron_right_rounded,
+                        !hasFullAccess && index > 0
+                            ? Icons.lock_outline_rounded
+                            : Icons.chevron_right_rounded,
                         color: textColor.withValues(alpha: 0.52),
                       ),
                     ],
@@ -1274,12 +1310,22 @@ class _ReaderChapter {
   final List<String> paragraphs;
 }
 
-List<_ReaderPageData> _buildReaderPages(List<_ReaderChapter> chapters) {
+List<_ReaderPageData> _buildReaderPages(
+  List<_ReaderChapter> chapters, {
+  required bool hasFullAccess,
+}) {
   final pages = <_ReaderPageData>[
     const _ReaderPageData(kind: _ReaderPageKind.cover),
     const _ReaderPageData(kind: _ReaderPageKind.contents),
   ];
-  for (var chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++) {
+  final visibleChapterCount = hasFullAccess
+      ? chapters.length
+      : chapters.length.clamp(0, 1);
+  for (
+    var chapterIndex = 0;
+    chapterIndex < visibleChapterCount;
+    chapterIndex++
+  ) {
     final chapter = chapters[chapterIndex];
     for (
       var paragraphIndex = 0;
@@ -1298,7 +1344,9 @@ List<_ReaderPageData> _buildReaderPages(List<_ReaderChapter> chapters) {
       );
     }
   }
-  pages.add(const _ReaderPageData(kind: _ReaderPageKind.previewEnd));
+  if (!hasFullAccess) {
+    pages.add(const _ReaderPageData(kind: _ReaderPageKind.previewEnd));
+  }
   return pages;
 }
 
@@ -1326,6 +1374,59 @@ List<_ReaderChapter> _sampleChapters(BookDetailData book) {
               'đọc là một cơ hội để dừng lại và suy nghĩ kỹ hơn.',
           'Khi một bài học được lặp lại bằng hành động, nó dần trở thành kinh '
               'nghiệm. Đó là lúc giá trị của việc đọc được thể hiện rõ nhất.',
+        ],
+      ),
+      _ReaderChapter(
+        title: 'Nhìn vấn đề từ nhiều phía',
+        paragraphs: [
+          'Mỗi chủ đề trong ${book.section.toLowerCase()} đều có nhiều lớp ý '
+              'nghĩa. Khi thay đổi điểm quan sát, người đọc có thể nhận ra '
+              'những mối liên hệ trước đây còn bị bỏ sót.',
+          'Một cách đọc hữu ích là tách dữ kiện, nhận định và cảm xúc thành '
+              'ba nhóm. Việc phân biệt chúng giúp quá trình suy nghĩ rõ ràng '
+              'hơn và hạn chế kết luận quá sớm.',
+          'Chương demo này do Waka Demo tự biên soạn nhằm minh họa trải '
+              'nghiệm đọc dành cho Hội viên, không phải nội dung nguyên tác.',
+        ],
+      ),
+      const _ReaderChapter(
+        title: 'Sức mạnh của những thay đổi nhỏ',
+        paragraphs: [
+          'Một mục tiêu lớn thường gây cảm giác khó bắt đầu. Chia mục tiêu '
+              'thành hành động nhỏ giúp chúng ta nhìn thấy tiến bộ và duy trì '
+              'động lực qua từng ngày.',
+          'Điều quan trọng không nằm ở một lần cố gắng thật mạnh mà ở khả năng '
+              'lặp lại lựa chọn phù hợp. Sự nhất quán dần tạo nên kết quả mà '
+              'một hành động đơn lẻ khó mang lại.',
+          'Sau mỗi tuần, hãy dành ít phút để xem điều gì đã hiệu quả, điều gì '
+              'cần thay đổi và bước nhỏ tiếp theo sẽ là gì.',
+        ],
+      ),
+      const _ReaderChapter(
+        title: 'Ghi chép để hiểu sâu hơn',
+        paragraphs: [
+          'Ghi chép không phải là sao chép mọi câu chữ. Một ghi chú tốt nên '
+              'tóm lại ý chính bằng ngôn ngữ của chính người đọc và đặt nó '
+              'trong bối cảnh quen thuộc.',
+          'Những câu hỏi còn bỏ ngỏ cũng đáng được lưu lại. Chúng chỉ ra phần '
+              'kiến thức cần tìm hiểu thêm và giúp lần đọc sau có mục tiêu rõ '
+              'ràng hơn.',
+          'Khi xem lại ghi chú sau một khoảng thời gian, người đọc có thể nhận '
+              'ra cách suy nghĩ của mình đã thay đổi và trưởng thành ra sao.',
+        ],
+      ),
+      _ReaderChapter(
+        title: 'Biến kiến thức thành trải nghiệm',
+        paragraphs: [
+          'Giá trị của ${book.title} trong bản demo không nằm ở số trang đã '
+              'lướt qua, mà ở việc một ý tưởng có thể được thử nghiệm trong '
+              'đời sống như thế nào.',
+          'Hãy chọn một gợi ý phù hợp, đặt ra tiêu chí quan sát và thử trong '
+              'một khoảng thời gian ngắn. Kết quả thực tế sẽ giúp bạn hiểu ý '
+              'tưởng sâu hơn bất kỳ bản tóm tắt nào.',
+          'Kết thúc hành trình đọc, hãy giữ lại một điều muốn tiếp tục, một '
+              'điều cần điều chỉnh và một câu hỏi muốn khám phá trong cuốn '
+              'sách tiếp theo.',
         ],
       ),
     ];

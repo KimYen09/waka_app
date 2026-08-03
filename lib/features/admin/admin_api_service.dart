@@ -390,6 +390,7 @@ class AdminSnapshot {
     this.orders = const [],
     this.payments = const [],
     this.users = const [],
+    this.reviews = const [],
   });
 
   final AdminMetrics metrics;
@@ -399,6 +400,44 @@ class AdminSnapshot {
   final List<AdminOrder> orders;
   final List<AdminPayment> payments;
   final List<AdminUserAccount> users;
+  final List<AdminReview> reviews;
+}
+
+class AdminReview {
+  const AdminReview({
+    required this.id,
+    required this.bookTitle,
+    required this.identifier,
+    required this.displayName,
+    required this.rating,
+    required this.comment,
+    required this.isAnonymous,
+    required this.status,
+    required this.lockReason,
+    required this.createdAt,
+  });
+  final int id;
+  final String bookTitle;
+  final String identifier;
+  final String displayName;
+  final int rating;
+  final String comment;
+  final bool isAnonymous;
+  final String status;
+  final String lockReason;
+  final DateTime? createdAt;
+  factory AdminReview.fromJson(Map<String, Object?> json) => AdminReview(
+    id: _integer(json['id']),
+    bookTitle: _string(json['bookTitle']),
+    identifier: _string(json['identifier']),
+    displayName: _string(json['displayName']),
+    rating: _integer(json['rating']),
+    comment: _string(json['comment']),
+    isAnonymous: json['isAnonymous'] == true,
+    status: _string(json['status'], fallback: 'visible'),
+    lockReason: _string(json['lockReason']),
+    createdAt: DateTime.tryParse(_string(json['createdAt'])),
+  );
 }
 
 class AdminBookInput {
@@ -469,6 +508,7 @@ abstract interface class AdminRepository {
     required String role,
     required String status,
   });
+  Future<void> lockReview(int id, bool locked, {String reason = ''});
 }
 
 class AdminApiService implements AdminRepository {
@@ -515,6 +555,10 @@ class AdminApiService implements AdminRepository {
         Uri.parse(ApiEndpoints.apiAdminUsers),
         bearerToken: _token,
       ),
+      client.getJson(
+        Uri.parse(ApiEndpoints.apiAdminReviews),
+        bearerToken: _token,
+      ),
     ]);
     return AdminSnapshot(
       metrics: AdminMetrics.fromJson(_map(responses[0]['data'])),
@@ -536,6 +580,9 @@ class AdminApiService implements AdminRepository {
       users: _list(
         responses[6]['data'],
       ).map((item) => AdminUserAccount.fromJson(_map(item))).toList(),
+      reviews: _list(
+        responses[7]['data'],
+      ).map((item) => AdminReview.fromJson(_map(item))).toList(),
     );
   }
 
@@ -655,6 +702,15 @@ class AdminApiService implements AdminRepository {
       'role': role,
       'accountStatus': status,
     }, bearerToken: _token);
+  }
+
+  @override
+  Future<void> lockReview(int id, bool locked, {String reason = ''}) async {
+    await client.patchJson(
+      Uri.parse('${ApiEndpoints.apiAdminReviews}/$id/lock'),
+      {'locked': locked, 'reason': reason},
+      bearerToken: _token,
+    );
   }
 }
 

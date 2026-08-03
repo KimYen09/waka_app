@@ -35,6 +35,7 @@ abstract final class ApiEndpoints {
   static final String apiMembershipPurchase =
       '$apiBaseUrl/memberships/purchase';
   static final String apiPayments = '$apiBaseUrl/payments';
+  static final String apiNotifications = '$apiBaseUrl/notifications';
   static final String apiAdmin = '$apiBaseUrl/admin';
   static final String apiAdminDashboard = '$apiAdmin/dashboard';
   static final String apiAdminBooks = '$apiAdmin/books';
@@ -44,6 +45,7 @@ abstract final class ApiEndpoints {
   static final String apiAdminOrders = '$apiAdmin/orders';
   static final String apiAdminPayments = '$apiAdmin/payments';
   static final String apiAdminUsers = '$apiAdmin/users';
+  static final String apiAdminReviews = '$apiAdmin/reviews';
   static final String apiAuthorApplication = '$apiBaseUrl/author-application';
 
   // Các URL Waka chỉ còn dùng làm nguồn tham khảo/fallback trong dữ liệu cũ.

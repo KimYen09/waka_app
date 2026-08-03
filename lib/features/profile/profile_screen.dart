@@ -9,6 +9,7 @@ import '../welcome/welcome_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 import '../membership/membership_plans_screen.dart';
 import 'account_info_screen.dart';
+import 'author_registration_screen.dart';
 import 'profile_detail_screens.dart';
 import 'purchases_screen.dart';
 import 'profile_constants.dart';
@@ -70,58 +71,58 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: RefreshIndicator(
             onRefresh: _loadOrderCounts,
             child: CustomScrollView(
-            physics: const AlwaysScrollableScrollPhysics(
-              parent: BouncingScrollPhysics(),
-            ),
-            slivers: [
-              const SliverToBoxAdapter(child: _ProfileHeader()),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              SliverToBoxAdapter(
-                child: _UserRow(
-                  name: user?.displayName?.isNotEmpty == true
-                      ? user!.displayName!
-                      : user?.identifier ?? 'Chưa đăng nhập',
-                  subtitle: user == null
-                      ? 'Đăng nhập để đồng bộ dữ liệu'
-                      : 'Xem thông tin tài khoản',
-                ),
+              physics: const AlwaysScrollableScrollPhysics(
+                parent: BouncingScrollPhysics(),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              const SliverToBoxAdapter(child: _RewardCard()),
-              const SliverToBoxAdapter(child: SizedBox(height: 26)),
-              SliverToBoxAdapter(
-                child: _ProfileSectionTitle(
-                  title: 'Đơn hàng',
-                  action: 'Chi tiết đơn hàng',
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const PurchasesScreen(),
+              slivers: [
+                const SliverToBoxAdapter(child: _ProfileHeader()),
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                SliverToBoxAdapter(
+                  child: _UserRow(
+                    name: user?.displayName?.isNotEmpty == true
+                        ? user!.displayName!
+                        : user?.identifier ?? 'Chưa đăng nhập',
+                    subtitle: user == null
+                        ? 'Đăng nhập để đồng bộ dữ liệu'
+                        : 'Xem thông tin tài khoản',
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                const SliverToBoxAdapter(child: _RewardCard()),
+                const SliverToBoxAdapter(child: SizedBox(height: 26)),
+                SliverToBoxAdapter(
+                  child: _ProfileSectionTitle(
+                    title: 'Đơn hàng',
+                    action: 'Chi tiết đơn hàng',
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const PurchasesScreen(),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(
-                child: _OrderCard(
-                  awaitingConfirm: _awaitingConfirm,
-                  awaitingPickup: _awaitingPickup,
-                  delivering: _delivering,
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                SliverToBoxAdapter(
+                  child: _OrderCard(
+                    awaitingConfirm: _awaitingConfirm,
+                    awaitingPickup: _awaitingPickup,
+                    delivering: _delivering,
+                  ),
                 ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              const SliverToBoxAdapter(
-                child: _ProfileSectionTitle(title: 'Lịch sử đọc sách'),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              const SliverToBoxAdapter(child: _ReadingHistoryCard()),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
-              const SliverToBoxAdapter(child: _WakaMap()),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              const SliverToBoxAdapter(child: _ProfileMenuCard()),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              const SliverToBoxAdapter(child: _LogoutButton()),
-              const SliverToBoxAdapter(child: SizedBox(height: 96)),
-            ],
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                const SliverToBoxAdapter(
+                  child: _ProfileSectionTitle(title: 'Lịch sử đọc sách'),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                const SliverToBoxAdapter(child: _ReadingHistoryCard()),
+                const SliverToBoxAdapter(child: SizedBox(height: 30)),
+                const SliverToBoxAdapter(child: _WakaMap()),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                const SliverToBoxAdapter(child: _ProfileMenuCard()),
+                const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                const SliverToBoxAdapter(child: _LogoutButton()),
+                const SliverToBoxAdapter(child: SizedBox(height: 96)),
+              ],
             ),
           ),
         ),
@@ -526,43 +527,43 @@ class _RewardItem extends StatelessWidget {
     return InkWell(
       onTap: () => _showInfo(context),
       child: Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: ProfileLayout.horizontalPadding,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '$label  ›',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: WakaColors.mutedText,
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w500,
-                    height: 1,
+        padding: const EdgeInsets.symmetric(
+          horizontal: ProfileLayout.horizontalPadding,
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '$label  ›',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: WakaColors.mutedText,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w500,
+                      height: 1,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  '0',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                    height: 1,
+                  const SizedBox(height: 4),
+                  const Text(
+                    '0',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      height: 1,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          customIcon ?? Icon(icon, color: color, size: 28),
-        ],
-      ),
+            customIcon ?? Icon(icon, color: color, size: 28),
+          ],
+        ),
       ),
     );
   }
@@ -691,63 +692,63 @@ class _OrderItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(12),
         child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: ProfileLayout.orderIconSize,
-                height: ProfileLayout.orderIconSize,
-                decoration: const BoxDecoration(
-                  color: Color(0xFF0C0C0D),
-                  shape: BoxShape.circle,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Container(
+                  width: ProfileLayout.orderIconSize,
+                  height: ProfileLayout.orderIconSize,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF0C0C0D),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: Colors.white, size: 30),
                 ),
-                child: Icon(icon, color: Colors.white, size: 30),
-              ),
-              if (count > 0)
-                Positioned(
-                  right: -2,
-                  top: -2,
-                  child: Container(
-                    constraints: const BoxConstraints(minWidth: 22),
-                    height: 22,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFF2F6E),
-                      borderRadius: BorderRadius.circular(11),
-                    ),
-                    child: Text(
-                      count > 99 ? '99+' : '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w900,
+                if (count > 0)
+                  Positioned(
+                    right: -2,
+                    top: -2,
+                    child: Container(
+                      constraints: const BoxConstraints(minWidth: 22),
+                      height: 22,
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFF2F6E),
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                      child: Text(
+                        count > 99 ? '99+' : '$count',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
+              ],
+            ),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: Text(
+                label,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: WakaColors.mutedText,
+                  fontSize: ProfileFontSizes.orderLabel,
+                  fontWeight: FontWeight.w500,
+                  height: 1.22,
                 ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              label,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: WakaColors.mutedText,
-                fontSize: ProfileFontSizes.orderLabel,
-                fontWeight: FontWeight.w500,
-                height: 1.22,
               ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -1247,6 +1248,15 @@ class _ProfileMenuCard extends StatelessWidget {
         ),
       ),
       (
+        icon: Icons.edit_note_rounded,
+        title: 'Đăng ký làm tác giả',
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const AuthorRegistrationScreen(),
+          ),
+        ),
+      ),
+      (
         icon: Icons.settings_outlined,
         title: 'Thông tin chung',
         onTap: () => Navigator.of(context).push(
@@ -1390,7 +1400,9 @@ class _SupportBubble extends StatelessWidget {
           offset: const Offset(-8, 0),
           child: InkWell(
             onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(builder: (_) => const HelpFeedbackScreen()),
+              MaterialPageRoute<void>(
+                builder: (_) => const HelpFeedbackScreen(),
+              ),
             ),
             borderRadius: BorderRadius.circular(16),
             child: Container(

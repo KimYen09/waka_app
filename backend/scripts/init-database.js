@@ -115,6 +115,11 @@ async function init() {
        ENUM('pending', 'proof_submitted', 'paid', 'failed', 'refunded')
        NOT NULL DEFAULT 'pending'`,
     );
+    await connection.query(
+      `ALTER TABLE user_memberships MODIFY status
+       ENUM('pending', 'active', 'expired', 'cancelled')
+       NOT NULL DEFAULT 'pending'`,
+    );
 
     if (env.adminIdentifiers.length) {
       const placeholders = env.adminIdentifiers.map(() => '?').join(',');

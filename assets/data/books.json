@@ -1,6 +1,7 @@
 {
   "pageTitle": "Waka Demo Books API",
-  "description": "Nguon du lieu JSON noi bo cho do an Waka demo, cap nhat tu waka.vn/sach-hoi-vien.",
+  "description": "Metadata sách công khai cập nhật từ waka.vn; không chứa nội dung sách.",
+  "capturedAt": "2026-08-03T13:30:00.000Z",
   "categories": [
     {
       "title": "Sách điện tử",
@@ -538,6 +539,279 @@
       "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55897.jpg?v=1&w=350&h=510",
       "section": "Truyện tranh",
       "useRemoteImage": true
+    },
+    {
+      "title": "Tâm lý học về tiền và lòng tham",
+      "url": "https://waka.vn/ebook/tam-ly-hoc-ve-tien-va-long-tham-marcus-phung-byMA4W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56119.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Quẹt thẻ thông minh, sinh tiền tỷ",
+      "url": "https://waka.vn/ebook/quet-the-thong-minh-sinh-tien-ty-marcus-phung-bO49zW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56116.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Trúc mã là chồng tôi",
+      "url": "https://waka.vn/ebook/truc-ma-la-chong-toi-dang-cap-nhat-b0Z3mW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56080.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Khi đồng tiền mất giá",
+      "url": "https://waka.vn/ebook/khi-dong-tien-mat-gia-marcus-phung-b8oyWW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56068.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Vàng hay kim cương?",
+      "url": "https://waka.vn/ebook/vang-hay-kim-cuong-marcus-phung-b1lQRW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56056.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Kiếm tiền thời 4.0",
+      "url": "https://waka.vn/ebook/kiem-tien-thoi-40-marcus-phung-bDAx0W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56044.jpg?v=1&w=350&h=510",
+      "section": "Sách Hội viên",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Khuynh sắc Kinh Thành",
+      "url": "https://waka.vn/hieu-soi/khuynh-sac-kinh-thanh-tGKgW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/694.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Công ty dọn dẹp hiện trường án mạng",
+      "url": "https://waka.vn/hieu-soi/cong-ty-don-dep-hien-truong-an-mang-tWDVW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/676.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Ác quỷ khoác áo blouse",
+      "url": "https://waka.vn/hieu-soi/ac-quy-khoac-ao-blouse-tgQVW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/679.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Nụ hôn trong nắng hè",
+      "url": "https://waka.vn/hieu-soi/nu-hon-trong-nang-he-ta4oW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/691.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Ác não",
+      "url": "https://waka.vn/hieu-soi/ac-nao-t9D1W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/673.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Ván cờ hôn nhân",
+      "url": "https://waka.vn/hieu-soi/van-co-hon-nhan-tD3AW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/688.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Nữ hoàng bị tẩy chay",
+      "url": "https://waka.vn/hieu-soi/nu-hoang-bi-tay-chay-tXpoW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/685.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Sự trở lại của nữ vương",
+      "url": "https://waka.vn/hieu-soi/su-tro-lai-cua-nu-vuong-tV89W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/682.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Khi anh chạy về phía em",
+      "url": "https://waka.vn/hieu-soi/khi-anh-chay-ve-phia-em-te2NW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/640.jpg?v=2&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Luật sư hạng nhất",
+      "url": "https://waka.vn/hieu-soi/luat-su-hang-nhat-tQL6W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/643.jpg?v=2&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Một người sợ cô đơn, hai người sợ phụ lòng",
+      "url": "https://waka.vn/hieu-soi/mot-nguoi-so-co-don-hai-nguoi-so-phu-long-tY50W.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/646.jpg?v=2&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Quầy hàng ma ám ven đường",
+      "url": "https://waka.vn/hieu-soi/quay-hang-ma-am-ven-duong-t62wW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.retail_book/0/0/0/661.jpg?v=1&w=400&h=492",
+      "section": "Sách Hiệu Sồi",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Người em muốn chính là anh",
+      "url": "https://waka.vn/ebook/nguoi-em-muon-chinh-la-anh-dang-cap-nhat-bW2rRW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56032.jpg?v=1&w=350&h=510",
+      "section": "Ngôn tình",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Ảo ảnh kim cương",
+      "url": "https://waka.vn/ebook/ao-anh-kim-cuong-marcus-phung-bNnRZW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/56005.jpg?v=1&w=350&h=510",
+      "section": "Tài chính cá nhân",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Kiểu con gái anh thích chính là em",
+      "url": "https://waka.vn/ebook/kieu-con-gai-anh-thich-chinh-la-em-dang-cap-nhat-blM8MW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55996.jpg?v=1&w=350&h=510",
+      "section": "Ngôn tình",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Tỏ tình với trúc mã",
+      "url": "https://waka.vn/ebook/to-tinh-voi-truc-ma-dang-cap-nhat-bwMjQW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55948.jpg?v=1&w=350&h=510",
+      "section": "Ngôn tình",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Sổ tay tài chính gia đình",
+      "url": "https://waka.vn/ebook/so-tay-tai-chinh-gia-dinh-marcus-phung-bzMmAW.html",
+      "imageUrl": "https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55933.jpg?v=1&w=350&h=510",
+      "section": "Tài chính cá nhân",
+      "useRemoteImage": true
+    },
+    {
+      "title": "Chip bán dẫn: Động lực xoay trục trật tự thế giới mới",
+      "url": "https://waka.vn/ebook/chip-ban-dan-dong-luc-xoay-truc-trat-tu-the-gioi-moi-marcus-phung-bEDVDW.html",
+      "imageUrl": "",
+      "section": "Khoa học - Công nghệ",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Món ăn Việt Nam: Các món lẩu",
+      "url": "https://waka.vn/ebook/mon-an-viet-nam-cac-mon-lau-suu-tam-bY1z4W.html",
+      "imageUrl": "",
+      "section": "Sức khỏe - Làm đẹp",
+      "useRemoteImage": false
+    },
+    {
+      "title": "ChatGPT & Những cuốn sách GenZ không thể bỏ qua",
+      "url": "https://waka.vn/ebook/chatgpt-nhung-cuon-sach-genz-khong-the-bo-qua-waka-bDoYmW.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Văn hóa & Xã hội",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Ma-nơ-canh",
+      "url": "https://waka.vn/ebook/ma-no-canh-kk-bmMpW.html",
+      "imageUrl": "",
+      "section": "Truyện - Tiểu thuyết",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Waka Radium #1: Cách khai thác X3 hiệu quả Công cụ ChatGPT",
+      "url": "https://waka.vn/ebook/waka-radium-1-cach-khai-thac-x3-hieu-qua-cong-cu-chatgpt-waka-brER1W.html",
+      "imageUrl": "",
+      "section": "Khoa học - Công nghệ",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Việt Nam vô địch!",
+      "url": "https://waka.vn/ebook/viet-nam-vo-dich-ban-bien-tap-waka-b68YZW.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Văn hóa & Xã hội",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Bộ khoa học công nghệ kế thừa lịch sử, hướng tới tương lai",
+      "url": "https://waka.vn/ebook/bo-khoa-hoc-cong-nghe-ke-thua-lich-su-huong-toi-tuong-lai-bo-khoa-hoc-va-cong-nghe-baGr4W.html",
+      "imageUrl": "",
+      "section": "Khoa học - Công nghệ",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Chinh phục Kaigo Kiroku",
+      "url": "https://waka.vn/ebook/chinh-phuc-kaigo-kiroku-tai-keigo-bDAOEW.html",
+      "imageUrl": "",
+      "section": "Học tập - Hướng nghiệp",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Bí mật của đàn ông",
+      "url": "https://waka.vn/ebook/bi-mat-cua-dan-ong-le-ha-nh-bpXKW.html",
+      "imageUrl": "",
+      "section": "Sức khỏe - Làm đẹp",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Gieo hạt cùng vĩ nhân (Bộ 1 - Tập 1)",
+      "url": "https://waka.vn/ebook/gieo-hat-cung-vi-nhan-bo-1-tap-1-booa4W.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Sách thiếu nhi",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Neymar - Thiên tài tranh cãi",
+      "url": "https://waka.vn/ebook/neymar-thien-tai-tranh-cai-luca-caioli-bKAEyW.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Sách thiếu nhi",
+      "useRemoteImage": false
+    },
+    {
+      "title": "[Tóm tắt sách] Tiểu sử Elon Musk",
+      "url": "https://waka.vn/ebook/tom-tat-sach-tieu-su-elon-musk-walter-isaacson-bLqDGW.html",
+      "imageUrl": "",
+      "section": "Khoa học - Công nghệ",
+      "useRemoteImage": false
+    },
+    {
+      "title": "100 truyện cổ tích thế giới (Phần 1)",
+      "url": "https://waka.vn/ebook/100-truyen-co-tich-the-gioi-phan-1-ngoc-anh-bDqWNW.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Sách thiếu nhi",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Hoàng tử hạnh phúc và những truyện khác",
+      "url": "https://waka.vn/ebook/hoang-tu-hanh-phuc-va-nhung-truyen-khac-oscar-wilde-b543dW.html",
+      "imageUrl": "",
+      "section": "Giáo dục - Sách thiếu nhi",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Dinh dưỡng - Chìa khóa vàng cho sức khỏe",
+      "url": "https://waka.vn/ebook/dinh-duong-chia-khoa-vang-cho-suc-khoe-lisa-hark-phd-dr-darwin-deen-bwmbRW.html",
+      "imageUrl": "",
+      "section": "Sức khỏe - Làm đẹp",
+      "useRemoteImage": false
+    },
+    {
+      "title": "Huấn luyện não bộ",
+      "url": "https://waka.vn/ebook/huan-luyen-nao-bo-chia-khoa-thanh-cong-cua-nhung-dao-tao-chuyen-nghiep-amy-brann-bAn3VW.html",
+      "imageUrl": "",
+      "section": "Khoa học - Công nghệ",
+      "useRemoteImage": false
     }
   ]
 }

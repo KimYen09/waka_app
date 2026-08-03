@@ -851,10 +851,14 @@ class ShopQrPaymentScreen extends StatelessWidget {
     super.key,
     required this.amount,
     required this.orderCode,
+    this.paymentPurpose = 'đơn hàng',
+    this.requiresReview = true,
   });
 
   final int amount;
   final String orderCode;
+  final String paymentPurpose;
+  final bool requiresReview;
 
   Future<void> _copy(BuildContext context, String value, String label) async {
     await Clipboard.setData(ClipboardData(text: value));
@@ -869,9 +873,12 @@ class ShopQrPaymentScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Xác nhận đã chuyển khoản?'),
-        content: const Text(
-          'Sau khi xác nhận, đơn hàng sẽ chuyển sang trạng thái chờ quản trị viên '
-          'đối soát. Thao tác này không tự đánh dấu giao dịch đã thanh toán.',
+        content: Text(
+          requiresReview
+              ? 'Sau khi xác nhận, $paymentPurpose sẽ chuyển sang trạng thái '
+                    'chờ quản trị viên đối soát.'
+              : 'Sau khi xác nhận, $paymentPurpose sẽ được kích hoạt trong '
+                    'chế độ thanh toán demo.',
         ),
         actions: [
           TextButton(
@@ -897,7 +904,7 @@ class ShopQrPaymentScreen extends StatelessWidget {
       backgroundColor: WakaColors.background,
       appBar: AppBar(
         backgroundColor: WakaColors.background,
-        title: const Text('Thanh toán bằng QR'),
+        title: Text('Thanh toán $paymentPurpose bằng QR'),
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
@@ -909,16 +916,19 @@ class ShopQrPaymentScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0x5520D5A2)),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.verified_user_outlined, color: WakaColors.accent),
-                SizedBox(width: 10),
+                const Icon(
+                  Icons.verified_user_outlined,
+                  color: WakaColors.accent,
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Số tiền và nội dung chuyển khoản được gắn vào QR. '
-                    'Chỉ giao hàng sau khi backend xác nhận đã nhận tiền.',
-                    style: TextStyle(color: Colors.white70, height: 1.4),
+                    'Số tiền và nội dung chuyển khoản cho $paymentPurpose đã '
+                    'được gắn sẵn vào QR.',
+                    style: const TextStyle(color: Colors.white70, height: 1.4),
                   ),
                 ),
               ],

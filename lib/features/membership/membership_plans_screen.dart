@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../shop/shop_checkout_screen.dart';
 
 class MembershipPlansScreen extends StatefulWidget {
   const MembershipPlansScreen({super.key});
@@ -14,24 +17,70 @@ class MembershipPlansScreen extends StatefulWidget {
 class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
   _PlanChannel _channel = _PlanChannel.card;
   List<_MembershipPlan> _plans = const [];
+  UserMembership? _activeMembership;
+  UserMembership? _pendingMembership;
+  Timer? _countdownTimer;
+  bool _isBuying = false;
 
   @override
   void initState() {
     super.initState();
-    _loadPlans();
+    _loadData();
   }
 
-  Future<void> _loadPlans() async {
+  Future<void> _loadData() async {
     try {
-      final plans = await const CommerceApiService().getMembershipPlans();
-      if (!mounted || plans.isEmpty) return;
-      setState(() => _plans = plans.map(_MembershipPlan.fromApi).toList());
+      const service = CommerceApiService();
+      final plansFuture = service.getMembershipPlans();
+      final membershipsFuture = AuthSession.isSignedIn
+          ? service.getMyMemberships()
+          : Future<List<UserMembership>>.value(const []);
+      final plans = await plansFuture;
+      final memberships = await membershipsFuture;
+      UserMembership? membership;
+      UserMembership? pending;
+      for (final item in memberships) {
+        if (membership == null && item.isActive) membership = item;
+        if (pending == null && item.status == 'pending') pending = item;
+      }
+      if (!mounted) return;
+      setState(() {
+        if (plans.isNotEmpty) {
+          _plans = plans.map(_MembershipPlan.fromApi).toList();
+        }
+        _activeMembership = membership;
+        _pendingMembership = pending;
+      });
+      _startCountdown();
     } on Object {
       // Local data keeps the plan screen usable before the demo API is started.
     }
   }
 
   Future<void> _buyPlan(_MembershipPlan plan) async {
+    if (_isBuying) return;
+    if (_pendingMembership != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Gói đang chờ admin duyệt, bạn chưa thể tạo giao dịch khác.',
+          ),
+        ),
+      );
+      return;
+    }
+    if (_activeMembership case final active?) {
+      if (plan.amount < active.price) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Bạn chỉ có thể gia hạn hoặc nâng cấp lên gói cao hơn.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
     if (!AuthSession.isSignedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng đăng nhập để mua gói cước.')),
@@ -47,17 +96,114 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
       return;
     }
     try {
-      await const CommerceApiService().purchaseMembership(plan.id);
+      setState(() => _isBuying = true);
+      String? transactionRef;
+      if (plan.channel == 'card') {
+        transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
+        final transferred = await Navigator.of(context).push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => ShopQrPaymentScreen(
+              amount: plan.amount.round(),
+              orderCode: transactionRef!,
+              paymentPurpose: plan.title,
+              requiresReview: true,
+            ),
+          ),
+        );
+        if (transferred != true || !mounted) return;
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Thanh toán SMS chưa được kết nối nhà mạng. Vui lòng chọn '
+              'Chuyển khoản / Thẻ.',
+            ),
+          ),
+        );
+        return;
+      }
+      final membership = await const CommerceApiService().purchaseMembership(
+        plan.id,
+        transactionRef: transactionRef,
+      );
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Đã kích hoạt ${plan.title}.')));
+      setState(() => _pendingMembership = membership);
+      _startCountdown();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Đã gửi xác nhận chuyển khoản ${plan.title}. Vui lòng chờ admin '
+            'duyệt để kích hoạt và mở khóa nội dung.',
+          ),
+        ),
+      );
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isBuying = false);
     }
+  }
+
+  Future<void> _cancelMembership() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hủy đăng ký?'),
+        content: const Text(
+          'Thao tác kiểm thử này sẽ hủy cả gói đang hoạt động và giao dịch đang chờ duyệt.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('GIỮ LẠI'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('HỦY ĐĂNG KÝ'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      await const CommerceApiService().cancelMembership();
+      if (!mounted) return;
+      setState(() {
+        _activeMembership = null;
+        _pendingMembership = null;
+      });
+      _countdownTimer?.cancel();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Đã hủy đăng ký để kiểm thử.')),
+      );
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(error.toString())));
+      }
+    }
+  }
+
+  void _startCountdown() {
+    _countdownTimer?.cancel();
+    if (_activeMembership?.isActive != true) return;
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      if (_activeMembership?.isActive != true) {
+        _countdownTimer?.cancel();
+      }
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -106,6 +252,20 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
               ),
             ),
             const SliverToBoxAdapter(child: _MembershipIntro()),
+            if (_activeMembership case final membership?)
+              SliverToBoxAdapter(
+                child: _ActiveMembershipCard(
+                  membership: membership,
+                  onCancel: _cancelMembership,
+                ),
+              ),
+            if (_pendingMembership case final membership?)
+              SliverToBoxAdapter(
+                child: _PendingMembershipCard(
+                  membership: membership,
+                  onCancel: _cancelMembership,
+                ),
+              ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 22, 16, 16),
@@ -122,6 +282,7 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
                 separatorBuilder: (_, _) => const SizedBox(height: 16),
                 itemBuilder: (context, index) => _PlanCard(
                   plan: plans[index],
+                  isBuying: _isBuying,
                   onBuy: () => _buyPlan(plans[index]),
                 ),
               ),
@@ -260,9 +421,14 @@ class _ChannelButton extends StatelessWidget {
 }
 
 class _PlanCard extends StatelessWidget {
-  const _PlanCard({required this.plan, required this.onBuy});
+  const _PlanCard({
+    required this.plan,
+    required this.onBuy,
+    required this.isBuying,
+  });
   final _MembershipPlan plan;
   final VoidCallback onBuy;
+  final bool isBuying;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -332,7 +498,10 @@ class _PlanCard extends StatelessWidget {
               ),
             ],
             const Spacer(),
-            FilledButton(onPressed: onBuy, child: const Text('Mua gói')),
+            FilledButton(
+              onPressed: isBuying ? null : onBuy,
+              child: Text(isBuying ? 'Đang xử lý…' : 'Mua/Gia hạn'),
+            ),
           ],
         ),
         if (plan.gift.isNotEmpty) ...[
@@ -360,12 +529,134 @@ class _PlanCard extends StatelessWidget {
   );
 }
 
+class _ActiveMembershipCard extends StatelessWidget {
+  const _ActiveMembershipCard({
+    required this.membership,
+    required this.onCancel,
+  });
+
+  final UserMembership membership;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final remaining = membership.remaining;
+    final days = remaining.inDays;
+    final hours = remaining.inHours.remainder(24);
+    final minutes = remaining.inMinutes.remainder(60);
+    final seconds = remaining.inSeconds.remainder(60);
+    final countdown = membership.isActive
+        ? '$days ngày ${hours.toString().padLeft(2, '0')}:'
+              '${minutes.toString().padLeft(2, '0')}:'
+              '${seconds.toString().padLeft(2, '0')}'
+        : 'Đã hết hạn';
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF173F35),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: WakaColors.accent),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.verified_rounded,
+            color: WakaColors.accent,
+            size: 34,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  membership.isActive
+                      ? 'Gói đã mua đang hoạt động'
+                      : 'Gói đã mua',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  membership.planTitle,
+                  style: const TextStyle(color: WakaColors.gold),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Thời hạn còn lại: $countdown',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+                TextButton(
+                  onPressed: onCancel,
+                  child: const Text('HỦY ĐĂNG KÝ (TEST)'),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PendingMembershipCard extends StatelessWidget {
+  const _PendingMembershipCard({
+    required this.membership,
+    required this.onCancel,
+  });
+  final UserMembership membership;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.fromLTRB(16, 18, 16, 0),
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      color: const Color(0xFF493A18),
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: WakaColors.gold),
+    ),
+    child: Row(
+      children: [
+        const Icon(Icons.hourglass_top_rounded, color: WakaColors.gold),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Đang chờ admin kiểm tra chuyển khoản',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                membership.planTitle,
+                style: const TextStyle(color: Colors.white70),
+              ),
+              TextButton(
+                onPressed: onCancel,
+                child: const Text('HỦY ĐĂNG KÝ (TEST)'),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _MembershipPlan {
   const _MembershipPlan({
     this.id = 0,
     required this.title,
     required this.subtitle,
     required this.price,
+    this.amount = 0,
     this.oldPrice = '',
     this.badge = '',
     this.gift = '',
@@ -377,6 +668,7 @@ class _MembershipPlan {
     title: plan.title,
     subtitle: plan.description,
     price: _formatPrice(plan.price),
+    amount: plan.price,
     oldPrice: plan.listPrice > 0 ? _formatPrice(plan.listPrice) : '',
     badge:
         plan.bonusDescription.startsWith('TIẾT') ||
@@ -391,6 +683,7 @@ class _MembershipPlan {
   final String title;
   final String subtitle;
   final String price;
+  final num amount;
   final String oldPrice;
   final String badge;
   final String gift;

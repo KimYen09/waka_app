@@ -6,6 +6,7 @@ import 'features/admin/admin_dashboard_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/library/library_screen.dart';
 import 'features/home/home_screen.dart';
+import 'features/home/startup_book_promotion.dart';
 import 'features/profile/profile_screen.dart';
 import 'features/shop/shop_screen.dart';
 import 'features/welcome/welcome_screen.dart';
@@ -39,6 +40,25 @@ class WakaShell extends StatefulWidget {
 
 class _WakaShellState extends State<WakaShell> {
   int _selectedIndex = 0;
+  bool _didRequestStartupPromotion = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_didRequestStartupPromotion ||
+        (AuthSession.current?.user.isAdmin ?? false)) {
+      return;
+    }
+    _didRequestStartupPromotion = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      try {
+        await showStartupBookPromotion(context);
+      } on Object {
+        // Không chặn người dùng vào ứng dụng nếu dữ liệu quảng bá bị lỗi.
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

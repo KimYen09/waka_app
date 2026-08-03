@@ -24,5 +24,7 @@ router.get('/payments', admin.listPayments);
 router.patch('/payments/:id/status', admin.updatePaymentStatus);
 router.get('/users', admin.listUsers);
 router.patch('/users/:id', admin.updateUser);
+router.get('/reviews', admin.listReviews);
+router.patch('/reviews/:id/lock', admin.lockReview);
 
 module.exports = router;

@@ -5,12 +5,15 @@ const discovery = require('../controllers/discovery-controller');
 const userContent = require('../controllers/user-content-controller');
 const commerce = require('../controllers/commerce-controller');
 const admin = require('../controllers/admin-controller');
+const reviews = require('../controllers/reviews-controller');
 const requireAuth = require('../middleware/auth');
 
 const router = express.Router();
 
 router.get('/books', books.listBooks);
 router.get('/books/:id', books.getBook);
+router.get('/books/:bookId/reviews', reviews.listBookReviews);
+router.post('/books/:bookId/reviews', requireAuth, reviews.saveReview);
 router.get('/categories', catalog.listCategories);
 router.get('/offers', catalog.listOffers);
 router.get('/rankings', discovery.listRankings);
@@ -33,7 +36,10 @@ router.post('/checkout', requireAuth, commerce.checkoutCart);
 router.get('/membership-plans', commerce.listMembershipPlans);
 router.get('/memberships/me', requireAuth, commerce.listMyMemberships);
 router.post('/memberships/purchase', requireAuth, commerce.purchaseMembership);
+router.delete('/memberships/me', requireAuth, commerce.cancelMembership);
 router.get('/payments', requireAuth, commerce.listPayments);
+router.get('/notifications', requireAuth, commerce.listNotifications);
+router.patch('/notifications/:id/read', requireAuth, commerce.markNotificationRead);
 router.get('/author-application/me', requireAuth, admin.myAuthorApplication);
 router.post('/author-application', requireAuth, admin.submitAuthorApplication);
 

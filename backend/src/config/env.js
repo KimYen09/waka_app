@@ -28,5 +28,9 @@ module.exports = {
     user: process.env.DB_USER || 'root',
     password: process.env.DB_PASSWORD || '',
     database: process.env.DB_NAME || 'waka_demo',
+    // MySQL container stores CURRENT_TIMESTAMP in UTC. Parse DATETIME as UTC
+    // before serializing it to clients so local devices do not see a 7-hour
+    // offset in Viet Nam.
+    timezone: process.env.DB_TIMEZONE || 'Z',
   },
 };

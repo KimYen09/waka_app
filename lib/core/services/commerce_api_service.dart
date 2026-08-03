@@ -60,6 +60,8 @@ class UserMembership {
     required this.planTitle,
     required this.startedAt,
     required this.expiresAt,
+    this.planId = 0,
+    this.price = 0,
   });
 
   final int id;
@@ -67,6 +69,16 @@ class UserMembership {
   final String planTitle;
   final DateTime? startedAt;
   final DateTime? expiresAt;
+  final int planId;
+  final num price;
+
+  bool get isActive =>
+      status == 'active' &&
+      expiresAt != null &&
+      expiresAt!.isAfter(DateTime.now());
+
+  Duration get remaining =>
+      isActive ? expiresAt!.difference(DateTime.now()) : Duration.zero;
 }
 
 /// Sách người dùng đã đánh dấu yêu thích (`GET /api/favorites`).
@@ -200,6 +212,24 @@ class CommerceCheckoutResult {
   final String paymentStatus;
 }
 
+class UserNotification {
+  const UserNotification({
+    required this.id,
+    required this.type,
+    required this.title,
+    required this.body,
+    required this.isRead,
+    required this.createdAt,
+  });
+
+  final int id;
+  final String type;
+  final String title;
+  final String body;
+  final bool isRead;
+  final DateTime? createdAt;
+}
+
 class CommerceApiService {
   const CommerceApiService({this.client = const RestApiClient()});
 
@@ -274,10 +304,33 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-  Future<void> purchaseMembership(int planId) async {
-    await client.postJson(Uri.parse(ApiEndpoints.apiMembershipPurchase), {
-      'planId': planId,
-    }, bearerToken: _token);
+  Future<UserMembership> purchaseMembership(
+    int planId, {
+    required String transactionRef,
+  }) async {
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiMembershipPurchase),
+      {'planId': planId, 'transactionRef': transactionRef},
+      bearerToken: _token,
+    );
+    final data = _dataMap(response);
+    return UserMembership(
+      id: _int(data['membershipId']),
+      status: data['status'] as String? ?? 'active',
+      planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+      startedAt: _date(data['startedAt']),
+      expiresAt: _date(data['expiresAt']),
+      planId: _int(data['planId']),
+      price: _num(data['price']),
+    );
+  }
+
+  Future<UserMembership?> getActiveMembership() async {
+    final memberships = await getMyMemberships();
+    for (final membership in memberships) {
+      if (membership.isActive) return membership;
+    }
+    return null;
   }
 
   Future<List<UserMembership>> getMyMemberships() async {
@@ -296,9 +349,48 @@ class CommerceApiService {
             planTitle: item['planTitle'] as String? ?? 'Gói hội viên',
             startedAt: _date(item['startedAt']),
             expiresAt: _date(item['expiresAt']),
+            planId: _int(item['planId']),
+            price: _num(item['price']),
           ),
         )
         .toList(growable: false);
+  }
+
+  Future<void> cancelMembership() async {
+    await client.deleteJson(
+      Uri.parse(ApiEndpoints.apiMyMemberships),
+      bearerToken: _token,
+    );
+  }
+
+  Future<List<UserNotification>> getNotifications() async {
+    final response = await client.getJson(
+      Uri.parse(ApiEndpoints.apiNotifications),
+      bearerToken: _token,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map((item) {
+          return UserNotification(
+            id: _int(item['id']),
+            type: item['type'] as String? ?? 'system',
+            title: item['title'] as String? ?? 'Thông báo',
+            body: item['body'] as String? ?? '',
+            isRead: item['isRead'] == true || item['isRead'] == 1,
+            createdAt: _date(item['createdAt']),
+          );
+        })
+        .toList(growable: false);
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    await client.patchJson(
+      Uri.parse('${ApiEndpoints.apiNotifications}/$id/read'),
+      const <String, Object?>{},
+      bearerToken: _token,
+    );
   }
 
   /// Danh sách sách đã đánh dấu yêu thích, mới nhất trước.

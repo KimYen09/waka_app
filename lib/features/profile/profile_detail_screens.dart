@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart'; // <-- THÊM IMPORT NÀY ĐỂ MỞ WEB
 
 import '../../core/services/auth_api_service.dart';
+import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../shop/shop_address_store.dart';
 
@@ -78,117 +81,121 @@ class GeneralInfoScreen extends StatelessWidget {
 
   // Danh sách nhóm mục, khớp với thứ tự trong ảnh mẫu.
   List<_SettingsSectionData> _sections(BuildContext context) => [
-        _SettingsSectionData(
-          title: 'Cài đặt chung',
-          rows: [
-            _SettingsRowData(
-              icon: Icons.favorite,
-              iconBg: const Color(0xFFEF5350),
-              title: 'Thể loại sách yêu thích',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FavoriteCategoryScreen(
-                    kind: FavoriteCategoryKind.books,
-                  ),
-                ),
+    _SettingsSectionData(
+      title: 'Cài đặt chung',
+      rows: [
+        _SettingsRowData(
+          icon: Icons.favorite,
+          iconBg: const Color(0xFFEF5350),
+          title: 'Thể loại sách yêu thích',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FavoriteCategoryScreen(
+                kind: FavoriteCategoryKind.books,
               ),
             ),
-            _SettingsRowData(
-              icon: Icons.favorite,
-              iconBg: const Color(0xFF29B6F6),
-              title: 'Thể loại truyện tranh yêu thích',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FavoriteCategoryScreen(
-                    kind: FavoriteCategoryKind.comics,
-                  ),
-                ),
-              ),
-            ),
-            const _SettingsRowData(
-              icon: Icons.notifications,
-              iconBg: Color(0xFFEF5350),
-              title: 'Cài đặt nhận thông báo',
-            ),
-          ],
+          ),
         ),
-        _SettingsSectionData(
-          title: 'Thông tin chung',
-          rows: [
-            _SettingsRowData(
-              icon: Icons.description,
-              iconBg: const Color(0xFF5C6BC0),
-              title: 'Thỏa thuận sử dụng dịch vụ',
-              // Gắn link Thỏa thuận
-              onTap: () => _launchUrl('https://waka.vn/thoa-thuan-su-dung-dich-vu-waka-ios'),
-            ),
-            _SettingsRowData(
-              icon: Icons.assignment,
-              iconBg: const Color(0xFF8E24AA),
-              title: 'Chính sách quyền riêng tư',
-              // Gắn link Quyền riêng tư
-              onTap: () => _launchUrl('https://waka.vn/thoa-thuan-su-dung-dich-vu-waka-ios'),
-            ),
-            _SettingsRowData(
-              icon: Icons.wb_sunny,
-              iconBg: const Color(0xFF29B6F6),
-              title: 'Tiếp nhận đánh giá, phản ánh tổ chức xã hội',
-              // Mở màn hình form tiếp nhận
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FeedbackSubmitScreen()),
+        _SettingsRowData(
+          icon: Icons.favorite,
+          iconBg: const Color(0xFF29B6F6),
+          title: 'Thể loại truyện tranh yêu thích',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const FavoriteCategoryScreen(
+                kind: FavoriteCategoryKind.comics,
               ),
             ),
-            _SettingsRowData(
-              icon: Icons.assignment_turned_in,
-              iconBg: const Color(0xFFEF5350),
-              title: 'Danh sách đánh giá, phản ảnh tổ chức xã hội',
-              // Mở màn hình danh sách
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const FeedbackListScreen()),
-              ),
-            ),
-          ],
+          ),
         ),
-        _SettingsSectionData(
-          title: 'Hỗ trợ khách hàng',
-          rows: [
-            _SettingsRowData(
-              icon: Icons.cached,
-              iconBg: const Color(0xFFFFA726),
-              title: 'Chính sách đổi trả',
-              onTap: () => _launchUrl('https://waka.vn/chinh-sach-doi-tra'),
-            ),
-            _SettingsRowData(
-              icon: Icons.attach_money,
-              iconBg: const Color(0xFFFFCA28),
-              title: 'Chính sách thanh toán',
-              onTap: () => _launchUrl('https://waka.vn/chinh-sach-thanh-toan'),
-            ),
-            _SettingsRowData(
-              icon: Icons.report_problem,
-              iconBg: const Color(0xFF26A69A),
-              title: 'Giải quyết khiếu nại',
-              onTap: () => _launchUrl('https://waka.vn/giai-quyet-khieu-nai'),
-            ),
-            _SettingsRowData( // <-- THÊM MỤC NÀY
-              icon: Icons.do_not_disturb_alt,
-              iconBg: const Color(0xFF9E9E9E),
-              title: 'Quy định hàng hóa cấm',
-              onTap: () => _launchUrl('https://waka.vn/quy-dinh-hang-hoa-cam'),
-            ),
-            _SettingsRowData(
-              icon: Icons.event_busy,
-              iconBg: const Color(0xFFEF5350),
-              title: 'Chính sách xác nhận/hủy',
-              onTap: () => _launchUrl('https://waka.vn/chinh-sach-xac-nhan-huy-don'),
-            ),
-          ],
+        const _SettingsRowData(
+          icon: Icons.notifications,
+          iconBg: Color(0xFFEF5350),
+          title: 'Cài đặt nhận thông báo',
         ),
-      ];
+      ],
+    ),
+    _SettingsSectionData(
+      title: 'Thông tin chung',
+      rows: [
+        _SettingsRowData(
+          icon: Icons.description,
+          iconBg: const Color(0xFF5C6BC0),
+          title: 'Thỏa thuận sử dụng dịch vụ',
+          // Gắn link Thỏa thuận
+          onTap: () =>
+              _launchUrl('https://waka.vn/thoa-thuan-su-dung-dich-vu-waka-ios'),
+        ),
+        _SettingsRowData(
+          icon: Icons.assignment,
+          iconBg: const Color(0xFF8E24AA),
+          title: 'Chính sách quyền riêng tư',
+          // Gắn link Quyền riêng tư
+          onTap: () =>
+              _launchUrl('https://waka.vn/thoa-thuan-su-dung-dich-vu-waka-ios'),
+        ),
+        _SettingsRowData(
+          icon: Icons.wb_sunny,
+          iconBg: const Color(0xFF29B6F6),
+          title: 'Tiếp nhận đánh giá, phản ánh tổ chức xã hội',
+          // Mở màn hình form tiếp nhận
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FeedbackSubmitScreen()),
+          ),
+        ),
+        _SettingsRowData(
+          icon: Icons.assignment_turned_in,
+          iconBg: const Color(0xFFEF5350),
+          title: 'Danh sách đánh giá, phản ảnh tổ chức xã hội',
+          // Mở màn hình danh sách
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FeedbackListScreen()),
+          ),
+        ),
+      ],
+    ),
+    _SettingsSectionData(
+      title: 'Hỗ trợ khách hàng',
+      rows: [
+        _SettingsRowData(
+          icon: Icons.cached,
+          iconBg: const Color(0xFFFFA726),
+          title: 'Chính sách đổi trả',
+          onTap: () => _launchUrl('https://waka.vn/chinh-sach-doi-tra'),
+        ),
+        _SettingsRowData(
+          icon: Icons.attach_money,
+          iconBg: const Color(0xFFFFCA28),
+          title: 'Chính sách thanh toán',
+          onTap: () => _launchUrl('https://waka.vn/chinh-sach-thanh-toan'),
+        ),
+        _SettingsRowData(
+          icon: Icons.report_problem,
+          iconBg: const Color(0xFF26A69A),
+          title: 'Giải quyết khiếu nại',
+          onTap: () => _launchUrl('https://waka.vn/giai-quyet-khieu-nai'),
+        ),
+        _SettingsRowData(
+          // <-- THÊM MỤC NÀY
+          icon: Icons.do_not_disturb_alt,
+          iconBg: const Color(0xFF9E9E9E),
+          title: 'Quy định hàng hóa cấm',
+          onTap: () => _launchUrl('https://waka.vn/quy-dinh-hang-hoa-cam'),
+        ),
+        _SettingsRowData(
+          icon: Icons.event_busy,
+          iconBg: const Color(0xFFEF5350),
+          title: 'Chính sách xác nhận/hủy',
+          onTap: () =>
+              _launchUrl('https://waka.vn/chinh-sach-xac-nhan-huy-don'),
+        ),
+      ],
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +205,7 @@ class GeneralInfoScreen extends StatelessWidget {
       child: ListView.separated(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
         itemCount: sections.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 22),
+        separatorBuilder: (_, _) => const SizedBox(height: 22),
         itemBuilder: (context, index) {
           final section = sections[index];
           return Column(
@@ -325,21 +332,34 @@ class FeedbackSubmitScreen extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 30),
-              
+
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      _buildInputField('Tên tổ chức xã hội', 'Nhập tên tổ chức xã hội', required: true),
+                      _buildInputField(
+                        'Tên tổ chức xã hội',
+                        'Nhập tên tổ chức xã hội',
+                        required: true,
+                      ),
                       const SizedBox(height: 20),
-                      _buildInputField('Số quyết định thành lập', 'Nhập số quyết định thành lập', required: true),
+                      _buildInputField(
+                        'Số quyết định thành lập',
+                        'Nhập số quyết định thành lập',
+                        required: true,
+                      ),
                       const SizedBox(height: 20),
-                      _buildInputField('Nội dung', 'Nhập nội dung', required: true, maxLines: 5),
+                      _buildInputField(
+                        'Nội dung',
+                        'Nhập nội dung',
+                        required: true,
+                        maxLines: 5,
+                      ),
                     ],
                   ),
                 ),
               ),
-              
+
               // Nút Submit
               Padding(
                 padding: const EdgeInsets.only(bottom: 24, top: 16),
@@ -357,10 +377,7 @@ class FeedbackSubmitScreen extends StatelessWidget {
                   ),
                   child: const Text(
                     'Gửi yêu cầu',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -371,7 +388,12 @@ class FeedbackSubmitScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInputField(String label, String hint, {bool required = false, int maxLines = 1}) {
+  Widget _buildInputField(
+    String label,
+    String hint, {
+    bool required = false,
+    int maxLines = 1,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -470,12 +492,16 @@ class FeedbackListScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 24),
-            
+
             Expanded(
               child: ListView.separated(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 itemCount: dummyData.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 16),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 16),
                 itemBuilder: (context, index) {
                   final item = dummyData[index];
                   return Container(
@@ -509,11 +535,7 @@ class FeedbackListScreen extends StatelessWidget {
   Widget _buildInfoRow(String label, String value) {
     return RichText(
       text: TextSpan(
-        style: const TextStyle(
-          fontSize: 15,
-          color: Colors.white,
-          height: 1.5,
-        ),
+        style: const TextStyle(fontSize: 15, color: Colors.white, height: 1.5),
         children: [
           TextSpan(text: '$label '),
           TextSpan(text: value),
@@ -527,95 +549,168 @@ class FeedbackListScreen extends StatelessWidget {
 // Thông báo (Giữ nguyên)
 // ---------------------------------------------------------------------------
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
 
-  /// Nội dung mẫu: backend chưa có bảng thông báo.
-  static const _items = [
-    (
-      icon: Icons.local_shipping_outlined,
-      color: WakaColors.accent,
-      title: 'Đơn hàng đang được giao',
-      body: 'Kiện hàng của bạn đã rời kho Cầu Giấy và đang trên đường tới.',
-      time: '2 giờ trước',
-    ),
-    (
-      icon: Icons.workspace_premium_outlined,
-      color: WakaColors.gold,
-      title: 'Ưu đãi Hội viên 12 tháng',
-      body: 'Giảm còn 499.000đ và tặng thêm 02 tháng, áp dụng tới cuối tháng.',
-      time: '1 ngày trước',
-    ),
-    (
-      icon: Icons.auto_stories_outlined,
-      color: Color(0xFF8EB1FF),
-      title: 'Sách mới trong Kho Hội viên',
-      body: '12 tựa sách vừa được thêm vào mục Sách mới mỗi ngày.',
-      time: '3 ngày trước',
-    ),
-  ];
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<UserNotification> _items = const [];
+  bool _loading = true;
+  String _error = '';
+  Timer? _refreshTimer;
+  bool _refreshing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+    _refreshTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _load(silent: true),
+    );
+  }
+
+  Future<void> _load({bool silent = false}) async {
+    if (_refreshing) return;
+    _refreshing = true;
+    if (!AuthSession.isSignedIn) {
+      if (mounted) setState(() => _loading = false);
+      _refreshing = false;
+      return;
+    }
+    try {
+      const service = CommerceApiService();
+      final items = await service.getNotifications();
+      if (!mounted) return;
+      setState(() {
+        _items = items;
+        _loading = false;
+        _error = '';
+      });
+      for (final item in items.where((item) => !item.isRead)) {
+        await service.markNotificationRead(item.id);
+      }
+    } on Object catch (error) {
+      if (!mounted) return;
+      if (!silent) {
+        setState(() {
+          _loading = false;
+          _error = error.toString();
+        });
+      }
+    } finally {
+      _refreshing = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return _DetailScaffold(
       title: 'Thông báo',
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemBuilder: (context, index) {
-          final item = _items[index];
-          return Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: WakaColors.surface,
-              borderRadius: BorderRadius.circular(12),
+      child: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: WakaColors.accent),
+            )
+          : _error.isNotEmpty
+          ? Center(
+              child: Text(
+                _error,
+                style: const TextStyle(color: Colors.white70),
+              ),
+            )
+          : _items.isEmpty
+          ? const Center(
+              child: Text(
+                'Chưa có thông báo.',
+                style: TextStyle(color: Colors.white54),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _load,
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                itemCount: _items.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 12),
+                itemBuilder: (context, index) {
+                  final item = _items[index];
+                  final approved = item.type == 'membership_approved';
+                  final color = approved ? WakaColors.accent : WakaColors.gold;
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: WakaColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.16),
+                          child: Icon(
+                            approved
+                                ? Icons.verified_rounded
+                                : Icons.info_outline_rounded,
+                            color: color,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.title,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                item.body,
+                                style: const TextStyle(
+                                  color: WakaColors.mutedText,
+                                  height: 1.35,
+                                ),
+                              ),
+                              const SizedBox(height: 7),
+                              Text(
+                                _notificationTime(item.createdAt),
+                                style: const TextStyle(
+                                  color: Colors.white30,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                CircleAvatar(
-                  backgroundColor: item.color.withValues(alpha: 0.16),
-                  child: Icon(item.icon, color: item.color, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 5),
-                      Text(
-                        item.body,
-                        style: const TextStyle(
-                          color: WakaColors.mutedText,
-                          height: 1.35,
-                        ),
-                      ),
-                      const SizedBox(height: 7),
-                      Text(
-                        item.time,
-                        style: const TextStyle(
-                          color: Colors.white30,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
     );
   }
+}
+
+String _notificationTime(DateTime? value) {
+  if (value == null) return '';
+  final difference = DateTime.now().difference(value.toLocal());
+  if (difference.inMinutes < 1) return 'Vừa xong';
+  if (difference.inHours < 1) return '${difference.inMinutes} phút trước';
+  if (difference.inDays < 1) return '${difference.inHours} giờ trước';
+  return '${difference.inDays} ngày trước';
 }
 
 // ---------------------------------------------------------------------------
@@ -623,7 +718,10 @@ class NotificationsScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class AddressBookScreen extends StatefulWidget {
-  const AddressBookScreen({super.key, this.store = const SecureShopAddressStore()});
+  const AddressBookScreen({
+    super.key,
+    this.store = const SecureShopAddressStore(),
+  });
 
   final ShopAddressStore store;
 
@@ -782,8 +880,8 @@ class HelpFeedbackScreen extends StatelessWidget {
     (
       question: 'Làm sao trở thành tác giả trên Waka?',
       answer:
-          'Tính năng nộp hồ sơ tác giả đang được hoàn thiện. Trong lúc chờ, '
-          'bạn có thể liên hệ tổng đài để được hướng dẫn.',
+          'Vào Cá nhân → Đăng ký làm tác giả, điền hồ sơ và tác phẩm mẫu. '
+          'Sau khi quản trị viên duyệt, tài khoản sẽ được cấp quyền tác giả.',
     ),
   ];
 
@@ -905,10 +1003,7 @@ class _EmptyNote extends StatelessWidget {
           Text(
             message,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              color: WakaColors.mutedText,
-              height: 1.45,
-            ),
+            style: const TextStyle(color: WakaColors.mutedText, height: 1.45),
           ),
         ],
       ),
@@ -987,8 +1082,7 @@ class FavoriteCategoryScreen extends StatefulWidget {
   final ValueChanged<Set<String>>? onSubmit;
 
   @override
-  State<FavoriteCategoryScreen> createState() =>
-      _FavoriteCategoryScreenState();
+  State<FavoriteCategoryScreen> createState() => _FavoriteCategoryScreenState();
 }
 
 class _FavoriteCategoryScreenState extends State<FavoriteCategoryScreen> {

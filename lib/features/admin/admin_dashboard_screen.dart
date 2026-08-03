@@ -29,6 +29,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String _bookFilter = 'all';
   String _bookSearch = '';
   String _userSearch = '';
+  String _reviewFilter = 'all';
 
   @override
   void initState() {
@@ -310,6 +311,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  Future<void> _toggleReviewLock(AdminReview review) async {
+    var reason = '';
+    if (review.status != 'locked') {
+      final result = await _askReason(
+        title: 'Khóa bình luận?',
+        hint: 'Nêu lý do vi phạm hoặc nội dung cần kiểm duyệt',
+        required: true,
+      );
+      if (result == null) return;
+      reason = result;
+    }
+    await _runAction(
+      review.status == 'locked'
+          ? 'Đã mở khóa bình luận.'
+          : 'Đã khóa bình luận.',
+      widget.repository.lockReview(
+        review.id,
+        review.status != 'locked',
+        reason: reason,
+      ),
+    );
+  }
+
   Future<String?> _askReason({
     required String title,
     required String hint,
@@ -500,11 +524,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
               _ => _SystemSection(
                 users: snapshot.users,
+                reviews: snapshot.reviews,
                 search: _userSearch,
+                reviewFilter: _reviewFilter,
                 currentUserId: AuthSession.current?.user.id,
                 onSearchChanged: (value) => setState(() => _userSearch = value),
+                onReviewFilterChanged: (value) =>
+                    setState(() => _reviewFilter = value),
                 onRefresh: _load,
                 onEdit: _editUser,
+                onToggleReviewLock: _toggleReviewLock,
               ),
             },
           if (_isMutating)
@@ -1354,19 +1383,27 @@ class _StatusMenu extends StatelessWidget {
 class _SystemSection extends StatelessWidget {
   const _SystemSection({
     required this.users,
+    required this.reviews,
     required this.search,
+    required this.reviewFilter,
     required this.currentUserId,
     required this.onSearchChanged,
     required this.onRefresh,
     required this.onEdit,
+    required this.onReviewFilterChanged,
+    required this.onToggleReviewLock,
   });
 
   final List<AdminUserAccount> users;
+  final List<AdminReview> reviews;
   final String search;
+  final String reviewFilter;
   final int? currentUserId;
   final ValueChanged<String> onSearchChanged;
   final Future<void> Function() onRefresh;
   final ValueChanged<AdminUserAccount> onEdit;
+  final ValueChanged<String> onReviewFilterChanged;
+  final ValueChanged<AdminReview> onToggleReviewLock;
 
   @override
   Widget build(BuildContext context) {
@@ -1376,6 +1413,16 @@ class _SystemSection extends StatelessWidget {
           user.identifier.toLowerCase().contains(query) ||
           user.displayName.toLowerCase().contains(query) ||
           user.role.toLowerCase().contains(query);
+    }).toList();
+    final visibleReviews = reviews.where((review) {
+      final matchesStatus =
+          reviewFilter == 'all' || review.status == reviewFilter;
+      final matchesQuery =
+          query.isEmpty ||
+          review.bookTitle.toLowerCase().contains(query) ||
+          review.identifier.toLowerCase().contains(query) ||
+          review.comment.toLowerCase().contains(query);
+      return matchesStatus && matchesQuery;
     }).toList();
     return RefreshIndicator(
       onRefresh: onRefresh,
@@ -1387,7 +1434,7 @@ class _SystemSection extends StatelessWidget {
             key: const ValueKey('admin-user-search'),
             onChanged: onSearchChanged,
             decoration: InputDecoration(
-              hintText: 'Tìm email, tên hoặc quyền tài khoản',
+              hintText: 'Tìm tài khoản, sách hoặc bình luận',
               prefixIcon: const Icon(Icons.search_rounded),
               filled: true,
               fillColor: const Color(0xFF19191B),
@@ -1398,6 +1445,116 @@ class _SystemSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 14),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Kiểm duyệt bình luận',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              DropdownButton<String>(
+                value: reviewFilter,
+                items: const [
+                  DropdownMenuItem(value: 'all', child: Text('Tất cả')),
+                  DropdownMenuItem(value: 'visible', child: Text('Đang hiện')),
+                  DropdownMenuItem(value: 'locked', child: Text('Đã khóa')),
+                ],
+                onChanged: (value) {
+                  if (value != null) onReviewFilterChanged(value);
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (visibleReviews.isEmpty)
+            const _EmptyAdminCard(
+              icon: Icons.rate_review_outlined,
+              message: 'Không có bình luận phù hợp.',
+            )
+          else
+            for (final review in visibleReviews) ...[
+              _AdminCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            review.bookTitle,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '${review.rating} ★',
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '${review.displayName.isEmpty ? review.identifier : review.displayName} • ${review.identifier}${review.isAnonymous ? ' • Ẩn danh' : ''}',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      review.comment,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        height: 1.35,
+                      ),
+                    ),
+                    if (review.lockReason.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Text(
+                        'Lý do: ${review.lockReason}',
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton.icon(
+                        onPressed: () => onToggleReviewLock(review),
+                        icon: Icon(
+                          review.status == 'locked'
+                              ? Icons.lock_open_rounded
+                              : Icons.lock_outline_rounded,
+                        ),
+                        label: Text(
+                          review.status == 'locked' ? 'MỞ KHÓA' : 'KHÓA',
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+          const Divider(height: 34, color: Colors.white12),
+          const Text(
+            'Tài khoản người dùng',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
           Text(
             '${visible.length} tài khoản',
             style: const TextStyle(color: Colors.white54),

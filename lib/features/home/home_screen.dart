@@ -340,6 +340,64 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  List<HomeBook> _categoryCollection(
+    List<String> categories, {
+    List<String> titleQueries = const [],
+    int limit = 18,
+  }) {
+    if (_apiBooks.isEmpty) return _expandFallbackBooks(allHomeBooks, 10);
+    final matched = _apiBooks.where(
+      (book) =>
+          _matchesAny(book.section, categories) ||
+          _matchesAny(book.title, titleQueries),
+    );
+    return _dedupeHomeBooks(matched.toList()).take(limit).toList();
+  }
+
+  List<HomeBook> get _financeBooks => _categoryCollection(
+    const ['Tài chính cá nhân'],
+    titleQueries: const [
+      'tiền',
+      'tài chính',
+      'đầu tư',
+      'thu nhập',
+      'kim cương',
+    ],
+  );
+
+  List<HomeBook> get _romanceBooks => _categoryCollection(
+    const ['Ngôn tình'],
+    titleQueries: const ['tình yêu', 'trúc mã', 'hôn nhân', 'chồng', 'hẹn hò'],
+  );
+
+  List<HomeBook> get _technologyBooks => _categoryCollection(
+    const ['Khoa học - Công nghệ'],
+    titleQueries: const ['công nghệ', 'chatgpt', 'chip', 'thế giới'],
+  );
+
+  List<HomeBook> get _wellnessBooks => _categoryCollection(
+    const ['Sức khỏe - Làm đẹp'],
+    titleQueries: const ['sức khỏe', 'tâm lý', 'món ăn', 'sống'],
+  );
+
+  List<HomeBook> get _childrenBooks => _categoryCollection(
+    const ['Giáo dục - Sách thiếu nhi'],
+    titleQueries: const ['thiếu nhi', 'trẻ em', 'nông trại', 'học'],
+  );
+
+  List<HomeBook> get _moreDiscoveryBooks {
+    if (_apiBooks.isEmpty) return _expandFallbackBooks(allHomeBooks, 12);
+    final featuredTitles = <String>{
+      ..._apiDailyBooks.map((book) => _homeNormalize(book.title)),
+      ..._apiRankingBooks.map((book) => _homeNormalize(book.title)),
+      ..._apiRecommendationBooks.map((book) => _homeNormalize(book.title)),
+    };
+    final fresh = _apiBooks
+        .where((book) => !featuredTitles.contains(_homeNormalize(book.title)))
+        .toList();
+    return _dedupeHomeBooks(fresh).take(24).toList();
+  }
+
   List<HomeBook> _booksFromWaka({
     required List<String> sectionQueries,
     List<String> titleQueries = const [],
@@ -693,6 +751,72 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverToBoxAdapter(child: _BookShelf(books: _apiSkillBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Tài chính thông minh',
+                  onTap: () =>
+                      _openSectionBooks('Tài chính thông minh', _financeBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _financeBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Ngôn tình được yêu thích',
+                  onTap: () => _openSectionBooks(
+                    'Ngôn tình được yêu thích',
+                    _romanceBooks,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _romanceBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Khoa học và công nghệ',
+                  onTap: () => _openSectionBooks(
+                    'Khoa học và công nghệ',
+                    _technologyBooks,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _technologyBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Sống khỏe mỗi ngày',
+                  onTap: () =>
+                      _openSectionBooks('Sống khỏe mỗi ngày', _wellnessBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _wellnessBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Thế giới sách thiếu nhi',
+                  onTap: () => _openSectionBooks(
+                    'Thế giới sách thiếu nhi',
+                    _childrenBooks,
+                  ),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _childrenBooks)),
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Khám phá thêm',
+                  onTap: () =>
+                      _openSectionBooks('Khám phá thêm', _moreDiscoveryBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: _moreDiscoveryBooks)),
             ],
             if (!hasSearchText && _selectedCategoryIndex == 1) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 34)),
@@ -1492,7 +1616,7 @@ class _WakaWebBannerCard extends StatelessWidget {
   }
 }
 
-class _CategoryTabs extends StatelessWidget {
+class _CategoryTabs extends StatefulWidget {
   const _CategoryTabs({
     required this.selectedIndex,
     required this.onChanged,
@@ -1513,26 +1637,59 @@ class _CategoryTabs extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
-    final orderedIndexes = showClose
-        ? [
-            selectedIndex,
-            ...List.generate(
-              tabs.length,
-              (index) => index,
-            ).where((index) => index != selectedIndex),
-          ]
-        : List.generate(tabs.length, (index) => index);
+  State<_CategoryTabs> createState() => _CategoryTabsState();
+}
 
+class _CategoryTabsState extends State<_CategoryTabs> {
+  final _scrollController = ScrollController();
+  final _tabKeys = List.generate(_CategoryTabs.tabs.length, (_) => GlobalKey());
+
+  @override
+  void didUpdateWidget(covariant _CategoryTabs oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedIndex != widget.selectedIndex ||
+        oldWidget.showClose != widget.showClose) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
+    }
+  }
+
+  void _revealSelected() {
+    if (!mounted) return;
+    final tabContext = _tabKeys[widget.selectedIndex].currentContext;
+    if (tabContext == null) return;
+    Scrollable.ensureVisible(
+      tabContext,
+      duration: const Duration(milliseconds: 360),
+      curve: Curves.easeOutCubic,
+      alignment: 0.5,
+      alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+    );
+  }
+
+  void _select(int index) {
+    widget.onChanged(index);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _revealSelected());
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
-      height: showClose ? 48 : 32,
+      height: widget.showClose ? 50 : 38,
       child: ListView.separated(
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16),
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         itemBuilder: (context, itemIndex) {
-          if (showClose && itemIndex == 0) {
+          if (widget.showClose && itemIndex == 0) {
             return GestureDetector(
-              onTap: onClose,
+              onTap: widget.onClose,
               child: Container(
                 width: 46,
                 height: 46,
@@ -1550,42 +1707,51 @@ class _CategoryTabs extends StatelessWidget {
             );
           }
 
-          final tabIndex =
-              orderedIndexes[showClose ? itemIndex - 1 : itemIndex];
-          final selected = tabIndex == selectedIndex;
+          final tabIndex = widget.showClose ? itemIndex - 1 : itemIndex;
+          final selected = tabIndex == widget.selectedIndex;
 
-          return GestureDetector(
-            onTap: () => onChanged(tabIndex),
+          return InkWell(
+            key: _tabKeys[tabIndex],
+            onTap: () => _select(tabIndex),
+            borderRadius: BorderRadius.circular(28),
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              height: showClose ? 46 : 32,
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeOutCubic,
+              height: widget.showClose ? 46 : 38,
               alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: showClose ? 28 : 0),
+              padding: EdgeInsets.fromLTRB(
+                widget.showClose ? 24 : 2,
+                0,
+                widget.showClose ? 24 : 2,
+                0,
+              ),
               decoration: BoxDecoration(
-                color: showClose && selected
+                color: widget.showClose && selected
                     ? Colors.white.withValues(alpha: 0.11)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(28),
-                border: showClose && selected
+                border: widget.showClose && selected
                     ? Border.all(color: Colors.white38, width: 1.2)
                     : null,
               ),
-              child: Text(
-                tabs[tabIndex],
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 240),
+                curve: Curves.easeOut,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: selected ? 0.94 : 0.68),
-                  fontSize: showClose
-                      ? (selected ? 24 : 23)
-                      : (selected ? 18.5 : 17.5),
-                  fontWeight: FontWeight.w800,
+                  color: Colors.white.withValues(alpha: selected ? 1 : 0.62),
+                  fontSize: widget.showClose ? (selected ? 24 : 23) : 17,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
                   height: 1.05,
                 ),
+                child: Text(_CategoryTabs.tabs[tabIndex]),
               ),
             ),
           );
         },
-        separatorBuilder: (_, _) => SizedBox(width: showClose ? 12 : 26),
-        itemCount: showClose ? tabs.length + 1 : tabs.length,
+        separatorBuilder: (_, _) => SizedBox(width: widget.showClose ? 12 : 24),
+        itemCount: widget.showClose
+            ? _CategoryTabs.tabs.length + 1
+            : _CategoryTabs.tabs.length,
       ),
     );
   }

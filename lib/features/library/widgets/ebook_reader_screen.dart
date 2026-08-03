@@ -77,7 +77,7 @@ class _EbookReaderScreenState extends State<EbookReaderScreen> {
                       child: Image.network(
                         widget.imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
+                        errorBuilder: (_, _, _) =>
                             Center(
                               child: Icon(
                                 Icons.menu_book_rounded,

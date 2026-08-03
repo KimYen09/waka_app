@@ -202,6 +202,27 @@ CREATE TABLE IF NOT EXISTS reading_progress (
     FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS book_reviews (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  book_id BIGINT UNSIGNED NOT NULL,
+  user_id BIGINT UNSIGNED NOT NULL,
+  rating TINYINT UNSIGNED NOT NULL,
+  comment VARCHAR(1500) NOT NULL,
+  is_anonymous BOOLEAN NOT NULL DEFAULT FALSE,
+  status ENUM('visible', 'locked') NOT NULL DEFAULT 'visible',
+  lock_reason VARCHAR(500),
+  locked_by BIGINT UNSIGNED NULL,
+  locked_at DATETIME NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_book_reviews_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE,
+  CONSTRAINT fk_book_reviews_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_book_reviews_locked_by FOREIGN KEY (locked_by) REFERENCES users(id) ON DELETE SET NULL,
+  UNIQUE KEY uq_book_reviews_user_book (user_id, book_id),
+  INDEX idx_book_reviews_book_status_created (book_id, status, created_at),
+  INDEX idx_book_reviews_status_created (status, created_at)
+);
+
 CREATE TABLE IF NOT EXISTS orders (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL,
@@ -284,7 +305,7 @@ CREATE TABLE IF NOT EXISTS user_memberships (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL,
   plan_id BIGINT UNSIGNED NOT NULL,
-  status ENUM('active', 'expired', 'cancelled') NOT NULL DEFAULT 'active',
+  status ENUM('pending', 'active', 'expired', 'cancelled') NOT NULL DEFAULT 'pending',
   started_at DATETIME NOT NULL,
   expires_at DATETIME NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -317,6 +338,20 @@ CREATE TABLE IF NOT EXISTS payments (
   INDEX idx_payments_user_created (user_id, created_at),
   INDEX idx_payments_order_id (order_id),
   INDEX idx_payments_membership_id (membership_id)
+);
+
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNSIGNED NOT NULL,
+  type VARCHAR(40) NOT NULL DEFAULT 'system',
+  title VARCHAR(180) NOT NULL,
+  body VARCHAR(600) NOT NULL,
+  is_read BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_notifications_user
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_notifications_user_created (user_id, created_at),
+  INDEX idx_notifications_user_read (user_id, is_read)
 );
 
 INSERT INTO membership_plans

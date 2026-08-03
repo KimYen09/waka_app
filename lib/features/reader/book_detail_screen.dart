@@ -5,6 +5,8 @@ import '../../core/services/auth_api_service.dart';
 import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../purchase/digital_purchase_sheet.dart';
+import '../membership/membership_plans_screen.dart';
+import 'book_reviews_screen.dart';
 import 'reader_screen.dart';
 
 class BookDetailData {
@@ -79,12 +81,28 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   bool _isSavingDownload = false;
   bool _showFullDescription = false;
   bool _showMemberOffer = true;
+  bool _hasMembership = false;
 
   @override
   void initState() {
     super.initState();
     _loadFavoriteState();
     _loadDownloadedState();
+    _loadMembershipState();
+  }
+
+  Future<void> _loadMembershipState() async {
+    if (!AuthSession.isSignedIn) return;
+    try {
+      final membership = await _commerce.getActiveMembership();
+      if (!mounted) return;
+      setState(() {
+        _hasMembership = membership != null;
+        if (_hasMembership) _showMemberOffer = false;
+      });
+    } on Object {
+      // Giữ chế độ xem trước nếu chưa xác minh được quyền Hội viên.
+    }
   }
 
   /// Đọc trạng thái tim hiện tại để mở lại màn không bị lệch với máy chủ.
@@ -185,7 +203,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
       }
       if (!mounted) return;
       _showMessage(
-        next ? 'Đã thêm vào Thư viện › Tải xuống.' : 'Đã xóa khỏi mục Tải xuống.',
+        next
+            ? 'Đã thêm vào Thư viện › Tải xuống.'
+            : 'Đã xóa khỏi mục Tải xuống.',
       );
     } on Object catch (error) {
       if (!mounted) return;
@@ -200,6 +220,13 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => ReaderScreen(book: widget.book)),
     );
+  }
+
+  Future<void> _openMembershipPlans() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(builder: (_) => const MembershipPlansScreen()),
+    );
+    if (mounted) await _loadMembershipState();
   }
 
   Future<void> _buyDigitalBook() {
@@ -277,7 +304,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   },
                 ),
                 _ActionTile(
-                  icon: _isDownloaded ? Icons.check_circle_rounded : Icons.download_rounded,
+                  icon: _isDownloaded
+                      ? Icons.check_circle_rounded
+                      : Icons.download_rounded,
                   label: _isDownloaded ? 'Đã tải' : 'Tải sách',
                   trailing: const _MemberPill(),
                   onTap: () {
@@ -302,67 +331,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   void _showRatingSheet() {
-    var rating = 5;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: const Color(0xFF29292F),
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (context, setSheetState) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 28),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text(
-                    'Bạn thấy cuốn sách thế nào?',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 21,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(
-                      5,
-                      (index) => IconButton(
-                        onPressed: () =>
-                            setSheetState(() => rating = index + 1),
-                        icon: Icon(
-                          index < rating
-                              ? Icons.star_rounded
-                              : Icons.star_border_rounded,
-                          color: WakaColors.gold,
-                          size: 38,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () {
-                      Navigator.pop(sheetContext);
-                      _showMessage('Cảm ơn bạn đã đánh giá $rating sao.');
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: WakaColors.accent,
-                      foregroundColor: Colors.black,
-                      minimumSize: const Size.fromHeight(50),
-                    ),
-                    child: const Text(
-                      'GỬI ĐÁNH GIÁ',
-                      style: TextStyle(fontWeight: FontWeight.w900),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+    showBookReviewComposer(context, widget.book.bookId);
   }
 
   void _showMessage(String message) {
@@ -451,7 +420,10 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                         onOpen: _openRelatedBook,
                       ),
                       const SizedBox(height: 34),
-                      const _ReaderReviewEmpty(),
+                      BookReviewsPreview(
+                        bookId: widget.book.bookId,
+                        bookTitle: widget.book.title,
+                      ),
                     ],
                   ),
                 ),
@@ -465,7 +437,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
               bottom: 14,
               child: _MemberOfferBanner(
                 onClose: () => setState(() => _showMemberOffer = false),
-                onBuy: () => _showMessage('Đã mở lựa chọn gói Hội viên.'),
+                onBuy: _openMembershipPlans,
               ),
             ),
         ],
@@ -1118,33 +1090,6 @@ class _RelatedBooks extends StatelessWidget {
                 ),
               );
             },
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ReaderReviewEmpty extends StatelessWidget {
-  const _ReaderReviewEmpty();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionHeading('Độc giả đánh giá'),
-        SizedBox(height: 30),
-        Center(
-          child: Column(
-            children: [
-              Icon(Icons.auto_awesome_rounded, color: Colors.white30, size: 76),
-              SizedBox(height: 12),
-              Text(
-                'Chưa có đánh giá nào',
-                style: TextStyle(color: Colors.white54, fontSize: 17),
-              ),
-            ],
           ),
         ),
       ],
