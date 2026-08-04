@@ -4,6 +4,7 @@ import '../../core/services/auth_api_service.dart';
 import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../reader/book_detail_screen.dart';
+import '../reader/reader_screen.dart';
 
 /// Màn "Thư viện" - header (avatar + tabs) đứng yên khi cuộn, phần dưới cuộn qua.
 ///
@@ -54,7 +55,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               (progress) => _ShelfBook(
                 bookId: progress.bookId,
                 title: progress.title,
-                subtitle: progress.author.isEmpty ? 'Waka' : progress.author,
+                subtitle: 'Đang đọc • Trang ${progress.currentPage + 1}',
                 imageUrl: progress.imageUrl,
               ),
             )
@@ -117,22 +118,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _openBook(_ShelfBook book) async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
-        builder: (_) => BookDetailScreen(
-          book: BookDetailData(
-            bookId: book.bookId,
-            title: book.title,
-            author: book.subtitle,
-            imageUrl: book.imageUrl,
-            section: 'Thư viện của tôi',
-            colors: const [Color(0xFF163D2E), Color(0xFF47C982)],
-            icon: Icons.menu_book_rounded,
-          ),
-        ),
-      ),
+    final bookData = BookDetailData(
+      bookId: book.bookId,
+      title: book.title,
+      author: book.subtitle,
+      imageUrl: book.imageUrl,
+      section: 'Thư viện của tôi',
+      colors: const [Color(0xFF163D2E), Color(0xFF47C982)],
+      icon: Icons.menu_book_rounded,
     );
-    // Người dùng có thể vừa bỏ tim ở màn chi tiết, nạp lại cho khớp.
+
+    if (_selectedTab == 0) {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => ReaderScreen(book: bookData),
+        ),
+      );
+    } else {
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute<void>(
+          builder: (_) => BookDetailScreen(book: bookData),
+        ),
+      );
+    }
+
     if (mounted) await _load();
   }
 
@@ -157,7 +166,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       AuthSession.current?.user.displayName ??
                       AuthSession.current?.user.identifier ??
                       'Khách',
-                  onTabChanged: (i) => setState(() => _selectedTab = i),
+                  onTabChanged: (i) {
+                    setState(() => _selectedTab = i);
+                    _load();
+                  },
                 ),
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 16)),

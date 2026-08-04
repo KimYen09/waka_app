@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../constants/api_endpoints.dart';
 import 'auth_api_service.dart';
 import 'rest_api_client.dart';
@@ -238,7 +239,7 @@ class CommerceApiService {
   Future<CommerceCart> getCart() async {
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiCart),
-      bearerToken: _token,
+      bearerToken: await _getToken,
     );
     final data = _dataMap(response);
     final items = (data['items'] as List<Object?>? ?? const [])
@@ -252,13 +253,13 @@ class CommerceApiService {
     await client.postJson(Uri.parse('${ApiEndpoints.apiCart}/items'), {
       'bookId': bookId,
       'quantity': quantity,
-    }, bearerToken: _token);
+    }, bearerToken: await _getToken);
   }
 
   Future<void> removeCartItem(int bookId) async {
     await client.deleteJson(
       Uri.parse('${ApiEndpoints.apiCart}/items/$bookId'),
-      bearerToken: _token,
+      bearerToken: await _getToken,
     );
   }
 
@@ -279,7 +280,7 @@ class CommerceApiService {
     final response = await client.postJson(
       Uri.parse(ApiEndpoints.apiCheckout),
       body,
-      bearerToken: _token,
+      bearerToken: await _getToken,
     );
     final data = _dataMap(response);
     final payment = data['payment'] is Map<String, Object?>
@@ -304,39 +305,16 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-  Future<UserMembership> purchaseMembership(
-    int planId, {
-    required String transactionRef,
-  }) async {
-    final response = await client.postJson(
-      Uri.parse(ApiEndpoints.apiMembershipPurchase),
-      {'planId': planId, 'transactionRef': transactionRef},
-      bearerToken: _token,
-    );
-    final data = _dataMap(response);
-    return UserMembership(
-      id: _int(data['membershipId']),
-      status: data['status'] as String? ?? 'active',
-      planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
-      startedAt: _date(data['startedAt']),
-      expiresAt: _date(data['expiresAt']),
-      planId: _int(data['planId']),
-      price: _num(data['price']),
-    );
-  }
-
-  Future<UserMembership?> getActiveMembership() async {
-    final memberships = await getMyMemberships();
-    for (final membership in memberships) {
-      if (membership.isActive) return membership;
-    }
-    return null;
+  Future<void> purchaseMembership(int planId) async {
+    await client.postJson(Uri.parse(ApiEndpoints.apiMembershipPurchase), {
+      'planId': planId,
+    }, bearerToken: await _getToken);
   }
 
   Future<List<UserMembership>> getMyMemberships() async {
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiMyMemberships),
-      bearerToken: _token,
+      bearerToken: await _getToken,
     );
     final data = response['data'];
     if (data is! List<Object?>) return const [];
@@ -356,196 +334,323 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-  Future<void> cancelMembership() async {
-    await client.deleteJson(
-      Uri.parse(ApiEndpoints.apiMyMemberships),
-      bearerToken: _token,
-    );
-  }
-
-  Future<List<UserNotification>> getNotifications() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiNotifications),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map((item) {
-          return UserNotification(
-            id: _int(item['id']),
-            type: item['type'] as String? ?? 'system',
-            title: item['title'] as String? ?? 'Thông báo',
-            body: item['body'] as String? ?? '',
-            isRead: item['isRead'] == true || item['isRead'] == 1,
-            createdAt: _date(item['createdAt']),
-          );
-        })
-        .toList(growable: false);
-  }
-
-  Future<void> markNotificationRead(int id) async {
-    await client.patchJson(
-      Uri.parse('${ApiEndpoints.apiNotifications}/$id/read'),
-      const <String, Object?>{},
-      bearerToken: _token,
-    );
-  }
+  static final Map<String, ReadingProgressBook> _fallbackProgressMap = {};
+  static final Map<String, DownloadedBook> _fallbackDownloadsMap = {};
+  static final Map<String, FavoriteBook> _fallbackFavoritesMap = {};
 
   /// Danh sách sách đã đánh dấu yêu thích, mới nhất trước.
   Future<List<FavoriteBook>> getFavorites() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiFavorites),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map(
-          (item) => FavoriteBook(
-            bookId: _int(item['id']),
-            title: item['title'] as String? ?? '',
-            author: item['author'] as String? ?? '',
-            imageUrl: item['imageUrl'] as String? ?? '',
-            price: _num(item['price']),
-            discountPercent: _int(item['discountPercent']),
-            createdAt: _date(item['createdAt']),
-          ),
-        )
-        .toList(growable: false);
+    try {
+      final response = await client.getJson(
+        Uri.parse(ApiEndpoints.apiFavorites),
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is List<Object?>) {
+        final serverList = data
+            .whereType<Map<String, Object?>>()
+            .map(
+              (item) => FavoriteBook(
+                bookId: _int(item['id']),
+                title: item['title'] as String? ?? '',
+                author: item['author'] as String? ?? '',
+                imageUrl: item['imageUrl'] as String? ?? '',
+                price: _num(item['price']),
+                discountPercent: _int(item['discountPercent']),
+                createdAt: _date(item['createdAt']),
+              ),
+            )
+            .toList(growable: false);
+        final Map<String, FavoriteBook> merged = {};
+        for (final item in _fallbackFavoritesMap.values) {
+          merged[item.title] = item;
+        }
+        for (final item in serverList) {
+          merged[item.title] = item;
+        }
+        return merged.values.toList(growable: false);
+      }
+    } on Object catch (e) {
+      debugPrint('getFavorites warning: $e');
+    }
+    return _fallbackFavoritesMap.values.toList(growable: false);
   }
 
   Future<List<DownloadedBook>> getDownloads() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiDownloads),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map(_downloadedBookFromJson)
-        .toList(growable: false);
+    try {
+      final response = await client.getJson(
+        Uri.parse(ApiEndpoints.apiDownloads),
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is List<Object?>) {
+        final serverList = data
+            .whereType<Map<String, Object?>>()
+            .map(_downloadedBookFromJson)
+            .toList(growable: false);
+        final Map<String, DownloadedBook> merged = {};
+        for (final item in _fallbackDownloadsMap.values) {
+          merged[item.title] = item;
+        }
+        for (final item in serverList) {
+          merged[item.title] = item;
+        }
+        return merged.values.toList(growable: false);
+      }
+    } on Object catch (e) {
+      debugPrint('getDownloads warning: $e');
+    }
+    return _fallbackDownloadsMap.values.toList(growable: false);
   }
 
-  Future<void> addDownload(int bookId) async {
-    await client.postJson(
-      Uri.parse(ApiEndpoints.apiDownloads),
-      {'bookId': bookId},
-      bearerToken: _token,
+  Future<void> addDownload(
+    int bookId, {
+    String? title,
+    String? author,
+    String? imageUrl,
+  }) async {
+    final resolvedTitle = title ?? 'Sách #$bookId';
+    _fallbackDownloadsMap[resolvedTitle] = DownloadedBook(
+      bookId: bookId,
+      title: resolvedTitle,
+      author: author ?? 'Waka',
+      imageUrl: imageUrl ?? '',
+      sourceUrl: '',
+      downloadedAt: DateTime.now(),
     );
+
+    try {
+      await client.postJson(
+        Uri.parse(ApiEndpoints.apiDownloads),
+        {
+          'bookId': bookId,
+          if (title != null && title.isNotEmpty) 'title': title,
+          if (author != null && author.isNotEmpty) 'author': author,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+        bearerToken: await _getToken,
+      );
+    } on Object catch (e) {
+      debugPrint('addDownload warning: $e');
+    }
   }
 
-  Future<void> removeDownload(int bookId) async {
-    await client.deleteJson(
-      Uri.parse('${ApiEndpoints.apiDownloads}/$bookId'),
-      bearerToken: _token,
-    );
+  Future<void> removeDownload(int bookId, {String? title}) async {
+    final resolvedTitle = title ?? '';
+    if (resolvedTitle.isNotEmpty) {
+      _fallbackDownloadsMap.remove(resolvedTitle);
+    }
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiDownloads}/$bookId').replace(
+        queryParameters: {
+          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
+        },
+      );
+      await client.deleteJson(uri, bearerToken: await _getToken);
+    } on Object catch (e) {
+      debugPrint('removeDownload warning: $e');
+    }
   }
 
-  Future<void> saveReadingProgress(int bookId, int page) async {
-    await client.postJson(
-      Uri.parse(ApiEndpoints.apiProgress),
-      {'bookId': bookId, 'currentPage': page},
-      bearerToken: _token,
+  Future<void> saveReadingProgress(
+    int bookId,
+    int page, {
+    String? title,
+    String? author,
+    String? imageUrl,
+  }) async {
+    final resolvedTitle = title ?? 'Sách #$bookId';
+    _fallbackProgressMap[resolvedTitle] = ReadingProgressBook(
+      bookId: bookId,
+      title: resolvedTitle,
+      author: author ?? 'Waka',
+      imageUrl: imageUrl ?? '',
+      sourceUrl: '',
+      currentPage: page,
+      updatedAt: DateTime.now(),
     );
+
+    try {
+      await client.postJson(
+        Uri.parse(ApiEndpoints.apiProgress),
+        {
+          'bookId': bookId,
+          'currentPage': page,
+          if (title != null && title.isNotEmpty) 'title': title,
+          if (author != null && author.isNotEmpty) 'author': author,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+        bearerToken: await _getToken,
+      );
+    } on Object catch (e) {
+      debugPrint('saveReadingProgress warning: $e');
+    }
   }
 
-  Future<int?> getReadingProgress(int bookId) async {
-    final response = await client.getJson(
-      Uri.parse('${ApiEndpoints.apiProgress}/$bookId'),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is Map<String, Object?>) {
-      final page = data['currentPage'];
-      if (page is num) return page.toInt();
-      return int.tryParse('$page');
+  Future<int?> getReadingProgress(int bookId, {String? title}) async {
+    final resolvedTitle = title ?? '';
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiProgress}/$bookId').replace(
+        queryParameters: {
+          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
+        },
+      );
+      final response = await client.getJson(
+        uri,
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is Map<String, Object?>) {
+        final page = data['currentPage'];
+        if (page is num) return page.toInt();
+        return int.tryParse('$page');
+      }
+    } on Object catch (e) {
+      debugPrint('getReadingProgress warning: $e');
+    }
+
+    if (resolvedTitle.isNotEmpty && _fallbackProgressMap.containsKey(resolvedTitle)) {
+      return _fallbackProgressMap[resolvedTitle]?.currentPage;
     }
     return null;
   }
 
   /// Backend dùng `INSERT IGNORE` nên gọi lại nhiều lần vẫn an toàn.
-  Future<void> addFavorite(int bookId) async {
-    await client.postJson(Uri.parse(ApiEndpoints.apiFavorites), {
-      'bookId': bookId,
-    }, bearerToken: _token);
+  Future<void> addFavorite(
+    int bookId, {
+    String? title,
+    String? author,
+    String? imageUrl,
+  }) async {
+    final resolvedTitle = title ?? 'Sách #$bookId';
+    _fallbackFavoritesMap[resolvedTitle] = FavoriteBook(
+      bookId: bookId,
+      title: resolvedTitle,
+      author: author ?? 'Waka',
+      imageUrl: imageUrl ?? '',
+      price: 99000,
+      discountPercent: 0,
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      await client.postJson(
+        Uri.parse(ApiEndpoints.apiFavorites),
+        {
+          'bookId': bookId,
+          if (title != null && title.isNotEmpty) 'title': title,
+          if (author != null && author.isNotEmpty) 'author': author,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+        bearerToken: await _getToken,
+      );
+    } on Object catch (e) {
+      debugPrint('addFavorite warning: $e');
+    }
   }
 
-  Future<void> removeFavorite(int bookId) async {
-    await client.deleteJson(
-      Uri.parse('${ApiEndpoints.apiFavorites}/$bookId'),
-      bearerToken: _token,
-    );
+  Future<void> removeFavorite(int bookId, {String? title}) async {
+    final resolvedTitle = title ?? '';
+    if (resolvedTitle.isNotEmpty) {
+      _fallbackFavoritesMap.remove(resolvedTitle);
+    }
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiFavorites}/$bookId').replace(
+        queryParameters: {
+          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
+        },
+      );
+      await client.deleteJson(uri, bearerToken: await _getToken);
+    } on Object catch (e) {
+      debugPrint('removeFavorite warning: $e');
+    }
   }
 
   Future<List<CommerceOrder>> getOrders() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiOrders),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map(
-          (item) => CommerceOrder(
-            id: _int(item['id']),
-            status: item['status'] as String? ?? 'confirmed',
-            paymentMethod: item['paymentMethod'] as String? ?? 'cod',
-            paymentStatus: item['paymentStatus'] as String? ?? 'pending',
-            total: _num(item['total']),
-            createdAt: _date(item['createdAt']),
-            itemCount: (item['items'] as List<Object?>? ?? const []).length,
-            items: (item['items'] as List<Object?>? ?? const [])
-                .whereType<Map<String, Object?>>()
-                .map(
-                  (line) => CommerceOrderItem(
-                    bookId: _int(line['bookId']),
-                    title: line['title'] as String? ?? '',
-                    quantity: _int(line['quantity']),
-                    unitPrice: _num(line['unitPrice']),
-                  ),
-                )
-                .toList(growable: false),
-            shippingRecipient: item['shippingRecipient'] as String? ?? '',
-            shippingAddress: item['shippingAddress'] as String? ?? '',
-            shippingEvents:
-                (item['shippingEvents'] as List<Object?>? ?? const [])
-                    .whereType<Map<String, Object?>>()
-                    .map(
-                      (event) => CommerceShippingEvent(
-                        status: event['status'] as String? ?? 'confirmed',
-                        location: event['location'] as String? ?? '',
-                        description: event['description'] as String? ?? '',
-                        createdAt: _date(event['createdAt']),
-                      ),
-                    )
-                    .toList(growable: false),
-          ),
-        )
-        .toList(growable: false);
+    try {
+      final response = await client.getJson(
+        Uri.parse(ApiEndpoints.apiOrders),
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is! List<Object?>) return const [];
+      return data
+          .whereType<Map<String, Object?>>()
+          .map(
+            (item) => CommerceOrder(
+              id: _int(item['id']),
+              status: item['status'] as String? ?? 'confirmed',
+              paymentMethod: item['paymentMethod'] as String? ?? 'cod',
+              paymentStatus: item['paymentStatus'] as String? ?? 'pending',
+              total: _num(item['total']),
+              createdAt: _date(item['createdAt']),
+              itemCount: (item['items'] as List<Object?>? ?? const []).length,
+              items: (item['items'] as List<Object?>? ?? const [])
+                  .whereType<Map<String, Object?>>()
+                  .map(
+                    (line) => CommerceOrderItem(
+                      bookId: _int(line['bookId']),
+                      title: line['title'] as String? ?? '',
+                      quantity: _int(line['quantity']),
+                      unitPrice: _num(line['unitPrice']),
+                    ),
+                  )
+                  .toList(growable: false),
+              shippingRecipient: item['shippingRecipient'] as String? ?? '',
+              shippingAddress: item['shippingAddress'] as String? ?? '',
+              shippingEvents:
+                  (item['shippingEvents'] as List<Object?>? ?? const [])
+                      .whereType<Map<String, Object?>>()
+                      .map(
+                        (event) => CommerceShippingEvent(
+                          status: event['status'] as String? ?? 'confirmed',
+                          location: event['location'] as String? ?? '',
+                          description: event['description'] as String? ?? '',
+                          createdAt: _date(event['createdAt']),
+                        ),
+                      )
+                      .toList(growable: false),
+            ),
+          )
+          .toList(growable: false);
+    } on Object catch (e) {
+      debugPrint('getOrders warning: $e');
+      return const [];
+    }
   }
 
   Future<List<ReadingProgressBook>> getReadingProgressBooks() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiProgress),
-      bearerToken: _token,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map(_readingProgressBookFromJson)
-        .toList(growable: false);
+    try {
+      final response = await client.getJson(
+        Uri.parse(ApiEndpoints.apiProgress),
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is List<Object?>) {
+        final serverList = data
+            .whereType<Map<String, Object?>>()
+            .map(_readingProgressBookFromJson)
+            .toList(growable: false);
+        final Map<String, ReadingProgressBook> merged = {};
+        for (final item in _fallbackProgressMap.values) {
+          merged[item.title] = item;
+        }
+        for (final item in serverList) {
+          merged[item.title] = item;
+        }
+        return merged.values.toList(growable: false);
+      }
+    } on Object catch (e) {
+      debugPrint('getReadingProgressBooks warning: $e');
+    }
+    return _fallbackProgressMap.values.toList(growable: false);
   }
 
-  String get _token {
+  Future<String> get _getToken async {
     final token = AuthSession.current?.token;
     if (token == null || token.isEmpty) {
-      throw const RestApiException('Bạn cần đăng nhập để đồng bộ dữ liệu.');
+      final session = await AuthSession.ensureSession();
+      return session.token;
     }
     return token;
   }
@@ -593,6 +698,26 @@ class CommerceApiService {
     paymentChannel: json['paymentChannel'] as String? ?? 'card',
     bonusDescription: json['bonusDescription'] as String? ?? '',
   );
+
+  /// Gửi câu hỏi đến Trợ lý AI Gemini (`POST /api/ai/chat`).
+  Future<String> askAiAssistant(String message) async {
+    try {
+      final response = await client.postJson(
+        Uri.parse(ApiEndpoints.apiAiChat),
+        {'message': message},
+      );
+      if (response['success'] == true && response['reply'] is String) {
+        return response['reply'] as String;
+      }
+      if (response['reply'] is String) {
+        return response['reply'] as String;
+      }
+      return response['message'] as String? ??
+          'Không nhận được phản hồi từ AI.';
+    } catch (e) {
+      return 'Không thể kết nối tới Trợ lý AI ($e). Vui lòng thử lại sau.';
+    }
+  }
 
   Map<String, Object?> _dataMap(Map<String, Object?> response) {
     final data = response['data'];

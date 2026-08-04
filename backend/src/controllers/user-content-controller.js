@@ -1,6 +1,40 @@
 const pool = require('../config/database');
 const HttpError = require('../utils/http-error');
 
+/**
+ * Tự động tìm hoặc tạo bookId nếu nhận được bookId = 0 hoặc theo tiêu đề sách.
+ */
+async function resolveBookId(body) {
+  let bookId = Number.parseInt(body.bookId, 10);
+  if (Number.isInteger(bookId) && bookId > 0) {
+    const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
+    if (books.length) return books[0].id;
+  }
+
+  const title = body.title ? String(body.title).trim() : '';
+  if (title) {
+    const [books] = await pool.execute('SELECT id FROM books WHERE title = ? LIMIT 1', [title]);
+    if (books.length) return books[0].id;
+
+    // Tự động thêm sách vào cơ sở dữ liệu nếu chưa tồn tại
+    const [result] = await pool.execute(
+      `INSERT INTO books (title, author, image_url, source_url, price, discount_percent)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        title,
+        body.author || 'Waka',
+        body.imageUrl || null,
+        body.sourceUrl || null,
+        99000,
+        0,
+      ],
+    );
+    return result.insertId;
+  }
+
+  throw new HttpError(422, 'Mã sách hoặc tên sách không hợp lệ.');
+}
+
 async function listFavorites(req, res) {
   const [rows] = await pool.execute(
     `SELECT b.id, b.title, b.author, b.image_url AS imageUrl,
@@ -16,11 +50,7 @@ async function listFavorites(req, res) {
 }
 
 async function addFavorite(req, res) {
-  const bookId = Number.parseInt(req.body.bookId, 10);
-  if (!Number.isInteger(bookId)) throw new HttpError(422, 'Mã sách không hợp lệ.');
-
-  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
-  if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
+  const bookId = await resolveBookId(req.body);
 
   await pool.execute(
     'INSERT IGNORE INTO favorites (user_id, book_id) VALUES (?, ?)',
@@ -30,13 +60,21 @@ async function addFavorite(req, res) {
 }
 
 async function removeFavorite(req, res) {
-  const bookId = Number.parseInt(req.params.bookId, 10);
-  if (!Number.isInteger(bookId)) throw new HttpError(400, 'Mã sách không hợp lệ.');
+  let bookId = Number.parseInt(req.params.bookId, 10);
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    const title = req.query.title ? String(req.query.title).trim() : '';
+    if (title) {
+      const [books] = await pool.execute('SELECT id FROM books WHERE title = ? LIMIT 1', [title]);
+      if (books.length) bookId = books[0].id;
+    }
+  }
 
-  await pool.execute('DELETE FROM favorites WHERE user_id = ? AND book_id = ?', [
-    req.user.id,
-    bookId,
-  ]);
+  if (Number.isInteger(bookId) && bookId > 0) {
+    await pool.execute('DELETE FROM favorites WHERE user_id = ? AND book_id = ?', [
+      req.user.id,
+      bookId,
+    ]);
+  }
   res.status(204).end();
 }
 
@@ -141,17 +179,12 @@ async function createOrder(req, res) {
 }
 
 async function upsertProgress(req, res) {
-  const bookId = Number.parseInt(req.body.bookId, 10);
+  const bookId = await resolveBookId(req.body);
   const currentPage = Number.parseInt(req.body.currentPage, 10);
-  if (!Number.isInteger(bookId) || bookId <= 0) {
-    throw new HttpError(422, 'Mã sách không hợp lệ.');
-  }
+
   if (!Number.isInteger(currentPage) || currentPage < 0) {
     throw new HttpError(422, 'Số trang hiện tại không hợp lệ.');
   }
-
-  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
-  if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
 
   await pool.execute(
     `INSERT INTO reading_progress (user_id, book_id, current_page)
@@ -167,9 +200,16 @@ async function upsertProgress(req, res) {
 }
 
 async function getProgress(req, res) {
-  const bookId = Number.parseInt(req.params.bookId, 10);
+  let bookId = Number.parseInt(req.params.bookId, 10);
   if (!Number.isInteger(bookId) || bookId <= 0) {
-    throw new HttpError(400, 'Mã sách không hợp lệ.');
+    if (req.query.title) {
+      const [books] = await pool.execute('SELECT id FROM books WHERE title = ? LIMIT 1', [req.query.title]);
+      if (books.length) bookId = books[0].id;
+    }
+  }
+
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    return res.json({ success: true, data: null });
   }
 
   const [rows] = await pool.execute(
@@ -217,11 +257,7 @@ async function listDownloads(req, res) {
 }
 
 async function addDownload(req, res) {
-  const bookId = Number.parseInt(req.body.bookId, 10);
-  if (!Number.isInteger(bookId)) throw new HttpError(422, 'Mã sách không hợp lệ.');
-
-  const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
-  if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');
+  const bookId = await resolveBookId(req.body);
 
   await pool.execute(
     'INSERT IGNORE INTO downloads (user_id, book_id) VALUES (?, ?)',
@@ -231,13 +267,21 @@ async function addDownload(req, res) {
 }
 
 async function removeDownload(req, res) {
-  const bookId = Number.parseInt(req.params.bookId, 10);
-  if (!Number.isInteger(bookId)) throw new HttpError(400, 'Mã sách không hợp lệ.');
+  let bookId = Number.parseInt(req.params.bookId, 10);
+  if (!Number.isInteger(bookId) || bookId <= 0) {
+    const title = req.query.title ? String(req.query.title).trim() : '';
+    if (title) {
+      const [books] = await pool.execute('SELECT id FROM books WHERE title = ? LIMIT 1', [title]);
+      if (books.length) bookId = books[0].id;
+    }
+  }
 
-  await pool.execute('DELETE FROM downloads WHERE user_id = ? AND book_id = ?', [
-    req.user.id,
-    bookId,
-  ]);
+  if (Number.isInteger(bookId) && bookId > 0) {
+    await pool.execute('DELETE FROM downloads WHERE user_id = ? AND book_id = ?', [
+      req.user.id,
+      bookId,
+    ]);
+  }
   res.status(204).end();
 }
 

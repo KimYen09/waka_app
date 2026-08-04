@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post('/register', controller.register);
 router.post('/login', controller.login);
+router.post('/guest', controller.guestLogin);
 router.post('/social/google', socialController.google);
 router.post('/social/facebook', socialController.facebook);
 router.get('/me', requireAuth, controller.me);

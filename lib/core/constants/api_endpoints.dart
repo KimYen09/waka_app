@@ -20,6 +20,7 @@ abstract final class ApiEndpoints {
   static final String apiRankings = '$apiBaseUrl/rankings';
   static final String apiRecommendations = '$apiBaseUrl/recommendations';
   static final String apiLogin = '$apiBaseUrl/auth/login';
+  static final String apiGuestLogin = '$apiBaseUrl/auth/guest';
   static final String apiGoogleLogin = '$apiBaseUrl/auth/social/google';
   static final String apiFacebookLogin = '$apiBaseUrl/auth/social/facebook';
   static final String apiRegister = '$apiBaseUrl/auth/register';
@@ -47,6 +48,7 @@ abstract final class ApiEndpoints {
   static final String apiAdminUsers = '$apiAdmin/users';
   static final String apiAdminReviews = '$apiAdmin/reviews';
   static final String apiAuthorApplication = '$apiBaseUrl/author-application';
+  static final String apiAiChat = '$apiBaseUrl/ai/chat';
 
   // Các URL Waka chỉ còn dùng làm nguồn tham khảo/fallback trong dữ liệu cũ.
   static const String wakaBaseUrl = 'https://waka.vn';

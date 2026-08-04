@@ -22,6 +22,7 @@ module.exports = {
     .split(',')
     .map((value) => value.trim().toLowerCase())
     .filter(Boolean),
+  geminiApiKey: process.env.GEMINI_API_KEY || '',
   database: {
     host: process.env.DB_HOST || '127.0.0.1',
     port: Number(process.env.DB_PORT || 3306),

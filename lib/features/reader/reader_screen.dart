@@ -106,40 +106,53 @@ class _ReaderScreenState extends State<ReaderScreen>
   }
 
   Future<void> _loadSavedProgress() async {
-    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    if (!AuthSession.isSignedIn) return;
     try {
       final savedPage = await _commerceService.getReadingProgress(
         widget.book.bookId,
+        title: widget.book.title,
       );
-      if (!mounted || savedPage == null) return;
-      final safePage = savedPage.clamp(0, _pages.length - 1);
-      if (_pages.isEmpty) return;
-      setState(() {
-        _currentPage = safePage;
-        _lastSavedPage = safePage;
-      });
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !_pageController.hasClients) return;
-        _pageController.jumpToPage(safePage);
-      });
+      if (!mounted) return;
+      if (savedPage != null) {
+        final safePage = savedPage.clamp(0, _pages.length - 1);
+        if (_pages.isNotEmpty) {
+          setState(() {
+            _currentPage = safePage;
+            _lastSavedPage = safePage;
+          });
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted || !_pageController.hasClients) return;
+            _pageController.jumpToPage(safePage);
+          });
+        }
+      } else {
+        // Tự động lưu tiến trình trang 0 cho cuốn sách mới đọc
+        await _persistProgress(force: true);
+      }
     } on Object {
-      // Bỏ qua lỗi sync tiến trình đọc nếu backend tạm thời lỗi.
+      unawaited(_persistProgress(force: true));
     }
   }
 
   void _scheduleProgressSave() {
     _saveProgressTimer?.cancel();
-    _saveProgressTimer = Timer(const Duration(seconds: 2), () {
+    _saveProgressTimer = Timer(const Duration(milliseconds: 500), () {
       unawaited(_persistProgress());
     });
   }
 
   Future<void> _persistProgress({bool force = false}) async {
-    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    if (!AuthSession.isSignedIn) return;
     final page = _currentPage;
     if (!force && page == _lastSavedPage) return;
     try {
-      await _commerceService.saveReadingProgress(widget.book.bookId, page);
+      await _commerceService.saveReadingProgress(
+        widget.book.bookId,
+        page,
+        title: widget.book.title,
+        author: widget.book.author,
+        imageUrl: widget.book.imageUrl,
+      );
       if (!mounted) return;
       setState(() => _lastSavedPage = page);
     } on Object {
@@ -439,6 +452,7 @@ class _ReaderScreenState extends State<ReaderScreen>
                         _showControls = false;
                       });
                       _scheduleProgressSave();
+                      unawaited(_persistProgress());
                     },
                     itemBuilder: (context, index) {
                       return _ZoomableReaderPage(

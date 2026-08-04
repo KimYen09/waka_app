@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -107,13 +108,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   /// Đọc trạng thái tim hiện tại để mở lại màn không bị lệch với máy chủ.
   Future<void> _loadFavoriteState() async {
-    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    if (!AuthSession.isSignedIn) return;
     try {
       final favorites = await _commerce.getFavorites();
       if (!mounted) return;
       setState(() {
         _isFavorite = favorites.any(
-          (item) => item.bookId == widget.book.bookId,
+          (item) =>
+              (widget.book.bookId > 0 && item.bookId == widget.book.bookId) ||
+              (widget.book.title.isNotEmpty && item.title == widget.book.title),
         );
       });
     } on Object {
@@ -122,13 +125,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   }
 
   Future<void> _loadDownloadedState() async {
-    if (widget.book.bookId <= 0 || !AuthSession.isSignedIn) return;
+    if (!AuthSession.isSignedIn) return;
     try {
       final downloads = await _commerce.getDownloads();
       if (!mounted) return;
       setState(() {
         _isDownloaded = downloads.any(
-          (item) => item.bookId == widget.book.bookId,
+          (item) =>
+              (widget.book.bookId > 0 && item.bookId == widget.book.bookId) ||
+              (widget.book.title.isNotEmpty && item.title == widget.book.title),
         );
       });
     } on Object {
@@ -138,13 +143,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _toggleFavorite() async {
     if (_isSavingFavorite) return;
-    if (widget.book.bookId <= 0) {
-      _showMessage(
-        'Cuốn này là dữ liệu mẫu chưa có trên máy chủ nên chưa lưu được vào '
-        'Yêu thích.',
-      );
-      return;
-    }
     if (!AuthSession.isSignedIn) {
       _showMessage('Bạn cần đăng nhập để lưu sách yêu thích.');
       return;
@@ -158,9 +156,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     });
     try {
       if (next) {
-        await _commerce.addFavorite(widget.book.bookId);
+        await _commerce.addFavorite(
+          widget.book.bookId,
+          title: widget.book.title,
+          author: widget.book.author,
+          imageUrl: widget.book.imageUrl,
+        );
       } else {
-        await _commerce.removeFavorite(widget.book.bookId);
+        await _commerce.removeFavorite(
+          widget.book.bookId,
+          title: widget.book.title,
+        );
       }
       if (!mounted) return;
       _showMessage(
@@ -179,12 +185,6 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
 
   Future<void> _toggleDownload() async {
     if (_isSavingDownload) return;
-    if (widget.book.bookId <= 0) {
-      _showMessage(
-        'Cuốn này là dữ liệu mẫu chưa có trên máy chủ nên chưa tải được.',
-      );
-      return;
-    }
     if (!AuthSession.isSignedIn) {
       _showMessage('Bạn cần đăng nhập để tải sách về.');
       return;
@@ -197,9 +197,17 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     });
     try {
       if (next) {
-        await _commerce.addDownload(widget.book.bookId);
+        await _commerce.addDownload(
+          widget.book.bookId,
+          title: widget.book.title,
+          author: widget.book.author,
+          imageUrl: widget.book.imageUrl,
+        );
       } else {
-        await _commerce.removeDownload(widget.book.bookId);
+        await _commerce.removeDownload(
+          widget.book.bookId,
+          title: widget.book.title,
+        );
       }
       if (!mounted) return;
       _showMessage(
@@ -216,17 +224,25 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     }
   }
 
-  void _openReader() {
-    Navigator.of(context).push(
+  void _openReader() async {
+    try {
+      unawaited(_commerce.saveReadingProgress(
+        widget.book.bookId,
+        0,
+        title: widget.book.title,
+        author: widget.book.author,
+        imageUrl: widget.book.imageUrl,
+      ));
+    } on Object {
+      // Bỏ qua nếu lỗi mạng ban đầu để không chặn mở màn hình đọc
+    }
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => ReaderScreen(book: widget.book)),
     );
-  }
-
-  Future<void> _openMembershipPlans() async {
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(builder: (_) => const MembershipPlansScreen()),
-    );
-    if (mounted) await _loadMembershipState();
+    if (mounted) {
+      _loadFavoriteState();
+      _loadDownloadedState();
+    }
   }
 
   Future<void> _buyDigitalBook() {
@@ -368,7 +384,11 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _BookStats(onMore: _showBookActions),
+                      _BookStats(
+                        onMore: _showBookActions,
+                        isDownloaded: _isDownloaded,
+                        onDownload: _toggleDownload,
+                      ),
                       const SizedBox(height: 30),
                       const _SectionHeading('Giới thiệu sách'),
                       const SizedBox(height: 16),
@@ -825,9 +845,15 @@ class _AccessCard extends StatelessWidget {
 }
 
 class _BookStats extends StatelessWidget {
-  const _BookStats({required this.onMore});
+  const _BookStats({
+    required this.onMore,
+    required this.isDownloaded,
+    required this.onDownload,
+  });
 
   final VoidCallback onMore;
+  final bool isDownloaded;
+  final VoidCallback onDownload;
 
   @override
   Widget build(BuildContext context) {
@@ -846,7 +872,11 @@ class _BookStats extends StatelessWidget {
         const Spacer(),
         _RoundAction(icon: Icons.card_giftcard_rounded, onTap: () {}),
         const SizedBox(width: 8),
-        _RoundAction(icon: Icons.download_rounded, onTap: () {}),
+        _RoundAction(
+          icon: isDownloaded ? Icons.check_circle_rounded : Icons.download_rounded,
+          iconColor: isDownloaded ? WakaColors.accent : Colors.white,
+          onTap: onDownload,
+        ),
         const SizedBox(width: 8),
         _RoundAction(icon: Icons.more_vert_rounded, onTap: onMore),
       ],
@@ -855,10 +885,15 @@ class _BookStats extends StatelessWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, required this.onTap});
+  const _RoundAction({
+    required this.icon,
+    required this.onTap,
+    this.iconColor = Colors.white,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
@@ -867,7 +902,7 @@ class _RoundAction extends StatelessWidget {
       radius: 25,
       child: Padding(
         padding: const EdgeInsets.all(6),
-        child: Icon(icon, color: Colors.white, size: 27),
+        child: Icon(icon, color: iconColor, size: 27),
       ),
     );
   }

@@ -87,4 +87,33 @@ async function me(req, res) {
   res.json({ success: true, data: rows[0] });
 }
 
-module.exports = { register, login, me, createToken };
+async function guestLogin(req, res) {
+  const rawId = req.body.guestId ? String(req.body.guestId).trim() : 'demo_guest';
+  const guestIdentifier = `guest_${rawId}`;
+
+  let [rows] = await pool.execute(
+    `SELECT id, identifier, display_name AS displayName,
+      role, account_status AS accountStatus
+     FROM users WHERE identifier = ? LIMIT 1`,
+    [guestIdentifier],
+  );
+  let user = rows[0];
+  if (!user) {
+    const passwordHash = await bcrypt.hash('guest_secret_123', 10);
+    const [result] = await pool.execute(
+      'INSERT INTO users (identifier, password_hash, display_name) VALUES (?, ?, ?)',
+      [guestIdentifier, passwordHash, 'Tài khoản Khách'],
+    );
+    user = {
+      id: result.insertId,
+      identifier: guestIdentifier,
+      displayName: 'Tài khoản Khách',
+      role: 'reader',
+      accountStatus: 'active',
+    };
+  }
+
+  res.json({ success: true, data: { user, token: createToken(user) } });
+}
+
+module.exports = { register, login, me, guestLogin, createToken };

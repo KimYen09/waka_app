@@ -4,6 +4,7 @@ const env = require('./config/env');
 const authRoutes = require('./routes/auth-routes');
 const adminRoutes = require('./routes/admin-routes');
 const catalogRoutes = require('./routes/catalog-routes');
+const aiRoutes = require('./routes/ai-routes');
 const { notFound, errorHandler } = require('./middleware/error-handler');
 
 const app = express();
@@ -17,6 +18,7 @@ app.get('/health', (req, res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/ai', aiRoutes);
 app.use('/api', catalogRoutes);
 
 app.use(notFound);

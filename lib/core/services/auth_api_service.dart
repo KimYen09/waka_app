@@ -32,12 +32,41 @@ abstract final class AuthSession {
   static bool get isSignedIn => current != null;
 
   static void clear() => current = null;
+
+  static Future<AuthResult> ensureSession() async {
+    if (current != null) return current!;
+    try {
+      final guestResult = await const AuthApiService().guestLogin();
+      current = guestResult;
+      return guestResult;
+    } catch (_) {
+      const fallbackUser = AuthUser(
+        id: 1,
+        identifier: 'guest_user',
+        displayName: 'Tài khoản Khách',
+      );
+      const fallback = AuthResult(
+        user: fallbackUser,
+        token: 'guest_fallback_token',
+      );
+      current = fallback;
+      return fallback;
+    }
+  }
 }
 
 class AuthApiService {
   const AuthApiService({this.client = const RestApiClient()});
 
   final RestApiClient client;
+
+  Future<AuthResult> guestLogin() async {
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiGuestLogin),
+      {'guestId': 'demo_guest'},
+    );
+    return _readAuthResult(response);
+  }
 
   Future<AuthResult> login({
     required String identifier,
