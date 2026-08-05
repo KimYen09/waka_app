@@ -70,8 +70,13 @@ function verifyReturn(query) {
   delete params.vnp_SecureHash;
   delete params.vnp_SecureHashType;
   if (!secureHash) return false;
-  const sorted = sortAndEncode(params);
-  return sign(sorted) === secureHash;
+  const expected = sign(sortAndEncode(params));
+  // VNPay khong thong nhat hoa/thuong cho chuoi hex, so sanh khong phan biet.
+  // timingSafeEqual can hai buffer cung do dai nen phai kiem tra truoc.
+  const received = Buffer.from(String(secureHash).toLowerCase(), 'utf-8');
+  const wanted = Buffer.from(expected, 'utf-8');
+  if (received.length !== wanted.length) return false;
+  return crypto.timingSafeEqual(received, wanted);
 }
 
 module.exports = { buildPaymentUrl, verifyReturn };

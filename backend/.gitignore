@@ -1,3 +1,8 @@
 node_modules/
+# Chan moi bien the .env (.env.local, .env.bak, .env.production...) vi chung
+# chua secret that. Chi .env.example duoc theo doi, va no phai luon la
+# placeholder — dung bao gio dan gia tri that vao do.
 .env
+.env.*
+!.env.example
 npm-debug.log*
