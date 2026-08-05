@@ -11,5 +11,6 @@ router.post('/guest', controller.guestLogin);
 router.post('/social/google', socialController.google);
 router.post('/social/facebook', socialController.facebook);
 router.get('/me', requireAuth, controller.me);
+router.post('/change-password', requireAuth, controller.changePassword);
 
 module.exports = router;

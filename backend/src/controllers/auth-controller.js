@@ -87,6 +87,37 @@ async function me(req, res) {
   res.json({ success: true, data: rows[0] });
 }
 
+async function changePassword(req, res) {
+  const oldPassword = String(req.body.oldPassword || '');
+  const newPassword = String(req.body.newPassword || '');
+  if (newPassword.length < 6 || newPassword.length > 20) {
+    throw new HttpError(422, 'Mật khẩu mới phải có từ 6 đến 20 ký tự.', {
+      newPassword: 'Mật khẩu mới phải có từ 6 đến 20 ký tự.',
+    });
+  }
+  if (newPassword === oldPassword) {
+    throw new HttpError(422, 'Mật khẩu mới phải khác mật khẩu cũ.');
+  }
+
+  const [rows] = await pool.execute(
+    'SELECT id, password_hash AS passwordHash FROM users WHERE id = ? LIMIT 1',
+    [req.user.id],
+  );
+  const user = rows[0];
+  if (!user) throw new HttpError(404, 'Không tìm thấy tài khoản.');
+  if (!(await bcrypt.compare(oldPassword, user.passwordHash))) {
+    throw new HttpError(401, 'Mật khẩu cũ không đúng.', {
+      oldPassword: 'Mật khẩu cũ không đúng.',
+    });
+  }
+
+  await pool.execute('UPDATE users SET password_hash = ? WHERE id = ?', [
+    await bcrypt.hash(newPassword, 12),
+    user.id,
+  ]);
+  res.json({ success: true, data: { changed: true } });
+}
+
 async function guestLogin(req, res) {
   const rawId = req.body.guestId ? String(req.body.guestId).trim() : 'demo_guest';
   const guestIdentifier = `guest_${rawId}`;
@@ -116,4 +147,4 @@ async function guestLogin(req, res) {
   res.json({ success: true, data: { user, token: createToken(user) } });
 }
 
-module.exports = { register, login, me, guestLogin, createToken };
+module.exports = { register, login, me, changePassword, guestLogin, createToken };

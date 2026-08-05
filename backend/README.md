@@ -62,6 +62,15 @@ thẳng từ server của họ — app chỉ cần theo dõi URL của WebView, 
 chứa `/api/payments/vnpay/return` thì đóng WebView và gọi lại
 `GET /api/orders` hoặc `GET /api/memberships/me` để lấy trạng thái mới nhất.
 
+App nhận diện trang kết quả bằng **path** (`ApiEndpoints.vnpayReturnPath`),
+không so khớp URL đầy đủ. Nhờ vậy `VNP_RETURN_URL` được phép trỏ tới host
+tunnel công khai khác hẳn `API_BASE_URL` mà app dùng để gọi API, và đổi
+tunnel thì không phải build lại app.
+
+`vnp_ResponseCode` trên URL trả về chỉ là tín hiệu hiển thị tạm. Sau khi đóng
+WebView, app hỏi lại backend vài nhịp (`GET /api/orders`,
+`GET /api/memberships/me`) rồi mới kết luận, vì IPN có thể về sau vài giây.
+
 Cấu hình cần thiết trong `.env` (đăng ký tài khoản merchant sandbox tại
 https://sandbox.vnpayment.vn/devreg/, xem TMN Code/Hash Secret tại
 https://sandbox.vnpayment.vn/merchantv2/):
@@ -76,6 +85,23 @@ VNP_RETURN_URL=http://<host-backend-cong-khai>:3000/api/payments/vnpay/return
 `VNP_RETURN_URL` và endpoint IPN phải là URL VNPay truy cập được từ Internet —
 khi chạy local, dùng ngrok/localtunnel để expose backend rồi khai báo URL
 public đó trên cổng quản trị VNPay sandbox lẫn trong `.env`.
+
+Ba điểm hay làm hỏng luồng sandbox:
+
+1. **IPN URL phải được khai trên cổng quản trị VNPay sandbox**
+   (`https://<host-cong-khai>/api/payments/vnpay/ipn`). Nếu bỏ qua, khách trả
+   tiền thành công nhưng đơn kẹt vĩnh viễn ở `payment_review` và gói hội viên
+   kẹt ở `pending`, vì không có gì gọi `applyPaymentStatus`.
+2. **Đổi tunnel là phải sửa cả hai chỗ** — `VNP_RETURN_URL` trong `.env` *và*
+   IPN URL trên cổng quản trị. URL ngrok/cloudflared đổi mỗi lần khởi động lại.
+3. **`PORT` trong `.env` phải khớp với cổng mà tunnel và `API_BASE_URL` trỏ
+   tới.** Mặc định của app là `:3000`; nếu chạy backend ở cổng khác thì phải
+   truyền `--dart-define=API_BASE_URL=http://<host>:<port>/api`.
+
+Kiểm tra nhanh IPN mà không cần thanh toán thật: lấy `transactionRef` của một
+giao dịch đang `pending` trong bảng `payments`, ký query bằng `VNP_HASH_SECRET`
+rồi gọi `GET /api/payments/vnpay/ipn`. Trả về `{"RspCode":"00"}` nghĩa là
+đường dây xác nhận đã thông.
 
 Ví dụ lọc sách:
 

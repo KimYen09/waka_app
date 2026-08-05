@@ -106,6 +106,23 @@ class AuthApiService {
     return _readAuthResult(response);
   }
 
+  /// Đổi mật khẩu của tài khoản đang đăng nhập. Backend tự kiểm tra mật khẩu
+  /// cũ nên lỗi sai mật khẩu sẽ ném [RestApiException].
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    final token = AuthSession.current?.token;
+    if (token == null || token.isEmpty) {
+      throw const RestApiException('Vui lòng đăng nhập lại để đổi mật khẩu.');
+    }
+    await client.postJson(
+      Uri.parse(ApiEndpoints.apiChangePassword),
+      {'oldPassword': oldPassword, 'newPassword': newPassword},
+      bearerToken: token,
+    );
+  }
+
   AuthResult _readAuthResult(Map<String, Object?> response) {
     final data = response['data'];
     if (data is! Map<String, Object?>) {

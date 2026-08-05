@@ -25,6 +25,7 @@ abstract final class ApiEndpoints {
   static final String apiFacebookLogin = '$apiBaseUrl/auth/social/facebook';
   static final String apiRegister = '$apiBaseUrl/auth/register';
   static final String apiMe = '$apiBaseUrl/auth/me';
+  static final String apiChangePassword = '$apiBaseUrl/auth/change-password';
   static final String apiCart = '$apiBaseUrl/cart';
   static final String apiFavorites = '$apiBaseUrl/favorites';
   static final String apiDownloads = '$apiBaseUrl/downloads';
@@ -37,6 +38,18 @@ abstract final class ApiEndpoints {
       '$apiBaseUrl/memberships/purchase';
   static final String apiPayments = '$apiBaseUrl/payments';
   static final String apiVnpayReturn = '$apiBaseUrl/payments/vnpay/return';
+
+  /// Đường dẫn (không kèm host) của trang kết quả VNPay.
+  static const String vnpayReturnPath = '/payments/vnpay/return';
+
+  /// Nhận diện trang kết quả VNPay trong WebView bằng **path**, không bằng URL
+  /// đầy đủ: `VNP_RETURN_URL` của backend là host công khai (ngrok/cloudflared)
+  /// để VNPay gọi được từ Internet, gần như luôn khác [apiBaseUrl] mà app dùng.
+  /// So khớp cả URL đầy đủ lẫn tunnel đổi địa chỉ mà không cần build lại app.
+  static bool isVnpayReturnUrl(String url) {
+    final path = Uri.tryParse(url)?.path;
+    return path != null && path.endsWith(vnpayReturnPath);
+  }
   static final String apiNotifications = '$apiBaseUrl/notifications';
   static final String apiAdmin = '$apiBaseUrl/admin';
   static final String apiAdminDashboard = '$apiAdmin/dashboard';

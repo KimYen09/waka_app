@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../core/constants/api_endpoints.dart';
 import '../../core/services/auth_api_service.dart';
+import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'shop_address_store.dart';
 import 'shop_constants.dart';
@@ -267,6 +267,62 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
     }
   }
 
+  /// Sau khi WebView đóng, IPN của VNPay (server-to-server) có thể chưa kịp
+  /// về nên đơn vẫn đang `pending`. Hỏi lại backend vài nhịp để báo đúng
+  /// trạng thái thay vì tin vào `vnp_ResponseCode` trên URL trả về.
+  ///
+  /// Trả `'paid'`/`'failed'` khi backend đã chốt, `null` nếu vẫn chờ.
+  Future<String?> _awaitPaymentConfirmation(int orderId) async {
+    for (var attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+      }
+      if (!mounted) return null;
+      try {
+        final orders = await const CommerceApiService().getOrders();
+        for (final order in orders) {
+          if (order.id != orderId) continue;
+          if (order.paymentStatus == 'paid' ||
+              order.paymentStatus == 'failed') {
+            return order.paymentStatus;
+          }
+          break;
+        }
+      } on Object {
+        // Lỗi mạng thì giữ nguyên thông báo "đang chờ xác nhận".
+      }
+    }
+    return null;
+  }
+
+  (IconData, String, String) _vnpayDialogCopy(
+    int orderId,
+    String? confirmedStatus,
+    bool? gatewaySuccess,
+  ) {
+    if (confirmedStatus == 'paid') {
+      return (
+        Icons.check_circle_outline_rounded,
+        'Thanh toán VNPay thành công',
+        'Đơn #$orderId đã được xác nhận thanh toán và bắt đầu được xử lý.',
+      );
+    }
+    if (confirmedStatus == 'failed' || gatewaySuccess == false) {
+      return (
+        Icons.error_outline_rounded,
+        'Thanh toán không thành công',
+        'Giao dịch cho đơn #$orderId đã bị hủy hoặc không thành công. '
+            'Bạn có thể đặt lại đơn khác.',
+      );
+    }
+    return (
+      Icons.hourglass_top_rounded,
+      'Đang chờ xác nhận thanh toán',
+      'Đơn #$orderId đang chờ VNPay xác nhận. Nếu bạn đã thanh toán thành '
+          'công, đơn sẽ tự cập nhật trong ít phút.',
+    );
+  }
+
   Future<void> _submit() async {
     if (_shippingAddress == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -300,44 +356,38 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
       final orderId = result.orderId;
 
       bool? vnpaySuccess;
+      String? confirmedStatus;
       if (_paymentMethod.isVnpay && result.paymentUrl != null) {
         if (!mounted) return;
         vnpaySuccess = await Navigator.of(context).push<bool>(
           MaterialPageRoute(
-            builder: (_) => ShopVnpayPaymentScreen(
-              paymentUrl: result.paymentUrl!,
-              returnUrlPrefix: ApiEndpoints.apiVnpayReturn,
-            ),
+            builder: (_) =>
+                ShopVnpayPaymentScreen(paymentUrl: result.paymentUrl!),
           ),
         );
+        if (!mounted) return;
+        confirmedStatus = await _awaitPaymentConfirmation(orderId);
       }
       if (!mounted) return;
 
-      final isVnpayFlow = _paymentMethod.isVnpay;
-      final dialogIcon = isVnpayFlow
-          ? (vnpaySuccess == true
-                ? Icons.check_circle_outline_rounded
-                : Icons.hourglass_top_rounded)
-          : (_paymentMethod == ShopPaymentMethod.bankQr
-                ? Icons.hourglass_top_rounded
-                : Icons.inventory_2_outlined);
-      final dialogTitle = isVnpayFlow
-          ? (vnpaySuccess == true
-                ? 'Thanh toán VNPay thành công'
-                : 'Đang chờ xác nhận thanh toán')
-          : (_paymentMethod == ShopPaymentMethod.bankQr
-                ? 'Chờ xác nhận thanh toán'
-                : 'Đặt hàng COD thành công');
-      final dialogContent = isVnpayFlow
-          ? (vnpaySuccess == true
-                ? 'Đơn #$orderId đã thanh toán qua VNPay. Hệ thống đang '
-                      'xác nhận và sẽ sớm được xử lý.'
-                : 'Đơn #$orderId đang chờ xác nhận từ VNPay. Nếu bạn đã '
-                      'thanh toán thành công, đơn sẽ tự cập nhật trong ít phút.')
-          : (_paymentMethod == ShopPaymentMethod.bankQr
-                ? 'Đơn #$orderId đã được gửi cho quản trị viên kiểm tra. '
-                      'Đơn chỉ bắt đầu giao sau khi tiền được xác nhận.'
-                : 'Đơn #$orderId đã được tiếp nhận. Bạn sẽ thanh toán khi nhận hàng.');
+      final (
+        IconData dialogIcon,
+        String dialogTitle,
+        String dialogContent,
+      ) = _paymentMethod.isVnpay
+          ? _vnpayDialogCopy(orderId, confirmedStatus, vnpaySuccess)
+          : _paymentMethod == ShopPaymentMethod.bankQr
+          ? (
+              Icons.hourglass_top_rounded,
+              'Chờ xác nhận thanh toán',
+              'Đơn #$orderId đã được gửi cho quản trị viên kiểm tra. '
+                  'Đơn chỉ bắt đầu giao sau khi tiền được xác nhận.',
+            )
+          : (
+              Icons.inventory_2_outlined,
+              'Đặt hàng COD thành công',
+              'Đơn #$orderId đã được tiếp nhận. Bạn sẽ thanh toán khi nhận hàng.',
+            );
 
       await showDialog<void>(
         context: context,

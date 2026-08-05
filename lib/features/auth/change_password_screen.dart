@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/auth_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../shared/navigation/app_navigation.dart';
 
@@ -25,6 +26,7 @@ class _AccountChangePasswordScreenState
   bool obscureOld = true;
   bool obscureNew = true;
   bool obscureConfirm = true;
+  bool _isSaving = false;
 
   @override
   void dispose() {
@@ -34,15 +36,32 @@ class _AccountChangePasswordScreenState
     super.dispose();
   }
 
-  void _updatePassword() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: gọi API đổi mật khẩu thật ở đây, dùng oldPassword + newPassword
-
+  Future<void> _updatePassword() async {
+    if (_isSaving || !_formKey.currentState!.validate()) return;
+    if (!AuthSession.isSignedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Vui lòng đăng nhập để đổi mật khẩu.')),
+      );
+      return;
+    }
+    setState(() => _isSaving = true);
+    try {
+      await const AuthApiService().changePassword(
+        oldPassword: oldPasswordController.text,
+        newPassword: newPasswordController.text,
+      );
+      if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Đổi mật khẩu thành công')));
-
       Navigator.pop(context);
+    } on Object catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -153,12 +172,12 @@ class _AccountChangePasswordScreenState
                         ),
                         child: InkWell(
                           borderRadius: BorderRadius.circular(30),
-                          onTap: _updatePassword,
+                          onTap: _isSaving ? null : _updatePassword,
                           child: Container(
                             alignment: Alignment.center,
-                            child: const Text(
-                              'CẬP NHẬT',
-                              style: TextStyle(
+                            child: Text(
+                              _isSaving ? 'ĐANG CẬP NHẬT…' : 'CẬP NHẬT',
+                              style: const TextStyle(
                                 color: Colors.black,
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,

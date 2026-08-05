@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+import '../../core/constants/api_endpoints.dart';
 import '../../core/theme/app_theme.dart';
 
 /// Mở trang thanh toán VNPay trong WebView và tự đóng khi phát hiện trình
@@ -15,14 +16,9 @@ import '../../core/theme/app_theme.dart';
 /// backend, nên màn hình gọi widget này cần tự làm mới trạng thái đơn hàng
 /// sau đó thay vì tin tuyệt đối vào giá trị trả về.
 class ShopVnpayPaymentScreen extends StatefulWidget {
-  const ShopVnpayPaymentScreen({
-    super.key,
-    required this.paymentUrl,
-    required this.returnUrlPrefix,
-  });
+  const ShopVnpayPaymentScreen({super.key, required this.paymentUrl});
 
   final String paymentUrl;
-  final String returnUrlPrefix;
 
   @override
   State<ShopVnpayPaymentScreen> createState() =>
@@ -50,7 +46,7 @@ class _ShopVnpayPaymentScreenState extends State<ShopVnpayPaymentScreen> {
             _maybeFinish(url);
           },
           onNavigationRequest: (request) {
-            if (request.url.startsWith(widget.returnUrlPrefix)) {
+            if (ApiEndpoints.isVnpayReturnUrl(request.url)) {
               _maybeFinish(request.url);
               return NavigationDecision.prevent;
             }
@@ -62,7 +58,7 @@ class _ShopVnpayPaymentScreenState extends State<ShopVnpayPaymentScreen> {
   }
 
   void _maybeFinish(String url) {
-    if (_finished || !url.startsWith(widget.returnUrlPrefix)) return;
+    if (_finished || !mounted || !ApiEndpoints.isVnpayReturnUrl(url)) return;
     _finished = true;
     final responseCode = Uri.tryParse(url)?.queryParameters['vnp_ResponseCode'];
     Navigator.of(context).pop(responseCode == '00');

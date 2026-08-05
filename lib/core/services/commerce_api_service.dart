@@ -82,6 +82,15 @@ class UserMembership {
       isActive ? expiresAt!.difference(DateTime.now()) : Duration.zero;
 }
 
+/// Kết quả `POST /api/memberships/purchase`. [paymentUrl] chỉ có khi thanh
+/// toán bằng `vnpay` — mở trong WebView để khách hoàn tất giao dịch.
+class MembershipPurchaseResult {
+  const MembershipPurchaseResult({required this.membership, this.paymentUrl});
+
+  final UserMembership membership;
+  final String? paymentUrl;
+}
+
 /// Sách người dùng đã đánh dấu yêu thích (`GET /api/favorites`).
 class FavoriteBook {
   const FavoriteBook({
@@ -310,9 +319,11 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-  /// Tạo giao dịch mua gói. Với `bank_qr` backend bắt buộc `transactionRef`
-  /// (nội dung chuyển khoản) và trả về gói ở trạng thái `pending` chờ duyệt.
-  Future<UserMembership> purchaseMembership(
+  /// Tạo giao dịch mua gói, gói luôn ở trạng thái `pending` cho tới khi được
+  /// xác nhận. Với `bank_qr` backend bắt buộc `transactionRef` (nội dung
+  /// chuyển khoản) và chờ admin duyệt; với `vnpay` backend trả kèm
+  /// `paymentUrl` để mở WebView, và IPN sẽ tự kích hoạt gói.
+  Future<MembershipPurchaseResult> purchaseMembership(
     int planId, {
     String? transactionRef,
     String paymentMethod = 'bank_qr',
@@ -328,14 +339,17 @@ class CommerceApiService {
       bearerToken: await _getToken,
     );
     final data = _dataMap(response);
-    return UserMembership(
-      id: _int(data['membershipId']),
-      status: data['status'] as String? ?? 'pending',
-      planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
-      startedAt: _date(data['startedAt']),
-      expiresAt: _date(data['expiresAt']),
-      planId: _int(data['planId']),
-      price: _num(data['price']),
+    return MembershipPurchaseResult(
+      membership: UserMembership(
+        id: _int(data['membershipId']),
+        status: data['status'] as String? ?? 'pending',
+        planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+        startedAt: _date(data['startedAt']),
+        expiresAt: _date(data['expiresAt']),
+        planId: _int(data['planId']),
+        price: _num(data['price']),
+      ),
+      paymentUrl: data['paymentUrl'] as String?,
     );
   }
 

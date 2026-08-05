@@ -6,6 +6,7 @@ import '../../core/services/auth_api_service.dart';
 import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../shop/shop_checkout_screen.dart';
+import '../shop/shop_vnpay_payment_screen.dart';
 
 class MembershipPlansScreen extends StatefulWidget {
   const MembershipPlansScreen({super.key});
@@ -95,48 +96,26 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
       );
       return;
     }
-    try {
-      setState(() => _isBuying = true);
-      String? transactionRef;
-      if (plan.channel == 'card') {
-        transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
-        final transferred = await Navigator.of(context).push<bool>(
-          MaterialPageRoute<bool>(
-            builder: (_) => ShopQrPaymentScreen(
-              amount: plan.amount.round(),
-              orderCode: transactionRef!,
-              paymentPurpose: plan.title,
-              requiresReview: true,
-            ),
-          ),
-        );
-        if (transferred != true || !mounted) return;
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Thanh toán SMS chưa được kết nối nhà mạng. Vui lòng chọn '
-              'Chuyển khoản / Thẻ.',
-            ),
-          ),
-        );
-        return;
-      }
-      final membership = await const CommerceApiService().purchaseMembership(
-        plan.id,
-        transactionRef: transactionRef,
-      );
-      if (!mounted) return;
-      setState(() => _pendingMembership = membership);
-      _startCountdown();
+    if (plan.channel != 'card') {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
-            'Đã gửi xác nhận chuyển khoản ${plan.title}. Vui lòng chờ admin '
-            'duyệt để kích hoạt và mở khóa nội dung.',
+            'Thanh toán SMS chưa được kết nối nhà mạng. Vui lòng chọn '
+            'Chuyển khoản / Thẻ.',
           ),
         ),
       );
+      return;
+    }
+    final method = await _chooseCardPaymentMethod();
+    if (method == null || !mounted) return;
+    try {
+      setState(() => _isBuying = true);
+      if (method == _CardPaymentMethod.vnpay) {
+        await _purchaseWithVnpay(plan);
+      } else {
+        await _purchaseWithBankTransfer(plan);
+      }
     } on Object catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -145,6 +124,150 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
     } finally {
       if (mounted) setState(() => _isBuying = false);
     }
+  }
+
+  /// Chuyển khoản QR: admin phải kiểm tra tiền về rồi mới duyệt.
+  Future<void> _purchaseWithBankTransfer(_MembershipPlan plan) async {
+    final transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
+    final transferred = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ShopQrPaymentScreen(
+          amount: plan.amount.round(),
+          orderCode: transactionRef,
+          paymentPurpose: plan.title,
+          requiresReview: true,
+        ),
+      ),
+    );
+    if (transferred != true || !mounted) return;
+    final result = await const CommerceApiService().purchaseMembership(
+      plan.id,
+      transactionRef: transactionRef,
+    );
+    if (!mounted) return;
+    setState(() => _pendingMembership = result.membership);
+    _startCountdown();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Đã gửi xác nhận chuyển khoản ${plan.title}. Vui lòng chờ admin '
+          'duyệt để kích hoạt và mở khóa nội dung.',
+        ),
+      ),
+    );
+  }
+
+  /// VNPay: gói tự kích hoạt khi IPN báo về, không cần admin duyệt.
+  Future<void> _purchaseWithVnpay(_MembershipPlan plan) async {
+    final result = await const CommerceApiService().purchaseMembership(
+      plan.id,
+      paymentMethod: 'vnpay',
+    );
+    final paymentUrl = result.paymentUrl;
+    if (!mounted) return;
+    if (paymentUrl == null || paymentUrl.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Backend chưa trả về liên kết VNPay. Kiểm tra VNP_TMN_CODE và '
+            'VNP_HASH_SECRET.',
+          ),
+        ),
+      );
+      return;
+    }
+    setState(() => _pendingMembership = result.membership);
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ShopVnpayPaymentScreen(paymentUrl: paymentUrl),
+      ),
+    );
+    // IPN chạy bất đồng bộ nên trạng thái thật chỉ có ở backend, đọc lại vài
+    // nhịp thay vì tin vào mã trả về trên URL của WebView.
+    for (var attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
+      }
+      if (!mounted) return;
+      await _loadData();
+      if (!mounted) return;
+      if (_activeMembership?.isActive == true) break;
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _activeMembership?.isActive == true
+              ? 'Gói ${plan.title} đã được kích hoạt.'
+              : 'Đang chờ VNPay xác nhận giao dịch. Gói sẽ tự kích hoạt ngay '
+                    'khi thanh toán được ghi nhận.',
+        ),
+      ),
+    );
+  }
+
+  Future<_CardPaymentMethod?> _chooseCardPaymentMethod() {
+    return showModalBottomSheet<_CardPaymentMethod>(
+      context: context,
+      backgroundColor: WakaColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(20, 18, 20, 4),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Chọn hình thức thanh toán',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.credit_card_rounded,
+                color: WakaColors.gold,
+              ),
+              title: const Text(
+                'Cổng VNPay',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Kích hoạt tự động ngay sau khi thanh toán',
+                style: TextStyle(color: Colors.white54),
+              ),
+              onTap: () =>
+                  Navigator.pop(sheetContext, _CardPaymentMethod.vnpay),
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.account_balance_rounded,
+                color: WakaColors.accent,
+              ),
+              title: const Text(
+                'Chuyển khoản QR',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Admin kiểm tra và duyệt thủ công',
+                style: TextStyle(color: Colors.white54),
+              ),
+              onTap: () =>
+                  Navigator.pop(sheetContext, _CardPaymentMethod.bankTransfer),
+            ),
+            const SizedBox(height: 10),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _cancelMembership() async {
@@ -344,6 +467,10 @@ class _MembershipIntro extends StatelessWidget {
 }
 
 enum _PlanChannel { card, sms }
+
+/// Hai cách trả tiền cho kênh "Chuyển khoản / Thẻ": VNPay xác nhận tự động
+/// qua IPN, chuyển khoản QR cần admin duyệt tay.
+enum _CardPaymentMethod { vnpay, bankTransfer }
 
 class _ChannelSelector extends StatelessWidget {
   const _ChannelSelector({required this.selected, required this.onChanged});
