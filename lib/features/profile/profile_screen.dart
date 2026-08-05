@@ -325,11 +325,48 @@ class _UserRow extends StatelessWidget {
   }
 }
 
-class _RewardCard extends StatelessWidget {
+class _RewardCard extends StatefulWidget {
   const _RewardCard();
 
   @override
+  State<_RewardCard> createState() => _RewardCardState();
+}
+
+class _RewardCardState extends State<_RewardCard> {
+  UserMembership? _membership;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMembership();
+  }
+
+  Future<void> _loadMembership() async {
+    if (!AuthSession.isSignedIn) return;
+    try {
+      final membership = await const CommerceApiService().getActiveMembership();
+      if (!mounted) return;
+      setState(() => _membership = membership);
+    } on Object {
+      // Không đọc được thì cứ hiển thị "Tài khoản thường".
+    }
+  }
+
+  /// Số ngày còn lại, làm tròn lên để ngày cuối vẫn hiện "còn 1 ngày".
+  String get _remainingLabel {
+    final remaining = _membership?.remaining ?? Duration.zero;
+    if (remaining <= Duration.zero) return '';
+    final days = remaining.inDays;
+    if (days >= 1) return 'Còn $days ngày';
+    final hours = remaining.inHours;
+    if (hours >= 1) return 'Còn $hours giờ';
+    return 'Sắp hết hạn';
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final membership = _membership;
+    final hasPlan = membership != null && membership.isActive;
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: ProfileLayout.horizontalPadding,
@@ -350,24 +387,66 @@ class _RewardCard extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  const Expanded(
-                    child: Text(
-                      'Tài khoản thường',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: ProfileFontSizes.rewardTitle,
-                        fontWeight: FontWeight.w900,
-                        height: 1.1,
-                      ),
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            if (hasPlan) ...[
+                              const Icon(
+                                Icons.workspace_premium_rounded,
+                                color: WakaColors.gold,
+                                size: 18,
+                              ),
+                              const SizedBox(width: 5),
+                            ],
+                            Flexible(
+                              child: Text(
+                                hasPlan
+                                    ? membership.planTitle
+                                    : 'Tài khoản thường',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: hasPlan
+                                      ? WakaColors.gold
+                                      : Colors.white,
+                                  fontSize: ProfileFontSizes.rewardTitle,
+                                  fontWeight: FontWeight.w900,
+                                  height: 1.1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (hasPlan && _remainingLabel.isNotEmpty) ...[
+                          const SizedBox(height: 3),
+                          Text(
+                            _remainingLabel,
+                            style: const TextStyle(
+                              color: Colors.white54,
+                              fontSize: 12,
+                              height: 1,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
+                  const SizedBox(width: 8),
                   InkWell(
                     borderRadius: BorderRadius.circular(24),
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const MembershipPlansScreen(),
-                      ),
-                    ),
+                    onTap: () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const MembershipPlansScreen(),
+                        ),
+                      );
+                      // Quay lại có thể đã mua/gia hạn nên đọc lại trạng thái.
+                      await _loadMembership();
+                    },
                     child: Container(
                       height: 40,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -378,9 +457,9 @@ class _RewardCard extends StatelessWidget {
                           colors: [Color(0xFFFFD625), Color(0xFFFFA810)],
                         ),
                       ),
-                      child: const Text(
-                        'NÂNG CẤP GÓI',
-                        style: TextStyle(
+                      child: Text(
+                        hasPlan ? 'GIA HẠN' : 'NÂNG CẤP GÓI',
+                        style: const TextStyle(
                           color: Color(0xFF4F3B00),
                           fontSize: ProfileFontSizes.upgradeButton,
                           fontWeight: FontWeight.w900,
