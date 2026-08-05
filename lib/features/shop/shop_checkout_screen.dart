@@ -295,10 +295,12 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
     return null;
   }
 
+  /// [confirmedStatus] là trạng thái backend đã chốt (`paid`/`failed`), hoặc
+  /// `null` nếu IPN chưa về kịp — chỉ nó mới đáng tin. Thanh toán diễn ra ở
+  /// trình duyệt ngoài nên app không tự biết kết quả.
   (IconData, String, String) _vnpayDialogCopy(
     int orderId,
     String? confirmedStatus,
-    bool? gatewaySuccess,
   ) {
     if (confirmedStatus == 'paid') {
       return (
@@ -307,7 +309,7 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
         'Đơn #$orderId đã được xác nhận thanh toán và bắt đầu được xử lý.',
       );
     }
-    if (confirmedStatus == 'failed' || gatewaySuccess == false) {
+    if (confirmedStatus == 'failed') {
       return (
         Icons.error_outline_rounded,
         'Thanh toán không thành công',
@@ -355,11 +357,10 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
       );
       final orderId = result.orderId;
 
-      bool? vnpaySuccess;
       String? confirmedStatus;
       if (_paymentMethod.isVnpay && result.paymentUrl != null) {
         if (!mounted) return;
-        vnpaySuccess = await Navigator.of(context).push<bool>(
+        await Navigator.of(context).push<bool>(
           MaterialPageRoute(
             builder: (_) =>
                 ShopVnpayPaymentScreen(paymentUrl: result.paymentUrl!),
@@ -375,7 +376,7 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
         String dialogTitle,
         String dialogContent,
       ) = _paymentMethod.isVnpay
-          ? _vnpayDialogCopy(orderId, confirmedStatus, vnpaySuccess)
+          ? _vnpayDialogCopy(orderId, confirmedStatus)
           : _paymentMethod == ShopPaymentMethod.bankQr
           ? (
               Icons.hourglass_top_rounded,

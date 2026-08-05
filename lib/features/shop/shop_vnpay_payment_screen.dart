@@ -1,67 +1,69 @@
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../core/constants/api_endpoints.dart';
 import '../../core/theme/app_theme.dart';
 
-/// Mở trang thanh toán VNPay trong WebView và tự đóng khi phát hiện trình
-/// duyệt điều hướng tới URL kết quả (`GET /api/payments/vnpay/return`).
+/// Mở trang thanh toán VNPay bằng **trình duyệt ngoài** rồi chờ người dùng
+/// quay lại app.
+///
+/// Trước đây màn này nhúng WebView, nhưng WebView trên máy/emulator cũ hay
+/// render hỏng trang VNPay (màn trắng) và không cập nhật được như trình duyệt
+/// hệ thống. VNPay cũng khuyến nghị dùng trình duyệt thật.
+///
+/// Đánh đổi: trình duyệt ngoài không trả kết quả về app được, nên màn này chỉ
+/// trả `true` khi người dùng bấm "Tôi đã thanh toán xong" — đó là *tín hiệu để
+/// đi kiểm tra*, không phải kết luận. Xác nhận thật vẫn do IPN xử lý ở backend,
+/// nên nơi gọi phải tự đọc lại trạng thái đơn/gói sau đó.
 ///
 /// Trả về:
-/// - `true` nếu VNPay báo `vnp_ResponseCode=00` (khả năng thành công),
-/// - `false` nếu VNPay báo mã lỗi khác,
-/// - `null` nếu người dùng tự đóng màn hình trước khi hoàn tất.
-///
-/// Đây chỉ là tín hiệu hiển thị tạm thời — xác nhận thật do IPN xử lý ở
-/// backend, nên màn hình gọi widget này cần tự làm mới trạng thái đơn hàng
-/// sau đó thay vì tin tuyệt đối vào giá trị trả về.
+/// - `true`  nếu người dùng báo đã thanh toán xong,
+/// - `null`  nếu người dùng bỏ dở.
 class ShopVnpayPaymentScreen extends StatefulWidget {
   const ShopVnpayPaymentScreen({super.key, required this.paymentUrl});
 
   final String paymentUrl;
 
   @override
-  State<ShopVnpayPaymentScreen> createState() =>
-      _ShopVnpayPaymentScreenState();
+  State<ShopVnpayPaymentScreen> createState() => _ShopVnpayPaymentScreenState();
 }
 
 class _ShopVnpayPaymentScreenState extends State<ShopVnpayPaymentScreen> {
-  late final WebViewController _controller;
-  bool _finished = false;
-  bool _loading = true;
+  bool _opening = false;
+  bool _hasOpened = false;
+  String _error = '';
 
   @override
   void initState() {
     super.initState();
-    _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(WakaColors.background)
-      ..setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (_) {
-            if (mounted) setState(() => _loading = true);
-          },
-          onPageFinished: (url) {
-            if (mounted) setState(() => _loading = false);
-            _maybeFinish(url);
-          },
-          onNavigationRequest: (request) {
-            if (ApiEndpoints.isVnpayReturnUrl(request.url)) {
-              _maybeFinish(request.url);
-              return NavigationDecision.prevent;
-            }
-            return NavigationDecision.navigate;
-          },
-        ),
-      )
-      ..loadRequest(Uri.parse(widget.paymentUrl));
+    // Mở luôn để người dùng không phải bấm thêm một nhịp nữa.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _openBrowser());
   }
 
-  void _maybeFinish(String url) {
-    if (_finished || !mounted || !ApiEndpoints.isVnpayReturnUrl(url)) return;
-    _finished = true;
-    final responseCode = Uri.tryParse(url)?.queryParameters['vnp_ResponseCode'];
-    Navigator.of(context).pop(responseCode == '00');
+  Future<void> _openBrowser() async {
+    if (_opening) return;
+    setState(() {
+      _opening = true;
+      _error = '';
+    });
+    try {
+      final uri = Uri.parse(widget.paymentUrl);
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!mounted) return;
+      setState(() {
+        _hasOpened = launched;
+        if (!launched) {
+          _error = 'Không mở được trình duyệt trên thiết bị này.';
+        }
+      });
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _error = 'Không mở được trình duyệt: $error');
+    } finally {
+      if (mounted) setState(() => _opening = false);
+    }
   }
 
   @override
@@ -77,15 +79,64 @@ class _ShopVnpayPaymentScreenState extends State<ShopVnpayPaymentScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Stack(
-        children: [
-          WebViewWidget(controller: _controller),
-          if (_loading)
-            const LinearProgressIndicator(
-              minHeight: 2,
-              color: WakaColors.accent,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Spacer(),
+            Icon(
+              _error.isNotEmpty
+                  ? Icons.error_outline_rounded
+                  : Icons.open_in_browser_rounded,
+              size: 56,
+              color: _error.isNotEmpty ? Colors.redAccent : WakaColors.accent,
             ),
-        ],
+            const SizedBox(height: 18),
+            Text(
+              _error.isNotEmpty
+                  ? 'Không mở được trình duyệt'
+                  : 'Đang thanh toán trên trình duyệt',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 19,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _error.isNotEmpty
+                  ? _error
+                  : 'Hoàn tất thanh toán ở trình duyệt vừa mở, sau đó quay lại '
+                        'đây và bấm nút bên dưới để cập nhật trạng thái.',
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.white60, height: 1.4),
+            ),
+            const Spacer(),
+            if (_hasOpened && _error.isEmpty)
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('TÔI ĐÃ THANH TOÁN XONG'),
+              ),
+            const SizedBox(height: 10),
+            OutlinedButton(
+              onPressed: _opening ? null : _openBrowser,
+              child: Text(
+                _opening
+                    ? 'ĐANG MỞ…'
+                    : _hasOpened
+                    ? 'MỞ LẠI TRÌNH DUYỆT'
+                    : 'THỬ LẠI',
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('HỦY THANH TOÁN'),
+            ),
+          ],
+        ),
       ),
     );
   }

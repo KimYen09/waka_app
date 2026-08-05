@@ -1,6 +1,20 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Android 11+ an cac app khac khoi truy van. Khong khai <queries> thi
+         url_launcher khong thay trinh duyet nao va launchUrl() tra ve false,
+         khien nut thanh toan VNPay khong mo duoc gi. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+    </queries>
+
     <application
         android:label="waka_demo"
         android:name="${applicationName}"

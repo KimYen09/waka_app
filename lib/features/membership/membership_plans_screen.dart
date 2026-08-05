@@ -182,8 +182,8 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
         builder: (_) => ShopVnpayPaymentScreen(paymentUrl: paymentUrl),
       ),
     );
-    // IPN chạy bất đồng bộ nên trạng thái thật chỉ có ở backend, đọc lại vài
-    // nhịp thay vì tin vào mã trả về trên URL của WebView.
+    // Trình duyệt ngoài không trả kết quả về app, và IPN cũng chạy bất đồng
+    // bộ, nên trạng thái thật chỉ có ở backend — đọc lại vài nhịp.
     for (var attempt = 0; attempt < 4; attempt++) {
       if (attempt > 0) {
         await Future<void>.delayed(const Duration(milliseconds: 1200));
