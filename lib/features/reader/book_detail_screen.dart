@@ -465,6 +465,15 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     );
   }
 
+  /// Mở màn gói hội viên rồi đọc lại quyền để ẩn banner nếu vừa mua xong.
+  Future<void> _openMembershipPlans() async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const MembershipPlansScreen()),
+    );
+    if (!mounted) return;
+    await _loadMembershipState();
+  }
+
   void _openRelatedBook(BookDetailData book) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => BookDetailScreen(book: book)),

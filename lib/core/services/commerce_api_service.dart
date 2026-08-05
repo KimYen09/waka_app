@@ -310,10 +310,80 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-  Future<void> purchaseMembership(int planId) async {
-    await client.postJson(Uri.parse(ApiEndpoints.apiMembershipPurchase), {
-      'planId': planId,
-    }, bearerToken: await _getToken);
+  /// Tạo giao dịch mua gói. Với `bank_qr` backend bắt buộc `transactionRef`
+  /// (nội dung chuyển khoản) và trả về gói ở trạng thái `pending` chờ duyệt.
+  Future<UserMembership> purchaseMembership(
+    int planId, {
+    String? transactionRef,
+    String paymentMethod = 'bank_qr',
+  }) async {
+    final response = await client.postJson(
+      Uri.parse(ApiEndpoints.apiMembershipPurchase),
+      {
+        'planId': planId,
+        'paymentMethod': paymentMethod,
+        if (transactionRef != null && transactionRef.isNotEmpty)
+          'transactionRef': transactionRef,
+      },
+      bearerToken: await _getToken,
+    );
+    final data = _dataMap(response);
+    return UserMembership(
+      id: _int(data['membershipId']),
+      status: data['status'] as String? ?? 'pending',
+      planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+      startedAt: _date(data['startedAt']),
+      expiresAt: _date(data['expiresAt']),
+      planId: _int(data['planId']),
+      price: _num(data['price']),
+    );
+  }
+
+  /// Hủy toàn bộ gói đang hoạt động và giao dịch đang chờ duyệt.
+  Future<void> cancelMembership() async {
+    await client.deleteJson(
+      Uri.parse(ApiEndpoints.apiMyMemberships),
+      bearerToken: await _getToken,
+    );
+  }
+
+  /// Gói còn hiệu lực, dùng để mở khóa nội dung Hội viên. `null` nếu chưa mua.
+  Future<UserMembership?> getActiveMembership() async {
+    final memberships = await getMyMemberships();
+    for (final item in memberships) {
+      if (item.isActive) return item;
+    }
+    return null;
+  }
+
+  Future<List<UserNotification>> getNotifications() async {
+    final response = await client.getJson(
+      Uri.parse(ApiEndpoints.apiNotifications),
+      bearerToken: await _getToken,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(
+          (item) => UserNotification(
+            id: _int(item['id']),
+            type: item['type'] as String? ?? '',
+            title: item['title'] as String? ?? '',
+            body: item['body'] as String? ?? '',
+            isRead: item['isRead'] == true || item['isRead'] == 1,
+            createdAt: _date(item['createdAt']),
+          ),
+        )
+        .toList(growable: false);
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    await client.patchJson(
+      Uri.parse('${ApiEndpoints.apiNotifications}/$id/read'),
+      const {},
+      bearerToken: await _getToken,
+    );
   }
 
   Future<List<UserMembership>> getMyMemberships() async {
