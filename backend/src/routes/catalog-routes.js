@@ -33,6 +33,8 @@ router.get('/cart', requireAuth, commerce.listCart);
 router.post('/cart/items', requireAuth, commerce.upsertCartItem);
 router.delete('/cart/items/:bookId', requireAuth, commerce.removeCartItem);
 router.post('/checkout', requireAuth, commerce.checkoutCart);
+router.get('/payments/vnpay/return', commerce.vnpayReturn);
+router.get('/payments/vnpay/ipn', commerce.vnpayIpn);
 router.get('/membership-plans', commerce.listMembershipPlans);
 router.get('/memberships/me', requireAuth, commerce.listMyMemberships);
 router.post('/memberships/purchase', requireAuth, commerce.purchaseMembership);

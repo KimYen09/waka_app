@@ -1,5 +1,8 @@
 const pool = require('../config/database');
+const env = require('../config/env');
 const HttpError = require('../utils/http-error');
+const vnpay = require('../utils/vnpay');
+const { applyPaymentStatus } = require('../services/payment-outcomes');
 
 const checkoutVouchers = new Map([
   ['WAKA10', { percent: 10, minimumSubtotal: 100000 }],
@@ -8,6 +11,47 @@ const checkoutVouchers = new Map([
 
 function cleanText(value, maxLength = 500) {
   return String(value || '').trim().slice(0, maxLength);
+}
+
+function ensureVnpayConfigured() {
+  if (!env.vnpay.tmnCode || !env.vnpay.hashSecret) {
+    throw new HttpError(
+      422,
+      'VNPay chưa được cấu hình. Hãy đặt VNP_TMN_CODE và VNP_HASH_SECRET cho backend.',
+    );
+  }
+}
+
+function clientIp(req) {
+  const forwarded = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+  const raw = forwarded || req.ip || req.socket?.remoteAddress || '127.0.0.1';
+  const normalized = raw.replace('::ffff:', '');
+  return normalized === '::1' ? '127.0.0.1' : normalized;
+}
+
+function escapeHtml(value) {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderVnpayResultPage({ success, orderCode }) {
+  const title = success ? 'Thanh toan thanh cong' : 'Thanh toan khong thanh cong';
+  const message = success
+    ? `Don hang ${escapeHtml(orderCode)} da duoc xac nhan. Ban co the dong cua so nay va quay lai ung dung Waka.`
+    : `Giao dich cho don hang ${escapeHtml(orderCode)} khong thanh cong hoac da bi huy. Vui long quay lai ung dung Waka de thu lai.`;
+  return `<!doctype html>
+<html lang="vi"><head><meta charset="utf-8" />
+<title>${title}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+</head>
+<body style="font-family: sans-serif; text-align:center; padding: 48px 16px;">
+  <h1>${success ? '✅' : '❌'} ${title}</h1>
+  <p>${message}</p>
+</body></html>`;
 }
 
 function mapPlan(row) {
@@ -95,7 +139,10 @@ async function checkoutCart(req, res) {
       .map((value) => Number.parseInt(value, 10))
       .filter(Number.isInteger),
   )];
-  const paymentMethod = req.body.paymentMethod === 'bank_qr' ? 'bank_qr' : 'cod';
+  const paymentMethod = ['bank_qr', 'vnpay'].includes(req.body.paymentMethod)
+    ? req.body.paymentMethod
+    : 'cod';
+  if (paymentMethod === 'vnpay') ensureVnpayConfigured();
   const requestedOrderCode = cleanText(req.body.orderCode, 80);
   const address = req.body.shippingAddress && typeof req.body.shippingAddress === 'object'
     ? req.body.shippingAddress
@@ -144,7 +191,9 @@ async function checkoutCart(req, res) {
       ? Math.round(subtotal * voucher.percent / 100)
       : 0;
     const total = Math.max(0, subtotal - discount);
-    const orderStatus = paymentMethod === 'bank_qr' ? 'payment_review' : 'confirmed';
+    const orderStatus = paymentMethod === 'bank_qr' || paymentMethod === 'vnpay'
+      ? 'payment_review'
+      : 'confirmed';
     const orderCode = requestedOrderCode || `WAKA${Date.now()}`;
     const [orderResult] = await connection.execute(
       `INSERT INTO orders
@@ -169,9 +218,9 @@ async function checkoutCart(req, res) {
         [orderResult.insertId, item.bookId, item.quantity, item.unitPrice],
       );
     }
-    const transactionRef = paymentMethod === 'bank_qr'
-      ? orderCode
-      : `COD-${Date.now()}-${orderResult.insertId}`;
+    const transactionRef = paymentMethod === 'cod'
+      ? `COD-${Date.now()}-${orderResult.insertId}`
+      : orderCode;
     const paymentStatus = paymentMethod === 'bank_qr' ? 'proof_submitted' : 'pending';
     const [paymentResult] = await connection.execute(
       `INSERT INTO payments
@@ -186,23 +235,31 @@ async function checkoutCart(req, res) {
         paymentStatus,
       ],
     );
-    await connection.execute(
-      `INSERT INTO shipping_events
-        (order_id, status, location, description, created_by)
-       VALUES (?, ?, ?, ?, NULL)`,
-      paymentMethod === 'bank_qr'
+    const shippingEvent = paymentMethod === 'bank_qr'
+      ? [
+        orderResult.insertId,
+        'payment_review',
+        'Thanh toán trực tuyến',
+        'Khách hàng đã báo chuyển khoản. Đang chờ quản trị viên xác nhận.',
+      ]
+      : paymentMethod === 'vnpay'
         ? [
           orderResult.insertId,
           'payment_review',
-          'Thanh toán trực tuyến',
-          'Khách hàng đã báo chuyển khoản. Đang chờ quản trị viên xác nhận.',
+          'Thanh toán VNPay',
+          'Đang chờ khách hàng hoàn tất thanh toán trên cổng VNPay.',
         ]
         : [
           orderResult.insertId,
           'confirmed',
           'Nhà sách Waka',
           'Đơn COD đã được tiếp nhận. Thanh toán khi giao hàng thành công.',
-        ],
+        ];
+    await connection.execute(
+      `INSERT INTO shipping_events
+        (order_id, status, location, description, created_by)
+       VALUES (?, ?, ?, ?, NULL)`,
+      shippingEvent,
     );
     if (requestedBookIds.length) {
       await connection.execute(
@@ -214,6 +271,14 @@ async function checkoutCart(req, res) {
       await connection.execute('DELETE FROM cart_items WHERE user_id = ?', [req.user.id]);
     }
     await connection.commit();
+    const paymentUrl = paymentMethod === 'vnpay'
+      ? vnpay.buildPaymentUrl({
+        txnRef: transactionRef,
+        amount: total,
+        orderInfo: `Thanh toan don hang ${orderCode}`,
+        ipAddr: clientIp(req),
+      })
+      : null;
     res.status(201).json({
       success: true,
       data: {
@@ -230,6 +295,7 @@ async function checkoutCart(req, res) {
           transactionRef,
           status: paymentStatus,
         },
+        paymentUrl,
       },
     });
   } catch (error) {
@@ -272,8 +338,14 @@ async function listMyMemberships(req, res) {
 async function purchaseMembership(req, res) {
   const planId = Number.parseInt(req.body.planId, 10);
   if (!Number.isInteger(planId)) throw new HttpError(422, 'Gói cước không hợp lệ.');
+  const paymentMethod = req.body.paymentMethod === 'vnpay' ? 'vnpay' : 'bank_qr';
+  if (paymentMethod === 'vnpay') {
+    ensureVnpayConfigured();
+  }
   const requestedTransactionRef = cleanText(req.body.transactionRef, 80);
-  if (!requestedTransactionRef) throw new HttpError(422, 'Thiếu nội dung chuyển khoản.');
+  if (paymentMethod === 'bank_qr' && !requestedTransactionRef) {
+    throw new HttpError(422, 'Thiếu nội dung chuyển khoản.');
+  }
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -317,14 +389,25 @@ async function purchaseMembership(req, res) {
     const membershipId = membershipResult.insertId;
     const startedAt = now;
     const expiresAt = now;
-    const transactionRef = requestedTransactionRef;
+    const transactionRef = paymentMethod === 'vnpay'
+      ? `MB${membershipId}${Date.now()}`
+      : requestedTransactionRef;
+    const paymentStatus = paymentMethod === 'vnpay' ? 'pending' : 'proof_submitted';
     const [paymentResult] = await connection.execute(
       `INSERT INTO payments
         (user_id, membership_id, provider, transaction_ref, amount, status, paid_at)
-       VALUES (?, ?, 'bank_qr', ?, ?, 'proof_submitted', NULL)`,
-      [req.user.id, membershipId, transactionRef, plan.price],
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [req.user.id, membershipId, paymentMethod, transactionRef, plan.price, paymentStatus],
     );
     await connection.commit();
+    const paymentUrl = paymentMethod === 'vnpay'
+      ? vnpay.buildPaymentUrl({
+        txnRef: transactionRef,
+        amount: plan.price,
+        orderInfo: `Thanh toan goi hoi vien ${plan.title}`,
+        ipAddr: clientIp(req),
+      })
+      : null;
     res.status(201).json({
       success: true,
       data: {
@@ -338,8 +421,9 @@ async function purchaseMembership(req, res) {
         payment: {
           id: paymentResult.insertId,
           transactionRef,
-          status: 'proof_submitted',
+          status: paymentStatus,
         },
+        paymentUrl,
       },
     });
   } catch (error) {
@@ -418,6 +502,75 @@ async function markNotificationRead(req, res) {
   res.json({ success: true, data: { id, isRead: true } });
 }
 
+/**
+ * VNPay chuyển hướng trình duyệt (WebView) của khách về đây sau khi thanh
+ * toán. Chỉ dùng để hiển thị trang kết quả cho người dùng — KHÔNG dùng để
+ * xác nhận đơn hàng/gói hội viên, vì trình duyệt có thể đóng trước khi kịp
+ * chuyển hướng. Nguồn xác nhận chính thức là vnpayIpn (VNPay gọi thẳng
+ * server-to-server) bên dưới.
+ */
+async function vnpayReturn(req, res) {
+  const query = { ...req.query };
+  const success = vnpay.verifyReturn(query) && query.vnp_ResponseCode === '00';
+  const orderCode = String(query.vnp_TxnRef || '');
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderVnpayResultPage({ success, orderCode }));
+}
+
+/**
+ * Instant Payment Notification: VNPay gọi endpoint này trực tiếp từ server
+ * của họ để xác nhận kết quả giao dịch. Phải luôn trả JSON theo đúng định
+ * dạng RspCode/Message mà VNPay quy định, kể cả khi có lỗi nội bộ, để tránh
+ * VNPay hiểu nhầm và retry vô tận.
+ */
+async function vnpayIpn(req, res) {
+  try {
+    const query = { ...req.query };
+    if (!vnpay.verifyReturn(query)) {
+      return res.json({ RspCode: '97', Message: 'Invalid signature' });
+    }
+    const transactionRef = String(query.vnp_TxnRef || '');
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [rows] = await connection.execute(
+        `SELECT id, amount, status FROM payments WHERE transaction_ref = ? LIMIT 1 FOR UPDATE`,
+        [transactionRef],
+      );
+      const payment = rows[0];
+      if (!payment) {
+        await connection.rollback();
+        return res.json({ RspCode: '01', Message: 'Order not found' });
+      }
+      const vnpAmount = Math.round(Number(query.vnp_Amount || 0) / 100);
+      if (vnpAmount !== Math.round(Number(payment.amount))) {
+        await connection.rollback();
+        return res.json({ RspCode: '04', Message: 'Invalid amount' });
+      }
+      if (payment.status !== 'pending') {
+        await connection.rollback();
+        return res.json({ RspCode: '02', Message: 'Order already confirmed' });
+      }
+      const success = query.vnp_ResponseCode === '00' && query.vnp_TransactionStatus === '00';
+      await applyPaymentStatus(connection, {
+        paymentId: payment.id,
+        status: success ? 'paid' : 'failed',
+        actorUserId: null,
+      });
+      await connection.commit();
+      return res.json({ RspCode: '00', Message: 'Confirm Success' });
+    } catch (error) {
+      await connection.rollback();
+      throw error;
+    } finally {
+      connection.release();
+    }
+  } catch (error) {
+    console.error('[VNPay IPN Error]:', error);
+    return res.json({ RspCode: '99', Message: 'Unknown error' });
+  }
+}
+
 module.exports = {
   listCart,
   upsertCartItem,
@@ -430,4 +583,6 @@ module.exports = {
   listPayments,
   listNotifications,
   markNotificationRead,
+  vnpayReturn,
+  vnpayIpn,
 };

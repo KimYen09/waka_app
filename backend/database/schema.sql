@@ -227,7 +227,7 @@ CREATE TABLE IF NOT EXISTS orders (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id BIGINT UNSIGNED NOT NULL,
   order_code VARCHAR(80),
-  payment_method ENUM('cod', 'bank_qr') NOT NULL DEFAULT 'cod',
+  payment_method ENUM('cod', 'bank_qr', 'vnpay') NOT NULL DEFAULT 'cod',
   status ENUM(
     'payment_review', 'confirmed', 'packing', 'in_transit',
     'at_hub', 'out_for_delivery', 'delivered', 'cancelled'

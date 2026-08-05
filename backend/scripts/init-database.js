@@ -74,7 +74,7 @@ async function init() {
       connection,
       'orders',
       'payment_method',
-      "ENUM('cod', 'bank_qr') NOT NULL DEFAULT 'cod'",
+      "ENUM('cod', 'bank_qr', 'vnpay') NOT NULL DEFAULT 'cod'",
     );
     await ensureColumn(
       connection,
@@ -109,6 +109,10 @@ async function init() {
         'payment_review', 'confirmed', 'packing', 'in_transit',
         'at_hub', 'out_for_delivery', 'delivered', 'cancelled'
        ) NOT NULL DEFAULT 'confirmed'`,
+    );
+    await connection.query(
+      `ALTER TABLE orders MODIFY payment_method
+       ENUM('cod', 'bank_qr', 'vnpay') NOT NULL DEFAULT 'cod'`,
     );
     await connection.query(
       `ALTER TABLE payments MODIFY status

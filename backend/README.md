@@ -45,6 +45,37 @@ Kiểm tra tại `http://localhost:3000/health`.
 | GET | `/api/membership-plans` | Danh sách gói hội viên | Không |
 | GET/POST | `/api/memberships/me`, `/api/memberships/purchase` | Lịch sử/mua gói hội viên demo | Bearer JWT |
 | GET | `/api/payments` | Lịch sử giao dịch demo | Bearer JWT |
+| GET | `/api/payments/vnpay/return` | Trang kết quả sau khi khách thanh toán trên VNPay (WebView mở URL này) | Không |
+| GET | `/api/payments/vnpay/ipn` | VNPay gọi server-to-server để xác nhận giao dịch (không dùng trực tiếp từ app) | Không |
+
+## Thanh toán qua VNPay (sandbox)
+
+Đặt `paymentMethod: "vnpay"` khi gọi `POST /api/checkout` hoặc
+`POST /api/memberships/purchase` (gói hội viên không cần gửi `transactionRef`
+trong trường hợp này). Response trả thêm trường `data.paymentUrl` — mở URL đó
+trong WebView để khách thanh toán trên VNPay.
+
+Sau khi thanh toán, VNPay chuyển hướng WebView về
+`GET /api/payments/vnpay/return` (chỉ để hiển thị trang kết quả cho khách).
+Nguồn xác nhận chính thức là `GET /api/payments/vnpay/ipn`, được VNPay gọi
+thẳng từ server của họ — app chỉ cần theo dõi URL của WebView, khi thấy nó
+chứa `/api/payments/vnpay/return` thì đóng WebView và gọi lại
+`GET /api/orders` hoặc `GET /api/memberships/me` để lấy trạng thái mới nhất.
+
+Cấu hình cần thiết trong `.env` (đăng ký tài khoản merchant sandbox tại
+https://sandbox.vnpayment.vn/devreg/, xem TMN Code/Hash Secret tại
+https://sandbox.vnpayment.vn/merchantv2/):
+
+```text
+VNP_TMN_CODE=...
+VNP_HASH_SECRET=...
+VNP_URL=https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+VNP_RETURN_URL=http://<host-backend-cong-khai>:3000/api/payments/vnpay/return
+```
+
+`VNP_RETURN_URL` và endpoint IPN phải là URL VNPay truy cập được từ Internet —
+khi chạy local, dùng ngrok/localtunnel để expose backend rồi khai báo URL
+public đó trên cổng quản trị VNPay sandbox lẫn trong `.env`.
 
 Ví dụ lọc sách:
 
