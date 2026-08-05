@@ -206,11 +206,15 @@ class CommerceCheckoutResult {
     required this.orderId,
     required this.status,
     required this.paymentStatus,
+    this.paymentUrl,
   });
 
   final int orderId;
   final String status;
   final String paymentStatus;
+
+  /// URL cổng VNPay để mở trong WebView, chỉ có khi `paymentMethod: 'vnpay'`.
+  final String? paymentUrl;
 }
 
 class UserNotification {
@@ -290,6 +294,7 @@ class CommerceApiService {
       orderId: _int(data['orderId']),
       status: data['status'] as String? ?? 'confirmed',
       paymentStatus: payment['status'] as String? ?? 'pending',
+      paymentUrl: data['paymentUrl'] as String?,
     );
   }
 

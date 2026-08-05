@@ -36,6 +36,7 @@ abstract final class ApiEndpoints {
   static final String apiMembershipPurchase =
       '$apiBaseUrl/memberships/purchase';
   static final String apiPayments = '$apiBaseUrl/payments';
+  static final String apiVnpayReturn = '$apiBaseUrl/payments/vnpay/return';
   static final String apiNotifications = '$apiBaseUrl/notifications';
   static final String apiAdmin = '$apiBaseUrl/admin';
   static final String apiAdminDashboard = '$apiAdmin/dashboard';

@@ -707,7 +707,7 @@ void main() {
           voucherName: 'Giảm 10%',
           voucherDiscount: 10000,
           addressStore: _MemoryAddressStore(),
-          onSubmitOrder: (_, _, _, _) async => 1,
+          onSubmitOrder: (_, _, _, _) async => (orderId: 1, paymentUrl: null),
         ),
       ),
     );
@@ -764,7 +764,7 @@ void main() {
           lines: [ShopCheckoutLine(product: topProducts.first, quantity: 1)],
           addressStore: store,
           locationRepository: _FakeLocationRepository(),
-          onSubmitOrder: (_, _, _, _) async => 1,
+          onSubmitOrder: (_, _, _, _) async => (orderId: 1, paymentUrl: null),
         ),
       ),
     );
@@ -792,7 +792,7 @@ void main() {
           lines: [ShopCheckoutLine(product: topProducts.first, quantity: 1)],
           addressStore: store,
           locationRepository: _FakeLocationRepository(),
-          onSubmitOrder: (_, _, _, _) async => 1,
+          onSubmitOrder: (_, _, _, _) async => (orderId: 1, paymentUrl: null),
         ),
       ),
     );
@@ -855,7 +855,7 @@ void main() {
         home: ShopCheckoutScreen(
           lines: [ShopCheckoutLine(product: topProducts.first, quantity: 2)],
           addressStore: _MemoryAddressStore(),
-          onSubmitOrder: (_, _, _, _) async => 1,
+          onSubmitOrder: (_, _, _, _) async => (orderId: 1, paymentUrl: null),
         ),
       ),
     );

@@ -821,11 +821,13 @@ class _ShopCartScreenState extends State<ShopCartScreen> {
                   voucherCode: voucher?.id,
                   paymentMethod: paymentMethod == ShopPaymentMethod.bankQr
                       ? 'bank_qr'
+                      : paymentMethod.isVnpay
+                      ? 'vnpay'
                       : 'cod',
                   shippingAddress: shippingAddress.toJson(),
                   orderCode: orderCode,
                 );
-                return result.orderId;
+                return (orderId: result.orderId, paymentUrl: result.paymentUrl);
               },
         ),
       ),

@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../core/constants/api_endpoints.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import 'shop_address_store.dart';
 import 'shop_constants.dart';
 import 'shop_location_service.dart';
+import 'shop_vnpay_payment_screen.dart';
+
+typedef ShopOrderSubmitResult = ({int orderId, String? paymentUrl});
 
 typedef ShopOrderSubmit =
-    Future<int> Function(
+    Future<ShopOrderSubmitResult> Function(
       ShopPaymentMethod method,
       ShopCheckoutVoucher? voucher,
       ShopShippingAddress shippingAddress,
@@ -88,9 +92,13 @@ extension ShopPaymentMethodView on ShopPaymentMethod {
     ShopPaymentMethod.eWallet => Icons.account_balance_wallet_outlined,
   };
 
-  bool get isAvailable =>
-      this == ShopPaymentMethod.cashOnDelivery ||
-      this == ShopPaymentMethod.bankQr;
+  bool get isAvailable => true;
+
+  /// VNPay xử lý chung một trang cho cả 3 hình thức này.
+  bool get isVnpay =>
+      this == ShopPaymentMethod.atm ||
+      this == ShopPaymentMethod.internationalCard ||
+      this == ShopPaymentMethod.eWallet;
 }
 
 /// Public receiving-account values used to render a VietQR QuickLink.
@@ -283,33 +291,60 @@ class _ShopCheckoutScreenState extends State<ShopCheckoutScreen> {
     if (!_paymentMethod.isAvailable || _submitting) return;
     setState(() => _submitting = true);
     try {
-      final orderId = await widget.onSubmitOrder(
+      final result = await widget.onSubmitOrder(
         _paymentMethod,
         _selectedVoucher,
         _shippingAddress!,
         orderCode,
       );
+      final orderId = result.orderId;
+
+      bool? vnpaySuccess;
+      if (_paymentMethod.isVnpay && result.paymentUrl != null) {
+        if (!mounted) return;
+        vnpaySuccess = await Navigator.of(context).push<bool>(
+          MaterialPageRoute(
+            builder: (_) => ShopVnpayPaymentScreen(
+              paymentUrl: result.paymentUrl!,
+              returnUrlPrefix: ApiEndpoints.apiVnpayReturn,
+            ),
+          ),
+        );
+      }
       if (!mounted) return;
+
+      final isVnpayFlow = _paymentMethod.isVnpay;
+      final dialogIcon = isVnpayFlow
+          ? (vnpaySuccess == true
+                ? Icons.check_circle_outline_rounded
+                : Icons.hourglass_top_rounded)
+          : (_paymentMethod == ShopPaymentMethod.bankQr
+                ? Icons.hourglass_top_rounded
+                : Icons.inventory_2_outlined);
+      final dialogTitle = isVnpayFlow
+          ? (vnpaySuccess == true
+                ? 'Thanh toán VNPay thành công'
+                : 'Đang chờ xác nhận thanh toán')
+          : (_paymentMethod == ShopPaymentMethod.bankQr
+                ? 'Chờ xác nhận thanh toán'
+                : 'Đặt hàng COD thành công');
+      final dialogContent = isVnpayFlow
+          ? (vnpaySuccess == true
+                ? 'Đơn #$orderId đã thanh toán qua VNPay. Hệ thống đang '
+                      'xác nhận và sẽ sớm được xử lý.'
+                : 'Đơn #$orderId đang chờ xác nhận từ VNPay. Nếu bạn đã '
+                      'thanh toán thành công, đơn sẽ tự cập nhật trong ít phút.')
+          : (_paymentMethod == ShopPaymentMethod.bankQr
+                ? 'Đơn #$orderId đã được gửi cho quản trị viên kiểm tra. '
+                      'Đơn chỉ bắt đầu giao sau khi tiền được xác nhận.'
+                : 'Đơn #$orderId đã được tiếp nhận. Bạn sẽ thanh toán khi nhận hàng.');
+
       await showDialog<void>(
         context: context,
         builder: (dialogContext) => AlertDialog(
-          icon: Icon(
-            _paymentMethod == ShopPaymentMethod.bankQr
-                ? Icons.hourglass_top_rounded
-                : Icons.inventory_2_outlined,
-            color: WakaColors.accent,
-          ),
-          title: Text(
-            _paymentMethod == ShopPaymentMethod.bankQr
-                ? 'Chờ xác nhận thanh toán'
-                : 'Đặt hàng COD thành công',
-          ),
-          content: Text(
-            _paymentMethod == ShopPaymentMethod.bankQr
-                ? 'Đơn #$orderId đã được gửi cho quản trị viên kiểm tra. '
-                      'Đơn chỉ bắt đầu giao sau khi tiền được xác nhận.'
-                : 'Đơn #$orderId đã được tiếp nhận. Bạn sẽ thanh toán khi nhận hàng.',
-          ),
+          icon: Icon(dialogIcon, color: WakaColors.accent),
+          title: Text(dialogTitle),
+          content: Text(dialogContent),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(dialogContext),
