@@ -12,7 +12,6 @@ import 'features/shop/shop_screen.dart';
 import 'features/welcome/welcome_screen.dart';
 import 'shared/widgets/waka_bottom_nav.dart';
 import 'features/explore/explore_screen.dart';
-import 'features/ai_assistant/ai_assistant_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,26 +111,6 @@ class _WakaShellState extends State<WakaShell> {
       child: Scaffold(
         backgroundColor: WakaColors.background,
         body: IndexedStack(index: _selectedIndex, children: pages),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => const AiAssistantScreen(),
-              ),
-            );
-          },
-          backgroundColor: WakaColors.accent,
-          elevation: 6,
-          icon: const Icon(Icons.auto_awesome_rounded, color: Colors.black),
-          label: const Text(
-            'Trợ lý AI',
-            style: TextStyle(
-              color: Colors.black,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-            ),
-          ),
-        ),
         bottomNavigationBar: WakaBottomNav(
           selectedIndex: _selectedIndex,
           onChanged: (index) => setState(() => _selectedIndex = index),

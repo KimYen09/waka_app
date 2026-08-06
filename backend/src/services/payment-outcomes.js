@@ -66,8 +66,20 @@ async function applyPaymentStatus(connection, { paymentId, status, actorUserId =
        WHERE um.id = ? LIMIT 1 FOR UPDATE`,
       [payment.membershipId],
     );
-    const membership = memberships[0];
-    if (membership && membership.status === 'pending') {
+    let membership = memberships[0];
+    if (!membership && payment.userId) {
+      const [userPending] = await connection.execute(
+        `SELECT um.id, um.user_id AS userId, um.status,
+          mp.duration_days AS durationDays
+         FROM user_memberships um
+         INNER JOIN membership_plans mp ON mp.id = um.plan_id
+         WHERE um.user_id = ? AND um.status IN ('pending', 'cancelled')
+         ORDER BY um.id DESC LIMIT 1 FOR UPDATE`,
+        [payment.userId],
+      );
+      membership = userPending[0];
+    }
+    if (membership && membership.status !== 'active') {
       const [activeRows] = await connection.execute(
         `SELECT id, expires_at AS expiresAt FROM user_memberships
          WHERE user_id = ? AND status = 'active' AND expires_at > NOW()

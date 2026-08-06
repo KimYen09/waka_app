@@ -90,10 +90,21 @@ class AuthApiService {
     return _readAuthResult(response);
   }
 
-  Future<AuthResult> loginWithGoogle(String idToken) async {
+  Future<AuthResult> loginWithGoogle(
+    String idToken, {
+    String? email,
+    String? displayName,
+    String? googleId,
+  }) async {
     final response = await client.postJson(
       Uri.parse(ApiEndpoints.apiGoogleLogin),
-      {'idToken': idToken},
+      {
+        'idToken': idToken,
+        if (email != null && email.isNotEmpty) 'email': email,
+        if (displayName != null && displayName.isNotEmpty)
+          'displayName': displayName,
+        if (googleId != null && googleId.isNotEmpty) 'googleId': googleId,
+      },
     );
     return _readAuthResult(response);
   }

@@ -60,39 +60,9 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
 
   Future<void> _buyPlan(_MembershipPlan plan) async {
     if (_isBuying) return;
-    if (_pendingMembership != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Gói đang chờ admin duyệt, bạn chưa thể tạo giao dịch khác.',
-          ),
-        ),
-      );
-      return;
-    }
-    if (_activeMembership case final active?) {
-      if (plan.amount < active.price) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Bạn chỉ có thể gia hạn hoặc nâng cấp lên gói cao hơn.',
-            ),
-          ),
-        );
-        return;
-      }
-    }
     if (!AuthSession.isSignedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng đăng nhập để mua gói cước.')),
-      );
-      return;
-    }
-    if (plan.id <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Hãy chạy backend để hoàn tất mua gói demo.'),
-        ),
       );
       return;
     }
@@ -118,9 +88,12 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
       }
     } on Object catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(error.toString())));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tạo giao dịch: $error'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isBuying = false);
     }
@@ -128,82 +101,199 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
 
   /// Chuyển khoản QR: admin phải kiểm tra tiền về rồi mới duyệt.
   Future<void> _purchaseWithBankTransfer(_MembershipPlan plan) async {
-    final transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
-    final transferred = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => ShopQrPaymentScreen(
-          amount: plan.amount.round(),
-          orderCode: transactionRef,
-          paymentPurpose: plan.title,
-          requiresReview: true,
+    try {
+      final planId = plan.id > 0 ? plan.id : 1;
+      final transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
+      final result = await const CommerceApiService().purchaseMembership(
+        planId,
+        transactionRef: transactionRef,
+        paymentMethod: 'bank_qr',
+      );
+      if (!mounted) return;
+      final transferred = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ShopQrPaymentScreen(
+            amount: plan.amount > 0 ? plan.amount.round() : 199000,
+            orderCode: transactionRef,
+            paymentPurpose: plan.title,
+            requiresReview: true,
+          ),
         ),
-      ),
-    );
-    if (transferred != true || !mounted) return;
-    final result = await const CommerceApiService().purchaseMembership(
-      plan.id,
-      transactionRef: transactionRef,
-    );
-    if (!mounted) return;
-    setState(() => _pendingMembership = result.membership);
-    _startCountdown();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Đã gửi xác nhận chuyển khoản ${plan.title}. Vui lòng chờ admin '
-          'duyệt để kích hoạt và mở khóa nội dung.',
+      );
+      if (transferred != true || !mounted) return;
+      setState(() => _pendingMembership = result.membership);
+      _startCountdown();
+      await _loadData();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Đã gửi xác nhận chuyển khoản ${plan.title}. Vui lòng chờ admin '
+            'duyệt để kích hoạt và mở khóa nội dung.',
+          ),
         ),
-      ),
-    );
+      );
+    } on CommercePendingOrderException catch (e) {
+      if (!mounted) return;
+      final action = await showDialog<String>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Giao dịch chưa hoàn tất'),
+          content: Text(
+            '${e.message}\n\nBạn muốn tiếp tục thanh toán đơn cũ hay hủy để tạo đơn chuyển khoản QR mới?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, 'cancel'),
+              child: const Text('ĐÓNG'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogCtx, 'force_new'),
+              child: const Text('HỦY ĐƠN CỦ & TẠO MỚI'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (action == 'force_new') {
+        final planId = plan.id > 0 ? plan.id : 1;
+        final transactionRef = 'WAKAGOI${DateTime.now().millisecondsSinceEpoch}';
+        final result = await const CommerceApiService().purchaseMembership(
+          planId,
+          transactionRef: transactionRef,
+          paymentMethod: 'bank_qr',
+          forceCancel: true,
+        );
+        if (!mounted) return;
+        final transferred = await Navigator.of(context).push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => ShopQrPaymentScreen(
+              amount: plan.amount > 0 ? plan.amount.round() : 199000,
+              orderCode: transactionRef,
+              paymentPurpose: plan.title,
+              requiresReview: true,
+            ),
+          ),
+        );
+        if (transferred != true || !mounted) return;
+        setState(() => _pendingMembership = result.membership);
+        _startCountdown();
+        await _loadData();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể tạo đơn thanh toán QR: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   /// VNPay: gói tự kích hoạt khi IPN báo về, không cần admin duyệt.
   Future<void> _purchaseWithVnpay(_MembershipPlan plan) async {
-    final result = await const CommerceApiService().purchaseMembership(
-      plan.id,
-      paymentMethod: 'vnpay',
-    );
-    final paymentUrl = result.paymentUrl;
-    if (!mounted) return;
-    if (paymentUrl == null || paymentUrl.isEmpty) {
+    try {
+      final planId = plan.id > 0 ? plan.id : 1;
+      final result = await const CommerceApiService().purchaseMembership(
+        planId,
+        paymentMethod: 'vnpay',
+      );
+      final paymentUrl = result.paymentUrl;
+      if (!mounted) return;
+      if (paymentUrl == null || paymentUrl.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Backend chưa trả về liên kết VNPay. Kiểm tra VNP_TMN_CODE và '
+              'VNP_HASH_SECRET.',
+            ),
+          ),
+        );
+        return;
+      }
+      setState(() => _pendingMembership = result.membership);
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ShopVnpayPaymentScreen(paymentUrl: paymentUrl),
+        ),
+      );
+      // Trình duyệt ngoài không trả kết quả về app, và IPN cũng chạy bất đồng
+      // bộ, nên trạng thái thật chỉ có ở backend — đọc lại vài nhịp.
+      for (var attempt = 0; attempt < 4; attempt++) {
+        if (attempt > 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 1200));
+        }
+        if (!mounted) return;
+        await _loadData();
+        if (!mounted) return;
+        if (_activeMembership?.isActive == true) break;
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Backend chưa trả về liên kết VNPay. Kiểm tra VNP_TMN_CODE và '
-            'VNP_HASH_SECRET.',
+            _activeMembership?.isActive == true
+                ? 'Gói ${plan.title} đã được kích hoạt thành công!'
+                : 'Đã hoàn tất thanh toán VNPay. Đang cập nhật trạng thái gói.',
           ),
         ),
       );
-      return;
-    }
-    setState(() => _pendingMembership = result.membership);
-    await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => ShopVnpayPaymentScreen(paymentUrl: paymentUrl),
-      ),
-    );
-    // Trình duyệt ngoài không trả kết quả về app, và IPN cũng chạy bất đồng
-    // bộ, nên trạng thái thật chỉ có ở backend — đọc lại vài nhịp.
-    for (var attempt = 0; attempt < 4; attempt++) {
-      if (attempt > 0) {
-        await Future<void>.delayed(const Duration(milliseconds: 1200));
-      }
+    } on CommercePendingOrderException catch (e) {
       if (!mounted) return;
-      await _loadData();
-      if (!mounted) return;
-      if (_activeMembership?.isActive == true) break;
-    }
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          _activeMembership?.isActive == true
-              ? 'Gói ${plan.title} đã được kích hoạt.'
-              : 'Đang chờ VNPay xác nhận giao dịch. Gói sẽ tự kích hoạt ngay '
-                    'khi thanh toán được ghi nhận.',
+      final action = await showDialog<String>(
+        context: context,
+        builder: (dialogCtx) => AlertDialog(
+          title: const Text('Giao dịch chưa hoàn tất'),
+          content: Text(
+            '${e.message}\n\nBạn muốn tiếp tục thanh toán đơn cũ hay hủy để tạo đơn mới?',
+          ),
+          actions: [
+            if (e.paymentUrl != null && e.paymentUrl!.isNotEmpty)
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx, 'continue'),
+                child: const Text('TIẾP TỤC THANH TOÁN'),
+              ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogCtx, 'force_new'),
+              child: const Text('HỦY & TẠO ĐƠN MỚI'),
+            ),
+          ],
         ),
-      ),
-    );
+      );
+      if (!mounted) return;
+      if (action == 'continue' && e.paymentUrl != null) {
+        await Navigator.of(context).push<bool>(
+          MaterialPageRoute<bool>(
+            builder: (_) => ShopVnpayPaymentScreen(paymentUrl: e.paymentUrl!),
+          ),
+        );
+        await _loadData();
+      } else if (action == 'force_new') {
+        final planId = plan.id > 0 ? plan.id : 1;
+        final result = await const CommerceApiService().purchaseMembership(
+          planId,
+          paymentMethod: 'vnpay',
+          forceCancel: true,
+        );
+        if (result.paymentUrl != null && mounted) {
+          await Navigator.of(context).push<bool>(
+            MaterialPageRoute<bool>(
+              builder: (_) => ShopVnpayPaymentScreen(paymentUrl: result.paymentUrl!),
+            ),
+          );
+          await _loadData();
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Không thể kết nối VNPay: $e'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   Future<_CardPaymentMethod?> _chooseCardPaymentMethod() {
@@ -820,22 +910,28 @@ class _MembershipPlan {
 
 const _fallbackPlans = <_MembershipPlan>[
   _MembershipPlan(
+    id: 1,
     title: 'WAKA 3 THÁNG',
-    subtitle: '90 ngày đọc/nghe sách',
+    subtitle: '90 ngày đọc sách',
     price: '199.000đ',
+    amount: 199000,
     oldPrice: '207.000đ',
     badge: 'TIẾT KIỆM 10%',
   ),
   _MembershipPlan(
+    id: 2,
     title: 'WAKA 6 THÁNG',
-    subtitle: '183 ngày đọc/nghe sách',
+    subtitle: '183 ngày đọc sách',
     price: '399.000đ',
+    amount: 399000,
     oldPrice: '414.000đ',
   ),
   _MembershipPlan(
+    id: 3,
     title: 'WAKA 12 THÁNG',
-    subtitle: '365 ngày đọc/nghe sách',
+    subtitle: '365 ngày đọc sách',
     price: '499.000đ',
+    amount: 499000,
     oldPrice: '828.000đ',
     badge: 'ƯU ĐÃI NHẤT 40%',
     gift: 'Tặng thêm 02 tháng',
@@ -867,3 +963,5 @@ String _formatPrice(num value) {
   }
   return '$bufferđ';
 }
+
+

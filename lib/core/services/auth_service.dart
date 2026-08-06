@@ -72,10 +72,16 @@ class AuthService {
   /// tiếng Việt cho các lỗi cấu hình để màn hình gọi chỉ việc hiển thị.
   Future<AuthResult?> signInWithGoogle() async {
     String? idToken;
+    String? email;
+    String? displayName;
+    String? googleId;
     try {
       final client = _configuredGoogleSignIn();
       final account = await client.signIn();
       if (account == null) return null; // Người dùng tự bấm hủy
+      email = account.email;
+      displayName = account.displayName;
+      googleId = account.id;
       idToken = (await account.authentication).idToken;
     } on PlatformException catch (error) {
       if (_isGoogleCancellation(error)) return null;
@@ -90,7 +96,12 @@ class AuthService {
       idToken = 'demo_google_id_token';
     }
 
-    return _authApi.loginWithGoogle(idToken);
+    return _authApi.loginWithGoogle(
+      idToken,
+      email: email,
+      displayName: displayName,
+      googleId: googleId,
+    );
   }
 
   /// Người dùng bấm back hoặc đóng cửa sổ chọn tài khoản.

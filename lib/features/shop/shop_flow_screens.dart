@@ -1515,7 +1515,7 @@ class _TypeTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Tất cả', 'Sách giấy', 'Sách điện tử', 'Sách nói'];
+    const labels = ['Tất cả', 'Sách giấy', 'Sách điện tử'];
     return SizedBox(
       height: 42,
       child: ListView.separated(

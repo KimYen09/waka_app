@@ -3,6 +3,23 @@ import '../constants/api_endpoints.dart';
 import 'auth_api_service.dart';
 import 'rest_api_client.dart';
 
+class CommercePendingOrderException implements Exception {
+  const CommercePendingOrderException({
+    required this.message,
+    required this.pendingId,
+    this.paymentUrl,
+    this.expiresAt,
+  });
+
+  final String message;
+  final int pendingId;
+  final String? paymentUrl;
+  final String? expiresAt;
+
+  @override
+  String toString() => message;
+}
+
 class CommerceCartItem {
   const CommerceCartItem({
     required this.bookId,
@@ -161,10 +178,6 @@ class CommerceOrderItem {
     required this.quantity,
     required this.unitPrice,
     this.imageUrl = '',
-<<<<<<< Updated upstream
-    this.imageUrl = '',
-=======
->>>>>>> Stashed changes
   });
 
   final int bookId;
@@ -172,10 +185,6 @@ class CommerceOrderItem {
   final int quantity;
   final num unitPrice;
   final String imageUrl;
-<<<<<<< Updated upstream
-  final String imageUrl;
-=======
->>>>>>> Stashed changes
 }
 
 class CommerceOrder {
@@ -259,6 +268,10 @@ class CommerceApiService {
 
   final RestApiClient client;
 
+  static final Map<String, ReadingProgressBook> _fallbackProgressMap = {};
+  static final Map<String, DownloadedBook> _fallbackDownloadsMap = {};
+  static final Map<String, FavoriteBook> _fallbackFavoritesMap = {};
+
   Future<CommerceCart> getCart() async {
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiCart),
@@ -279,40 +292,63 @@ class CommerceApiService {
     }, bearerToken: await _getToken);
   }
 
-  Future<void> removeCartItem(int bookId) async {
+  Future<void> addToCart(int bookId, {int quantity = 1}) async {
+    await setCartItem(bookId: bookId, quantity: quantity);
+  }
+
+  Future<void> updateCartItemQuantity({
+    required int bookId,
+    required int quantity,
+  }) async {
+    await setCartItem(bookId: bookId, quantity: quantity);
+  }
+
+  Future<void> removeFromCart(int bookId) async {
     await client.deleteJson(
       Uri.parse('${ApiEndpoints.apiCart}/items/$bookId'),
       bearerToken: await _getToken,
     );
   }
 
+  Future<void> removeCartItem(int bookId) async => removeFromCart(bookId);
+
+  Future<void> clearCart() async {
+    await client.deleteJson(
+      Uri.parse('${ApiEndpoints.apiCart}/items'),
+      bearerToken: await _getToken,
+    );
+  }
+
   Future<CommerceCheckoutResult> checkout(
-    List<int> bookIds, {
-    String? voucherCode,
+    Object? bookIdsOrRecipient, {
+    String? shippingRecipient,
+    String? shippingPhone,
+    Object? shippingAddress,
     required String paymentMethod,
-    required Map<String, Object?> shippingAddress,
+    String? voucherCode,
     String? orderCode,
+    String? note,
   }) async {
-    final body = <String, Object?>{
-      'bookIds': bookIds,
-      'paymentMethod': paymentMethod,
-      'shippingAddress': shippingAddress,
-    };
-    if (voucherCode case final String code) body['voucherCode'] = code;
-    if (orderCode case final String code) body['orderCode'] = code;
+    final addressStr = shippingAddress is Map
+        ? '${shippingAddress['address'] ?? ''}, ${shippingAddress['ward'] ?? ''}, ${shippingAddress['district'] ?? ''}, ${shippingAddress['city'] ?? ''}'
+        : '${shippingAddress ?? ''}';
+
     final response = await client.postJson(
       Uri.parse(ApiEndpoints.apiCheckout),
-      body,
+      {
+        'shippingRecipient': shippingRecipient ?? 'Khách hàng',
+        'shippingPhone': shippingPhone ?? '0900000000',
+        'shippingAddress': addressStr,
+        'paymentMethod': paymentMethod,
+        if (note != null && note.isNotEmpty) 'note': note,
+      },
       bearerToken: await _getToken,
     );
     final data = _dataMap(response);
-    final payment = data['payment'] is Map<String, Object?>
-        ? data['payment'] as Map<String, Object?>
-        : const <String, Object?>{};
     return CommerceCheckoutResult(
       orderId: _int(data['orderId']),
       status: data['status'] as String? ?? 'confirmed',
-      paymentStatus: payment['status'] as String? ?? 'pending',
+      paymentStatus: data['paymentStatus'] as String? ?? 'pending',
       paymentUrl: data['paymentUrl'] as String?,
     );
   }
@@ -329,7 +365,6 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
-<<<<<<< Updated upstream
   /// Tạo giao dịch mua gói, gói luôn ở trạng thái `pending` cho tới khi được
   /// xác nhận. Với `bank_qr` backend bắt buộc `transactionRef` (nội dung
   /// chuyển khoản) và chờ admin duyệt; với `vnpay` backend trả kèm
@@ -338,34 +373,52 @@ class CommerceApiService {
     int planId, {
     String? transactionRef,
     String paymentMethod = 'bank_qr',
+    bool forceCancel = false,
   }) async {
-    final response = await client.postJson(
-      Uri.parse(ApiEndpoints.apiMembershipPurchase),
-      {
-        'planId': planId,
-        'paymentMethod': paymentMethod,
-        if (transactionRef != null && transactionRef.isNotEmpty)
-          'transactionRef': transactionRef,
-      },
-      bearerToken: await _getToken,
-    );
-    final data = _dataMap(response);
-    return MembershipPurchaseResult(
-      membership: UserMembership(
-        id: _int(data['membershipId']),
-        status: data['status'] as String? ?? 'pending',
-        planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
-        startedAt: _date(data['startedAt']),
-        expiresAt: _date(data['expiresAt']),
-        planId: _int(data['planId']),
-        price: _num(data['price']),
-      ),
-      paymentUrl: data['paymentUrl'] as String?,
-    );
+    try {
+      final response = await client.postJson(
+        Uri.parse(ApiEndpoints.apiMembershipPurchase),
+        {
+          'planId': planId,
+          'paymentMethod': paymentMethod,
+          'forceCancel': forceCancel,
+          if (transactionRef != null && transactionRef.isNotEmpty)
+            'transactionRef': transactionRef,
+        },
+        bearerToken: await _getToken,
+      );
+      final data = _dataMap(response);
+      return MembershipPurchaseResult(
+        membership: UserMembership(
+          id: _int(data['membershipId']),
+          status: data['status'] as String? ?? 'pending',
+          planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+          startedAt: _date(data['startedAt']),
+          expiresAt: _date(data['expiresAt']),
+          planId: _int(data['planId']),
+          price: _num(data['price']),
+        ),
+        paymentUrl: data['paymentUrl'] as String?,
+      );
+    } on RestApiException catch (e) {
+      if (e.statusCode == 409 && e.responseBody != null) {
+        final body = e.responseBody!;
+        if (body['code'] == 'PENDING_ORDER_EXISTS') {
+          final data = body['data'] as Map<String, Object?>? ?? {};
+          throw CommercePendingOrderException(
+            message: e.message,
+            pendingId: _int(data['pendingId']),
+            paymentUrl: data['paymentUrl'] as String?,
+            expiresAt: data['expiresAt'] as String?,
+          );
+        }
+      }
+      rethrow;
+    }
   }
 
   /// Hủy toàn bộ gói đang hoạt động và giao dịch đang chờ duyệt.
-  Future<void> cancelMembership() async {
+  Future<void> cancelMembership([int? membershipId]) async {
     await client.deleteJson(
       Uri.parse(ApiEndpoints.apiMyMemberships),
       bearerToken: await _getToken,
@@ -377,74 +430,34 @@ class CommerceApiService {
     final memberships = await getMyMemberships();
     for (final item in memberships) {
       if (item.isActive) return item;
-=======
-  Future<UserMembership?> purchaseMembership(
-    int planId, {
-    String? transactionRef,
-  }) async {
-    try {
-      final response = await client.postJson(
-        Uri.parse(ApiEndpoints.apiMembershipPurchase),
-        {
-          'planId': planId,
-          if (transactionRef case final String ref) 'transactionRef': ref,
-        },
-        bearerToken: await _getToken,
-      );
-      final data = response['data'];
-      if (data is Map<String, Object?>) {
-        return UserMembership(
-          id: _int(data['id']),
-          status: data['status'] as String? ?? 'pending',
-          planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
-          startedAt: _date(data['startedAt']),
-          expiresAt: _date(data['expiresAt']),
-          planId: _int(data['planId']),
-          price: _num(data['price']),
-        );
-      }
-    } on Object catch (e) {
-      debugPrint('purchaseMembership warning: $e');
-    }
-    return UserMembership(
-      id: DateTime.now().millisecondsSinceEpoch % 100000,
-      status: 'pending',
-      planTitle: 'Gói hội viên #$planId',
-      startedAt: DateTime.now(),
-      expiresAt: DateTime.now().add(const Duration(days: 30)),
-      planId: planId,
-      price: 199000,
-    );
-  }
-
-  Future<void> cancelMembership([int? membershipId]) async {
-    try {
-      final uri = Uri.parse(ApiEndpoints.apiMembershipPurchase);
-      await client.deleteJson(uri, bearerToken: await _getToken);
-    } on Object catch (e) {
-      debugPrint('cancelMembership warning: $e');
-    }
-  }
-
-  Future<UserMembership?> getActiveMembership() async {
-    try {
-      final memberships = await getMyMemberships();
-      for (final item in memberships) {
-        if (item.status == 'active' &&
-            item.expiresAt != null &&
-            item.expiresAt!.isAfter(DateTime.now())) {
-          return item;
-        }
-      }
-    } on Object catch (e) {
-      debugPrint('getActiveMembership warning: $e');
->>>>>>> Stashed changes
     }
     return null;
   }
 
+  Future<List<UserMembership>> getMyMemberships() async {
+    final response = await client.getJson(
+      Uri.parse(ApiEndpoints.apiMyMemberships),
+      bearerToken: await _getToken,
+    );
+    final data = response['data'];
+    if (data is! List<Object?>) return const [];
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(
+          (item) => UserMembership(
+            id: _int(item['id']),
+            status: item['status'] as String? ?? 'pending',
+            planTitle: item['planTitle'] as String? ?? 'Gói hội viên',
+            startedAt: _date(item['startedAt']),
+            expiresAt: _date(item['expiresAt']),
+            planId: _int(item['planId']),
+            price: _num(item['price']),
+          ),
+        )
+        .toList(growable: false);
+  }
+
   Future<List<UserNotification>> getNotifications() async {
-<<<<<<< Updated upstream
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiNotifications),
       bearerToken: await _getToken,
@@ -472,68 +485,7 @@ class CommerceApiService {
       const {},
       bearerToken: await _getToken,
     );
-=======
-    try {
-      final uri = Uri.parse('${ApiEndpoints.apiBaseUrl}/notifications');
-      final response = await client.getJson(uri, bearerToken: await _getToken);
-      final data = response['data'];
-      if (data is List<Object?>) {
-        return data
-            .whereType<Map<String, Object?>>()
-            .map(
-              (json) => UserNotification(
-                id: _int(json['id']),
-                type: json['type'] as String? ?? 'system',
-                title: json['title'] as String? ?? '',
-                body: json['body'] as String? ?? '',
-                isRead: json['isRead'] == true || json['is_read'] == 1,
-                createdAt: _date(json['createdAt'] ?? json['created_at']),
-              ),
-            )
-            .toList(growable: false);
-      }
-    } on Object catch (e) {
-      debugPrint('getNotifications warning: $e');
-    }
-    return const [];
   }
-
-  Future<void> markNotificationRead(int id) async {
-    try {
-      final uri = Uri.parse('${ApiEndpoints.apiBaseUrl}/notifications/$id/read');
-      await client.postJson(uri, {}, bearerToken: await _getToken);
-    } on Object catch (e) {
-      debugPrint('markNotificationRead warning: $e');
-    }
->>>>>>> Stashed changes
-  }
-
-  Future<List<UserMembership>> getMyMemberships() async {
-    final response = await client.getJson(
-      Uri.parse(ApiEndpoints.apiMyMemberships),
-      bearerToken: await _getToken,
-    );
-    final data = response['data'];
-    if (data is! List<Object?>) return const [];
-    return data
-        .whereType<Map<String, Object?>>()
-        .map(
-          (item) => UserMembership(
-            id: _int(item['id']),
-            status: item['status'] as String? ?? 'pending',
-            planTitle: item['planTitle'] as String? ?? 'Gói hội viên',
-            startedAt: _date(item['startedAt']),
-            expiresAt: _date(item['expiresAt']),
-            planId: _int(item['planId']),
-            price: _num(item['price']),
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  static final Map<String, ReadingProgressBook> _fallbackProgressMap = {};
-  static final Map<String, DownloadedBook> _fallbackDownloadsMap = {};
-  static final Map<String, FavoriteBook> _fallbackFavoritesMap = {};
 
   /// Danh sách sách đã đánh dấu yêu thích, mới nhất trước.
   Future<List<FavoriteBook>> getFavorites() async {
@@ -571,6 +523,57 @@ class CommerceApiService {
       debugPrint('getFavorites warning: $e');
     }
     return _fallbackFavoritesMap.values.toList(growable: false);
+  }
+
+  /// Backend dùng `INSERT IGNORE` nên gọi lại nhiều lần vẫn an toàn.
+  Future<void> addFavorite(
+    int bookId, {
+    String? title,
+    String? author,
+    String? imageUrl,
+  }) async {
+    final resolvedTitle = title ?? 'Sách #$bookId';
+    _fallbackFavoritesMap[resolvedTitle] = FavoriteBook(
+      bookId: bookId,
+      title: resolvedTitle,
+      author: author ?? 'Waka',
+      imageUrl: imageUrl ?? '',
+      price: 99000,
+      discountPercent: 0,
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      await client.postJson(
+        Uri.parse(ApiEndpoints.apiFavorites),
+        {
+          'bookId': bookId,
+          if (title != null && title.isNotEmpty) 'title': title,
+          if (author != null && author.isNotEmpty) 'author': author,
+          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+        },
+        bearerToken: await _getToken,
+      );
+    } on Object catch (e) {
+      debugPrint('addFavorite warning: $e');
+    }
+  }
+
+  Future<void> removeFavorite(int bookId, {String? title}) async {
+    final resolvedTitle = title ?? '';
+    if (resolvedTitle.isNotEmpty) {
+      _fallbackFavoritesMap.remove(resolvedTitle);
+    }
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiFavorites}/$bookId').replace(
+        queryParameters: {
+          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
+        },
+      );
+      await client.deleteJson(uri, bearerToken: await _getToken);
+    } on Object catch (e) {
+      debugPrint('removeFavorite warning: $e');
+    }
   }
 
   Future<List<DownloadedBook>> getDownloads() async {
@@ -712,57 +715,6 @@ class CommerceApiService {
     return null;
   }
 
-  /// Backend dùng `INSERT IGNORE` nên gọi lại nhiều lần vẫn an toàn.
-  Future<void> addFavorite(
-    int bookId, {
-    String? title,
-    String? author,
-    String? imageUrl,
-  }) async {
-    final resolvedTitle = title ?? 'Sách #$bookId';
-    _fallbackFavoritesMap[resolvedTitle] = FavoriteBook(
-      bookId: bookId,
-      title: resolvedTitle,
-      author: author ?? 'Waka',
-      imageUrl: imageUrl ?? '',
-      price: 99000,
-      discountPercent: 0,
-      createdAt: DateTime.now(),
-    );
-
-    try {
-      await client.postJson(
-        Uri.parse(ApiEndpoints.apiFavorites),
-        {
-          'bookId': bookId,
-          if (title != null && title.isNotEmpty) 'title': title,
-          if (author != null && author.isNotEmpty) 'author': author,
-          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-        },
-        bearerToken: await _getToken,
-      );
-    } on Object catch (e) {
-      debugPrint('addFavorite warning: $e');
-    }
-  }
-
-  Future<void> removeFavorite(int bookId, {String? title}) async {
-    final resolvedTitle = title ?? '';
-    if (resolvedTitle.isNotEmpty) {
-      _fallbackFavoritesMap.remove(resolvedTitle);
-    }
-    try {
-      final uri = Uri.parse('${ApiEndpoints.apiFavorites}/$bookId').replace(
-        queryParameters: {
-          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
-        },
-      );
-      await client.deleteJson(uri, bearerToken: await _getToken);
-    } on Object catch (e) {
-      debugPrint('removeFavorite warning: $e');
-    }
-  }
-
   Future<List<CommerceOrder>> getOrders() async {
     try {
       final response = await client.getJson(
@@ -791,10 +743,6 @@ class CommerceApiService {
                       quantity: _int(line['quantity']),
                       unitPrice: _num(line['unitPrice']),
                       imageUrl: line['imageUrl'] as String? ?? '',
-<<<<<<< Updated upstream
-                      imageUrl: line['imageUrl'] as String? ?? '',
-=======
->>>>>>> Stashed changes
                     ),
                   )
                   .toList(growable: false),
@@ -842,10 +790,92 @@ class CommerceApiService {
         }
         return merged.values.toList(growable: false);
       }
-    } on Object catch (e) {
-      debugPrint('getReadingProgressBooks warning: $e');
+    } on Object catch (_) {
+      // Quiet fallback
     }
     return _fallbackProgressMap.values.toList(growable: false);
+  }
+
+  /// Gửi câu hỏi đến Trợ lý AI Gemini (`POST /api/ai/chat`).
+  /// Gửi câu hỏi đến Trợ lý AI Gemini (`POST /api/ai/chat`).
+  Future<String> askAiAssistant(String message) async {
+    try {
+      final response = await client.postJson(
+        Uri.parse(ApiEndpoints.apiAiChat),
+        {'message': message},
+      );
+      final replyStr = (response['reply'] as String? ?? '').trim();
+      if (replyStr.isNotEmpty) {
+        return replyStr;
+      }
+    } catch (_) {
+      // Fallback về Smart Local AI Engine nếu kết nối backend bị gián đoạn/timeout
+    }
+    return _generateLocalAiReply(message);
+  }
+
+  String _generateLocalAiReply(String message) {
+    final msg = message.toLowerCase().trim();
+
+    if (msg.contains('muc tieu') || msg.contains('mục tiêu') || msg.contains('loi ich') || msg.contains('lợi ích')) {
+      return '''🎯 **Mục tiêu & Lợi ích của việc đọc sách**:
+
+Đọc sách mang lại nhiều giá trị cốt lõi giúp phát triển bản thân và nâng cao chất lượng cuộc sống:
+
+1. 🧠 **Mở rộng tri thức & Nâng cao tư duy**: Sách cung cấp kiến thức chuyên sâu về mọi lĩnh vực từ tài chính, kinh doanh đến văn học, tâm lý.
+2. 💡 **Cải thiện khả năng tập trung & Trí nhớ**: Đọc sách thường xuyên rèn luyện khả năng tư duy sâu, kiên nhẫn và ghi nhớ thông tin tốt hơn.
+3. 🌿 **Giảm căng thẳng & Chữa lành**: Dành 15-30 phút đọc sách mỗi ngày giúp thư giãn tinh thần, giảm lo âu sau giờ làm việc.
+4. 📈 **Phát triển vốn từ & Kỹ năng giao tiếp**: Trau dồi ngôn ngữ phong phú giúp diễn đạt tự tin và lưu khoát hơn.
+
+💡 *Lời khuyên*: Đặt mục tiêu đọc 15-20 trang sách mỗi ngày trên Waka để tạo thói quen bền vững!''';
+    }
+
+    if (msg.contains('phát triển bản thân') || msg.contains('phat trien') || msg.contains('kỹ năng') || msg.contains('ky nang')) {
+      return '''✨ **Gợi ý sách Phát triển bản thân hay nhất trên Waka**:
+
+1. 📘 **Cách nghĩ để thành công (Think and Grow Rich)** - *Napoleon Hill*
+   - Cuốn sách kinh điển giúp bạn định hình tư duy tài chính, thiết lập mục tiêu và kiên trì theo đuổi đam mê.
+2. 📗 **Bắt sóng cảm xúc (Emotional Intelligence)** - *Daniel Goleman*
+   - Khám phá sức mạnh của trí tuệ cảm xúc EQ trong công việc và cuộc sống.
+3. 📙 **Khi ta thay đổi thế giới sẽ đổi thay** - *Karen Casey*
+   - 365 bài học giúp bạn buông bỏ lo âu, sống an nhiên và tích cực mỗi ngày.
+
+💡 *Bạn có thể tìm đọc ngay trên ứng dụng Waka!*''';
+    }
+
+    if (msg.contains('tài chính') || msg.contains('tai chinh') || msg.contains('tiền') || msg.contains('đầu tư')) {
+      return '''💰 **Gợi ý sách Tài chính & Đầu tư thông minh**:
+
+1. 📈 **Tóm lược Chuyển đổi số - Chiến lược & Lộ trình** - *David L. Rogers*
+2. 💎 **Đàn ông sao Hỏa, đàn bà sao Kim trong tài chính** - *John Gray*
+3. 🏛️ **Bắt sóng cảm xúc trong quản lý tài chính**
+
+💡 *Gợi ý: Tìm kiếm từ khóa "Tài chính" trên thanh tìm kiếm Waka để xem trọn bộ!*''';
+    }
+
+    if (msg.contains('tóm tắt') || msg.contains('tom tat') || msg.contains('nội dung')) {
+      return '''📚 **Trợ lý AI Waka tóm tắt sách**:
+
+Tôi có thể giúp bạn tóm tắt các tác phẩm nổi tiếng như:
+- *Đắc Nhân Tâm* - Nghệ thuật thu phục lòng người & ứng xử trong cuộc sống.
+- *Cách Nghĩ Để Thành Công (Think & Grow Rich)* - 13 nguyên tắc làm giàu & tư duy tích cực.
+- *Đàn Ông Sao Hỏa, Đàn Bà Sao Kim* - Thấu hiểu tâm lý giao tiếp trong tình yêu.
+- *Tuổi Trẻ Đáng Giá Bao Nhiêu* - Định hướng bản thân & khai phá tiềm năng.
+
+👉 *Hãy nhập tên cuốn sách cụ thể bạn muốn tóm tắt nhé!*''';
+    }
+
+    return '''🤖 **Trợ lý AI Waka đã nhận được câu hỏi**: *"$message"*
+
+Dựa trên thắc mắc của bạn, đây là thông tin tư vấn từ Waka:
+
+- 📌 **Trả lời**: Đọc sách là chìa khóa hiệu quả nhất để trau dồi tri thức và rèn luyện tư duy. Dù bạn muốn nâng cao kỹ năng công việc hay tìm kiếm sự thư giãn, Waka luôn có sẵn hàng ngàn đầu sách phù hợp.
+- 💡 **Gợi ý**:
+  1. Đặt mục tiêu đọc sách từ 15-30 phút mỗi ngày.
+  2. Chọn chủ đề bạn yêu thích (Kinh doanh, Kỹ năng sống, Tâm lý, Văn học).
+  3. Áp dụng ngay những bài học hay vào cuộc sống hàng ngày.
+
+👉 *Bạn có muốn tôi gợi ý thêm danh sách sách hay theo chủ đề cụ thể nào không?*''';
   }
 
   Future<String> get _getToken async {
@@ -879,16 +909,17 @@ class CommerceApiService {
         downloadedAt: _date(json['downloadedAt']),
       );
 
-  ReadingProgressBook _readingProgressBookFromJson(Map<String, Object?> json) =>
-      ReadingProgressBook(
-        bookId: _int(json['bookId']),
-        title: json['title'] as String? ?? '',
-        author: json['author'] as String? ?? '',
-        imageUrl: json['imageUrl'] as String? ?? '',
-        sourceUrl: json['sourceUrl'] as String? ?? '',
-        currentPage: _int(json['currentPage']),
-        updatedAt: _date(json['updatedAt']),
-      );
+  ReadingProgressBook _readingProgressBookFromJson(
+    Map<String, Object?> json,
+  ) => ReadingProgressBook(
+    bookId: _int(json['bookId']),
+    title: json['title'] as String? ?? '',
+    author: json['author'] as String? ?? '',
+    imageUrl: json['imageUrl'] as String? ?? '',
+    sourceUrl: json['sourceUrl'] as String? ?? '',
+    currentPage: _int(json['currentPage']),
+    updatedAt: _date(json['updatedAt']),
+  );
 
   MembershipPlan _planFromJson(Map<String, Object?> json) => MembershipPlan(
     id: _int(json['id']),
@@ -900,203 +931,6 @@ class CommerceApiService {
     paymentChannel: json['paymentChannel'] as String? ?? 'card',
     bonusDescription: json['bonusDescription'] as String? ?? '',
   );
-
-  /// Gửi câu hỏi đến Trợ lý AI Gemini (`POST /api/ai/chat`).
-  /// Tự động bật Smart Local Engine nếu server bận hoặc timeout.
-<<<<<<< Updated upstream
-  /// Tự động bật Smart Local Engine nếu server bận hoặc timeout.
-=======
->>>>>>> Stashed changes
-  Future<String> askAiAssistant(String message) async {
-    try {
-      final response = await client.postJson(
-        Uri.parse(ApiEndpoints.apiAiChat),
-        {'message': message},
-      );
-      if (response['success'] == true && response['reply'] is String) {
-        final replyStr = (response['reply'] as String).trim();
-        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
-          return replyStr;
-        }
-<<<<<<< Updated upstream
-        final replyStr = (response['reply'] as String).trim();
-        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
-          return replyStr;
-        }
-=======
->>>>>>> Stashed changes
-      }
-      if (response['reply'] is String) {
-        final replyStr = (response['reply'] as String).trim();
-        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
-          return replyStr;
-        }
-      }
-    } catch (_) {
-      // Fallback về Smart Local AI Engine nếu kết nối backend bị gián đoạn/timeout
-    }
-    return _generateLocalAiReply(message);
-  }
-
-  String _generateLocalAiReply(String message) {
-    final msg = message.toLowerCase();
-
-    if (msg.contains('phát triển bản thân') || msg.contains('kỹ năng') || msg.contains('phát triển')) {
-      return '''✨ **Gợi ý sách Phát triển bản thân hay nhất trên Waka**:
-
-1. 📘 **Cách nghĩ để thành công (Think and Grow Rich)** - *Napoleon Hill*
-   - Cuốn sách kinh điển giúp bạn định hình tư duy tài chính, thiết lập mục tiêu và kiên trì theo đuổi đam mê.
-2. 📗 **Bắt sóng cảm xúc (Emotional Intelligence)** - *Daniel Goleman*
-   - Khám phá sức mạnh của trí tuệ cảm xúc EQ trong công việc và cuộc sống.
-3. 📙 **Khi ta thay đổi thế giới sẽ đổi thay** - *Karen Casey*
-   - 365 bài học giúp bạn buông bỏ lo âu, sống an nhiên và tích cực mỗi ngày.
-
-💡 *Bạn có thể tìm đọc hoặc nghe phiên bản Sách nói ngay trên ứng dụng Waka!*''';
-    }
-
-    if (msg.contains('tài chính') || msg.contains('tiền') || msg.contains('đầu tư')) {
-      return '''💰 **Gợi ý sách Tài chính & Đầu tư thông minh**:
-
-1. 📈 **Tóm lược Chuyển đổi số - Chiến lược & Lộ trình** - *David L. Rogers*
-2. 💎 **Đàn ông sao Hỏa, đàn bà sao Kim trong tài chính** - *John Gray*
-3. 🏛️ **Bắt sóng cảm xúc trong quản lý tài chính**
-
-💡 *Gợi ý: Tìm kiếm từ khóa "Tài chính" trên thanh tìm kiếm Waka để xem trọn bộ!*''';
-    }
-
-    if (msg.contains('tóm tắt') || msg.contains('nội dung')) {
-      return '''📚 **Trợ lý AI Waka tóm tắt sách**:
-
-Tôi có thể giúp bạn tóm tắt các tác phẩm nổi tiếng như:
-- *Đàn ông sao Hỏa, đàn bà sao Kim*
-- *1000 câu hỏi về tình dục dành cho các cặp đôi*
-- *Di chúc của Chủ tịch Hồ Chí Minh*
-- *Chuyện kể về thời niên thiếu của Bác Hồ*
-
-👉 *Hãy nhập tên cuốn sách cụ thể bạn muốn tóm tắt nhé!*''';
-    }
-
-    if (msg.contains('ngôn tình') || msg.contains('truyện')) {
-      return '''❤️ **Top Truyện Ngôn tình HOT nhất Waka**:
-
-1. 🌸 **Giữa chốn phồn hoa gặp được người (Tập 1 & 2)** - *Cửu Nguyệt Hi*
-2. 💍 **Bên nhau trọn đời** - *Cố Mạn*
-3. 👑 **Thái tử phi thăng chức ký** - *Tiên Chanh*
-
-✨ *Mời bạn ghé thăm tab "Cộng đồng sáng tác" hoặc "Waka Shop" để đọc tiếp!*''';
-    }
-
-    if (msg.contains('phật') || msg.contains('thiền') || msg.contains('an lạc') || msg.contains('vĩnh nghiêm')) {
-      return '''🪷 **Gợi ý Sách Phật Vĩnh Nghiêm & Thiền**:
-
-1. 🪷 **365 ngày tâm an** - *Vạn Lại Quán Như*
-2. 💧 **Breath: Thiền định cho cuộc sống hiện đại** - *T.S. Lê Thu Trang*
-3. 🏵️ **Kinh Địa Tạng Bồ Tát Bổn Nguyện (Sách tranh)**
-
-👉 *Truy cập ngay chuyên mục "SÁCH PHẬT VĨNH NGHIÊM" ở trang Khám phá (Thẻ màu vàng) để nghe thêm!*''';
-<<<<<<< Updated upstream
-        final replyStr = (response['reply'] as String).trim();
-        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
-          return replyStr;
-        }
-      }
-    } catch (_) {
-      // Fallback về Smart Local AI Engine nếu kết nối backend bị gián đoạn/timeout
-    }
-    return _generateLocalAiReply(message);
-  }
-
-  String _generateLocalAiReply(String message) {
-    final msg = message.toLowerCase();
-
-    if (msg.contains('phát triển bản thân') || msg.contains('kỹ năng') || msg.contains('phát triển')) {
-      return '''✨ **Gợi ý sách Phát triển bản thân hay nhất trên Waka**:
-
-1. 📘 **Cách nghĩ để thành công (Think and Grow Rich)** - *Napoleon Hill*
-   - Cuốn sách kinh điển giúp bạn định hình tư duy tài chính, thiết lập mục tiêu và kiên trì theo đuổi đam mê.
-2. 📗 **Bắt sóng cảm xúc (Emotional Intelligence)** - *Daniel Goleman*
-   - Khám phá sức mạnh của trí tuệ cảm xúc EQ trong công việc và cuộc sống.
-3. 📙 **Khi ta thay đổi thế giới sẽ đổi thay** - *Karen Casey*
-   - 365 bài học giúp bạn buông bỏ lo âu, sống an nhiên và tích cực mỗi ngày.
-
-💡 *Bạn có thể tìm đọc hoặc nghe phiên bản Sách nói ngay trên ứng dụng Waka!*''';
-    }
-
-    if (msg.contains('tài chính') || msg.contains('tiền') || msg.contains('đầu tư')) {
-      return '''💰 **Gợi ý sách Tài chính & Đầu tư thông minh**:
-
-1. 📈 **Tóm lược Chuyển đổi số - Chiến lược & Lộ trình** - *David L. Rogers*
-2. 💎 **Đàn ông sao Hỏa, đàn bà sao Kim trong tài chính** - *John Gray*
-3. 🏛️ **Bắt sóng cảm xúc trong quản lý tài chính**
-
-💡 *Gợi ý: Tìm kiếm từ khóa "Tài chính" trên thanh tìm kiếm Waka để xem trọn bộ!*''';
-    }
-
-    if (msg.contains('tóm tắt') || msg.contains('nội dung')) {
-      return '''📚 **Trợ lý AI Waka tóm tắt sách**:
-
-Tôi có thể giúp bạn tóm tắt các tác phẩm nổi tiếng như:
-- *Đàn ông sao Hỏa, đàn bà sao Kim*
-- *1000 câu hỏi về tình dục dành cho các cặp đôi*
-- *Di chúc của Chủ tịch Hồ Chí Minh*
-- *Chuyện kể về thời niên thiếu của Bác Hồ*
-
-👉 *Hãy nhập tên cuốn sách cụ thể bạn muốn tóm tắt nhé!*''';
-    }
-
-    if (msg.contains('ngôn tình') || msg.contains('truyện')) {
-      return '''❤️ **Top Truyện Ngôn tình HOT nhất Waka**:
-
-1. 🌸 **Giữa chốn phồn hoa gặp được người (Tập 1 & 2)** - *Cửu Nguyệt Hi*
-2. 💍 **Bên nhau trọn đời** - *Cố Mạn*
-3. 👑 **Thái tử phi thăng chức ký** - *Tiên Chanh*
-
-✨ *Mời bạn ghé thăm tab "Cộng đồng sáng tác" hoặc "Waka Shop" để đọc tiếp!*''';
-    }
-
-    if (msg.contains('phật') || msg.contains('thiền') || msg.contains('an lạc') || msg.contains('vĩnh nghiêm')) {
-      return '''🪷 **Gợi ý Sách Phật Vĩnh Nghiêm & Thiền**:
-
-1. 🪷 **365 ngày tâm an** - *Vạn Lại Quán Như*
-2. 💧 **Breath: Thiền định cho cuộc sống hiện đại** - *T.S. Lê Thu Trang*
-3. 🏵️ **Kinh Địa Tạng Bồ Tát Bổn Nguyện (Sách tranh)**
-
-👉 *Truy cập ngay chuyên mục "SÁCH PHẬT VĨNH NGHIÊM" ở trang Khám phá (Thẻ màu vàng) để nghe thêm!*''';
-=======
->>>>>>> Stashed changes
-    }
-
-    return '''🤖 **Trợ lý AI Waka chào bạn!**
-
-Cảm ơn bạn đã đặt câu hỏi: *"$message"*.
-
-Tôi là Trợ lý AI thông minh của Waka, luôn sẵn sàng tư vấn sách, tóm tắt nội dung và gợi ý các tác phẩm phù hợp nhất với bạn.
-
-📌 **Các chủ đề gợi ý**:
-- 📚 *Gợi ý sách phát triển bản thân*
-- 💰 *Gợi ý sách tài chính & đầu tư*
-- ❤️ *Truyện ngôn tình & tiểu thuyết hay*
-- 🪷 *Sách Phật giáo & thiền chữa lành*
-
-Hãy thử nhập một chủ đề hoặc câu hỏi cụ thể bên trên nhé!''';
-<<<<<<< Updated upstream
-
-    return '''🤖 **Trợ lý AI Waka chào bạn!**
-
-Cảm ơn bạn đã đặt câu hỏi: *"$message"*.
-
-Tôi là Trợ lý AI thông minh của Waka, luôn sẵn sàng tư vấn sách, tóm tắt nội dung và gợi ý các tác phẩm phù hợp nhất với bạn.
-
-📌 **Các chủ đề gợi ý**:
-- 📚 *Gợi ý sách phát triển bản thân*
-- 💰 *Gợi ý sách tài chính & đầu tư*
-- ❤️ *Truyện ngôn tình & tiểu thuyết hay*
-- 🪷 *Sách Phật giáo & thiền chữa lành*
-
-Hãy thử nhập một chủ đề hoặc câu hỏi cụ thể bên trên nhé!''';
-=======
->>>>>>> Stashed changes
-  }
 
   Map<String, Object?> _dataMap(Map<String, Object?> response) {
     final data = response['data'];

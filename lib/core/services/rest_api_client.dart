@@ -6,10 +6,11 @@ import 'package:http/http.dart' as http;
 import '../constants/api_endpoints.dart';
 
 class RestApiException implements Exception {
-  const RestApiException(this.message, {this.statusCode});
+  const RestApiException(this.message, {this.statusCode, this.responseBody});
 
   final String message;
   final int? statusCode;
+  final Map<String, Object?>? responseBody;
 
   @override
   String toString() => message;
@@ -78,6 +79,7 @@ class RestApiClient {
         throw RestApiException(
           decoded['message'] as String? ?? 'Không thể xử lý yêu cầu.',
           statusCode: response.statusCode,
+          responseBody: decoded,
         );
       }
       return decoded;

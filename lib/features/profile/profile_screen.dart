@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import 'author_registration_screen.dart';
 import 'profile_detail_screens.dart';
 import 'purchases_screen.dart';
 import 'profile_constants.dart';
+import '../ai_assistant/ai_assistant_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -334,11 +336,23 @@ class _RewardCard extends StatefulWidget {
 
 class _RewardCardState extends State<_RewardCard> {
   UserMembership? _membership;
+  Timer? _realtimeTimer;
 
   @override
   void initState() {
     super.initState();
     _loadMembership();
+    _realtimeTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (mounted && AuthSession.isSignedIn) {
+        _loadMembership();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _realtimeTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadMembership() async {
@@ -1480,7 +1494,7 @@ class _SupportBubble extends StatelessWidget {
           child: InkWell(
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(
-                builder: (_) => const HelpFeedbackScreen(),
+                builder: (_) => const AiAssistantScreen(),
               ),
             ),
             borderRadius: BorderRadius.circular(16),

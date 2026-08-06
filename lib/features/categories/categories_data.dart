@@ -37,7 +37,7 @@ class SuggestedCollection {
 }
 
 // Danh sách tabs chính
-const List<String> parentCategories = ['Sách điện tử', 'Sách nói', 'Sách Hiệu sồi'];
+const List<String> parentCategories = ['Sách điện tử', 'Sách Hiệu sồi'];
 
 // Danh sách thể loại con theo tab
 const Map<String, List<CategoryItem>> subCategoriesData = {

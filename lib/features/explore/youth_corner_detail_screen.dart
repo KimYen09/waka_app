@@ -37,7 +37,7 @@ class _YouthCornerDetailScreenState extends State<YouthCornerDetailScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -89,7 +89,6 @@ class _YouthCornerDetailScreenState extends State<YouthCornerDetailScreen>
           labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
           tabs: const [
             Tab(text: 'Sách'),
-            Tab(text: 'Sách nói'),
             Tab(text: 'Podcast'),
           ],
         ),
@@ -98,7 +97,6 @@ class _YouthCornerDetailScreenState extends State<YouthCornerDetailScreen>
         controller: _tabController,
         children: [
           _buildBooksTab(heroBanners),
-          _buildAudioTab(),
           _buildPodcastTab(),
         ],
       ),
@@ -318,18 +316,7 @@ class _YouthCornerDetailScreenState extends State<YouthCornerDetailScreen>
     );
   }
 
-  Widget _buildAudioTab() {
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildCornerSection('Sách nói nổi bật', [
-          _CornerBookTile(830, 'Nhật ký Quảng Trị (Audio)', 'Lê Quang Đạo', 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400'),
-          _CornerBookTile(831, 'Bác Hồ với triển lãm công binh', 'Duy Thụy', 'https://images.unsplash.com/photo-1528127269322-539801943592?w=400'),
-        ]),
-      ],
-    );
-  }
+
 
   Widget _buildPodcastTab() {
     return ListView(

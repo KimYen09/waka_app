@@ -41,8 +41,19 @@ function formatVnpDate(date) {
   );
 }
 
+function removeAccents(str) {
+  return String(str || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .replace(/[^a-zA-Z0-9\s_-]/g, '')
+    .trim();
+}
+
 function buildPaymentUrl({ txnRef, amount, orderInfo, ipAddr, orderType = 'other', locale = 'vn' }) {
   const now = new Date();
+  const cleanOrderInfo = removeAccents(orderInfo) || 'Thanh toan Waka App';
   const params = {
     vnp_Version: '2.1.0',
     vnp_Command: 'pay',
@@ -50,7 +61,7 @@ function buildPaymentUrl({ txnRef, amount, orderInfo, ipAddr, orderType = 'other
     vnp_Locale: locale,
     vnp_CurrCode: 'VND',
     vnp_TxnRef: txnRef,
-    vnp_OrderInfo: orderInfo,
+    vnp_OrderInfo: cleanOrderInfo,
     vnp_OrderType: orderType,
     // VNPay expects the amount multiplied by 100 (no decimal places).
     vnp_Amount: Math.round(amount) * 100,

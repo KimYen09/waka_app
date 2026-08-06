@@ -540,47 +540,30 @@ class _CategoryChips extends StatefulWidget {
 }
 
 class _CategoryChipsState extends State<_CategoryChips> {
-  int _selected = 0;
-  static const _items = [
-    'Sách điện tử',
-    'Sách nói',
-    'Truyện tranh',
-    'Sách hiệu Sồi',
-  ];
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        scrollDirection: Axis.horizontal,
-        itemCount: _items.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, index) {
-          final isSelected = index == _selected;
-          return GestureDetector(
-            onTap: () => setState(() => _selected = index),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? WakaColors.elevatedSoft
-                    : WakaColors.surface,
-                borderRadius: BorderRadius.circular(24),
-              ),
-              child: Text(
-                _items[index],
-                style: TextStyle(
-                  color: isSelected ? WakaColors.text : WakaColors.mutedText,
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      decoration: BoxDecoration(
+        color: WakaColors.surface,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.menu_book_rounded, size: 18, color: WakaColors.accent),
+          SizedBox(width: 8),
+          Text(
+            '📖 Sách điện tử',
+            style: TextStyle(
+              color: WakaColors.text,
+              fontSize: 14.5,
+              fontWeight: FontWeight.bold,
             ),
-          );
-        },
+          ),
+        ],
       ),
     );
   }
@@ -804,3 +787,5 @@ String _resolveBookCoverImage(int bookId, String title, String rawUrl) {
   }
   return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400';
 }
+
+

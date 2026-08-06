@@ -94,7 +94,6 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
                 index: _currentNavIndex,
                 children: [
                   _buildEBookTab(),
-                  _buildAudioTab(),
                   _buildCategoryTab(),
                   _buildProfileTab(),
                 ],
@@ -104,7 +103,7 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
         ),
       ),
 
-      // Bottom Navigation Bar 4 Tabs Phật Giáo
+      // Bottom Navigation Bar 3 Tabs Phật Giáo
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -117,7 +116,7 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
           ],
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentNavIndex,
+          currentIndex: _currentNavIndex.clamp(0, 2),
           onTap: (index) => setState(() => _currentNavIndex = index),
           selectedItemColor: _goldColor,
           unselectedItemColor: Colors.grey,
@@ -130,10 +129,6 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.local_florist_rounded),
               label: 'Sách điện tử',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.opacity_rounded),
-              label: 'Tập âm thanh',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.filter_vintage_rounded),
@@ -242,43 +237,7 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
     );
   }
 
-  // TAB 2: TẬP ÂM THANH
-  Widget _buildAudioTab() {
-    return ListView(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.all(16),
-      children: [
-        _buildAudioSectionHeader('Thiền'),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 185,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildAudioCardTile('Breath: thiền định cho cuộc sống hiện đại', 'T.S. Lê Thu Trang', 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=500'),
-              _buildAudioCardTile('Thiền chữa lành', 'Thiền Phật Giáo', 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=500'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
 
-        _buildAudioSectionHeader('Review chùa'),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 185,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            children: [
-              _buildAudioCardTile('Chùa Yên Tử: Đệ nhất linh sơn trên đất Việt', 'Waka Travel', 'https://statics.vinpearl.com/chua-yen-tu-quang-ninh-2_1629257003.jpg'),
-              _buildAudioCardTile('Chùa Hương: Miền đất thiêng', 'Waka Travel', 'https://upload.wikimedia.org/wikipedia/commons/5/57/Ch%C3%B9a_H%C6%B0%C6%A1ng.jpg'),
-              _buildAudioCardTile('Chùa Bái Đính thanh tịnh', 'Waka Travel', 'https://bcp.cdnchinhphu.vn/334894974524682240/2025/8/11/dji202305271836270152d-copy-1754879156500217025436.jpg'),
-            ],
-          ),
-        ),
-        const SizedBox(height: 30),
-      ],
-    );
-  }
 
   // TAB 3: DANH MỤC
   Widget _buildCategoryTab() {
@@ -601,52 +560,7 @@ class _VinhNghiemBuddhistScreenState extends State<VinhNghiemBuddhistScreen> {
     );
   }
 
-  Widget _buildAudioSectionHeader(String title) {
-    return Row(
-      children: [
-        Text(
-          title,
-          style: const TextStyle(color: _goldColor, fontSize: 19, fontWeight: FontWeight.w800),
-        ),
-        const Spacer(),
-        const Icon(Icons.chevron_right_rounded, color: _goldColor, size: 26),
-      ],
-    );
-  }
 
-  Widget _buildAudioCardTile(String title, String subtitle, String imageUrl) {
-    return Container(
-      width: 140,
-      margin: const EdgeInsets.only(right: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Image.network(
-              imageUrl,
-              width: 140,
-              height: 130,
-              fit: BoxFit.cover,
-              errorBuilder: (_, _, _) => Container(
-                width: 140,
-                height: 130,
-                color: const Color(0xFFF5F0E6),
-                child: const Icon(Icons.headphones_rounded, color: _goldColor),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.black87, fontSize: 12.5, fontWeight: FontWeight.w700),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildCategoryGridItem(String title, String imageUrl) {
     return Container(

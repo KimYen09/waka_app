@@ -350,6 +350,7 @@ async function purchaseMembership(req, res) {
   if (paymentMethod === 'bank_qr' && !requestedTransactionRef) {
     throw new HttpError(422, 'Thiếu nội dung chuyển khoản.');
   }
+  const forceCancel = Boolean(req.body.forceCancel);
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
@@ -361,35 +362,79 @@ async function purchaseMembership(req, res) {
     const plan = plans[0];
     if (!plan) throw new HttpError(404, 'Gói cước không còn hiệu lực.');
     const now = new Date();
+
+    // 1. Kiểm tra đơn pending của ĐÚNG user_id hiện tại với khoá FOR UPDATE
     const [pendingRows] = await connection.execute(
-      `SELECT id, created_at AS createdAt FROM user_memberships
-       WHERE user_id = ? AND status = 'pending' FOR UPDATE`,
+      `SELECT um.id, um.created_at AS createdAt, p.transaction_ref AS transactionRef,
+              p.provider, p.amount, mp.title AS planTitle
+       FROM user_memberships um
+       LEFT JOIN payments p ON p.membership_id = um.id
+       LEFT JOIN membership_plans mp ON mp.id = um.plan_id
+       WHERE um.user_id = ? AND um.status = 'pending' FOR UPDATE`,
       [req.user.id],
     );
-    // Khách bỏ dở trang VNPay (hoặc không chuyển khoản) để lại một bản ghi
-    // 'pending' vĩnh viễn. Nếu chỉ chặn cứng thì họ không bao giờ mua lại
-    // được, nên các giao dịch quá hạn phải tự huỷ trước khi kiểm tra.
-    const staleIds = pendingRows
-      .filter((row) => now - new Date(row.createdAt) > PENDING_MEMBERSHIP_TIMEOUT_MS)
-      .map((row) => row.id);
-    if (staleIds.length) {
-      const placeholders = staleIds.map(() => '?').join(',');
-      await connection.execute(
-        `UPDATE user_memberships SET status = 'cancelled' WHERE id IN (${placeholders})`,
-        staleIds,
-      );
-      await connection.execute(
-        `UPDATE payments SET status = 'failed'
-         WHERE membership_id IN (${placeholders})
-           AND status IN ('pending', 'proof_submitted')`,
-        staleIds,
-      );
+
+    const staleIds = [];
+    const activePendingRows = [];
+
+    for (const row of pendingRows) {
+      if (!row || !row.id) continue;
+      const createdAtTime = row.createdAt ? new Date(row.createdAt).getTime() : now.getTime();
+      const isStale = (now.getTime() - createdAtTime) > PENDING_MEMBERSHIP_TIMEOUT_MS;
+      if (isStale || forceCancel) {
+        staleIds.push(row);
+      } else {
+        activePendingRows.push(row);
+      }
     }
-    if (staleIds.length < pendingRows.length) {
-      throw new HttpError(
-        409,
-        'Bạn đang có một giao dịch gói chưa hoàn tất. Vui lòng thanh toán hoặc huỷ trước khi mua gói mới.',
-      );
+
+    // 2. Tự động hủy các đơn pending quá hạn (hoặc forceCancel) & ghi log Audit
+    if (staleIds.length) {
+      for (const item of staleIds) {
+        if (!item || !item.id) continue;
+        const reason = forceCancel ? 'user-requested-force-cancel' : 'auto-expired';
+        console.log(
+          `[AUDIT_LOG][MEMBERSHIP_CANCELLED] OrderId=${item.id}, UserId=${req.user.id}, TxnRef=${item.transactionRef || 'N/A'}, CancelledAt=${new Date().toISOString()}, Reason=${reason}`,
+        );
+
+        await connection.execute(
+          `UPDATE user_memberships SET status = 'cancelled' WHERE id = ? AND user_id = ?`,
+          [item.id, req.user.id],
+        );
+        await connection.execute(
+          `UPDATE payments SET status = 'failed' WHERE membership_id = ? AND status IN ('pending', 'proof_submitted')`,
+          [item.id],
+        );
+      }
+    }
+
+    // 3. Nếu còn đơn pending chưa quá hạn và KHÔNG có forceCancel: Trả về mã lỗi 409 PENDING_ORDER_EXISTS kèm link thanh toán cũ
+    if (activePendingRows.length > 0 && !forceCancel) {
+      await connection.rollback();
+      const activePending = activePendingRows[0];
+      const expiresAt = new Date(new Date(activePending.createdAt).getTime() + PENDING_MEMBERSHIP_TIMEOUT_MS);
+      let existingPaymentUrl = null;
+
+      if (activePending.provider === 'vnpay' && activePending.transactionRef) {
+        existingPaymentUrl = vnpay.buildPaymentUrl({
+          txnRef: activePending.transactionRef,
+          amount: activePending.amount,
+          orderInfo: `Thanh toan goi hoi vien ${activePending.planTitle || ''}`,
+          ipAddr: clientIp(req),
+        });
+      }
+
+      return res.status(409).json({
+        success: false,
+        code: 'PENDING_ORDER_EXISTS',
+        message: 'Bạn đang có một giao dịch gói chưa hoàn tất. Vui lòng thanh toán tiếp hoặc chọn hủy để mua đơn mới.',
+        data: {
+          pendingId: activePending.id,
+          paymentUrl: existingPaymentUrl,
+          expiresAt: expiresAt.toISOString(),
+          transactionRef: activePending.transactionRef,
+        },
+      });
     }
     const [activeRows] = await connection.execute(
       `SELECT um.id, um.started_at AS startedAt, um.expires_at AS expiresAt,
@@ -539,6 +584,32 @@ async function vnpayReturn(req, res) {
   const query = { ...req.query };
   const success = vnpay.verifyReturn(query) && query.vnp_ResponseCode === '00';
   const orderCode = String(query.vnp_TxnRef || '');
+
+  if (success && orderCode) {
+    const connection = await pool.getConnection();
+    try {
+      await connection.beginTransaction();
+      const [rows] = await connection.execute(
+        `SELECT id, amount, status FROM payments WHERE transaction_ref = ? LIMIT 1 FOR UPDATE`,
+        [orderCode],
+      );
+      const payment = rows[0];
+      if (payment && payment.status === 'pending') {
+        await applyPaymentStatus(connection, {
+          paymentId: payment.id,
+          status: 'paid',
+          actorUserId: null,
+        });
+      }
+      await connection.commit();
+    } catch (err) {
+      await connection.rollback();
+      console.error('[VNPay Return Activation Error]:', err);
+    } finally {
+      connection.release();
+    }
+  }
+
   res.set('Content-Type', 'text/html; charset=utf-8');
   res.send(renderVnpayResultPage({ success, orderCode }));
 }
