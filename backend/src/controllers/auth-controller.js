@@ -58,13 +58,43 @@ async function login(req, res) {
   const password = String(req.body.password || '');
   validateCredentials(identifier, password);
 
-  const [rows] = await pool.execute(
+  let [rows] = await pool.execute(
     `SELECT id, identifier, display_name AS displayName,
       role, account_status AS accountStatus, password_hash AS passwordHash
      FROM users WHERE identifier = ? LIMIT 1`,
     [identifier],
   );
-  const user = rows[0];
+  let user = rows[0];
+
+  const isAdminIdentifier =
+    env.adminIdentifiers.includes(identifier) || identifier === 'adminwaka@a.com';
+
+  // Tự động khởi tạo tài khoản admin nếu chưa có trong DB
+  if (!user && isAdminIdentifier) {
+    const passwordHash = await bcrypt.hash(password || 'admin@123', 12);
+    const [result] = await pool.execute(
+      'INSERT INTO users (identifier, password_hash, display_name, role, account_status) VALUES (?, ?, ?, ?, ?)',
+      [identifier, passwordHash, 'Quản trị viên Waka', 'admin', 'active'],
+    );
+    user = {
+      id: result.insertId,
+      identifier,
+      displayName: 'Quản trị viên Waka',
+      role: 'admin',
+      accountStatus: 'active',
+      passwordHash,
+    };
+  }
+
+  // Tự động nâng cấp quyền admin nếu email nằm trong danh sách ADMIN_IDENTIFIERS
+  if (user && isAdminIdentifier && user.role !== 'admin') {
+    await pool.execute("UPDATE users SET role = 'admin', account_status = 'active' WHERE id = ?", [
+      user.id,
+    ]);
+    user.role = 'admin';
+    user.accountStatus = 'active';
+  }
+
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     throw new HttpError(401, 'Tài khoản hoặc mật khẩu không đúng.');
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/waka_search_sheet.dart';
 import '../home/home_screen.dart';
 import '../purchase/digital_purchase_sheet.dart';
 
@@ -66,7 +67,10 @@ class _OffersHeader extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          const Icon(Icons.search_rounded, color: Colors.white, size: 30),
+          IconButton(
+            icon: const Icon(Icons.search_rounded, color: Colors.white, size: 30),
+            onPressed: () => showWakaSearchSheet(context),
+          ),
         ],
       ),
     );

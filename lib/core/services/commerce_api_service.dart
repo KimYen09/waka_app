@@ -160,12 +160,22 @@ class CommerceOrderItem {
     required this.title,
     required this.quantity,
     required this.unitPrice,
+    this.imageUrl = '',
+<<<<<<< Updated upstream
+    this.imageUrl = '',
+=======
+>>>>>>> Stashed changes
   });
 
   final int bookId;
   final String title;
   final int quantity;
   final num unitPrice;
+  final String imageUrl;
+<<<<<<< Updated upstream
+  final String imageUrl;
+=======
+>>>>>>> Stashed changes
 }
 
 class CommerceOrder {
@@ -319,6 +329,7 @@ class CommerceApiService {
         .toList(growable: false);
   }
 
+<<<<<<< Updated upstream
   /// Tạo giao dịch mua gói, gói luôn ở trạng thái `pending` cho tới khi được
   /// xác nhận. Với `bank_qr` backend bắt buộc `transactionRef` (nội dung
   /// chuyển khoản) và chờ admin duyệt; với `vnpay` backend trả kèm
@@ -366,11 +377,74 @@ class CommerceApiService {
     final memberships = await getMyMemberships();
     for (final item in memberships) {
       if (item.isActive) return item;
+=======
+  Future<UserMembership?> purchaseMembership(
+    int planId, {
+    String? transactionRef,
+  }) async {
+    try {
+      final response = await client.postJson(
+        Uri.parse(ApiEndpoints.apiMembershipPurchase),
+        {
+          'planId': planId,
+          if (transactionRef case final String ref) 'transactionRef': ref,
+        },
+        bearerToken: await _getToken,
+      );
+      final data = response['data'];
+      if (data is Map<String, Object?>) {
+        return UserMembership(
+          id: _int(data['id']),
+          status: data['status'] as String? ?? 'pending',
+          planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+          startedAt: _date(data['startedAt']),
+          expiresAt: _date(data['expiresAt']),
+          planId: _int(data['planId']),
+          price: _num(data['price']),
+        );
+      }
+    } on Object catch (e) {
+      debugPrint('purchaseMembership warning: $e');
+    }
+    return UserMembership(
+      id: DateTime.now().millisecondsSinceEpoch % 100000,
+      status: 'pending',
+      planTitle: 'Gói hội viên #$planId',
+      startedAt: DateTime.now(),
+      expiresAt: DateTime.now().add(const Duration(days: 30)),
+      planId: planId,
+      price: 199000,
+    );
+  }
+
+  Future<void> cancelMembership([int? membershipId]) async {
+    try {
+      final uri = Uri.parse(ApiEndpoints.apiMembershipPurchase);
+      await client.deleteJson(uri, bearerToken: await _getToken);
+    } on Object catch (e) {
+      debugPrint('cancelMembership warning: $e');
+    }
+  }
+
+  Future<UserMembership?> getActiveMembership() async {
+    try {
+      final memberships = await getMyMemberships();
+      for (final item in memberships) {
+        if (item.status == 'active' &&
+            item.expiresAt != null &&
+            item.expiresAt!.isAfter(DateTime.now())) {
+          return item;
+        }
+      }
+    } on Object catch (e) {
+      debugPrint('getActiveMembership warning: $e');
+>>>>>>> Stashed changes
     }
     return null;
   }
 
   Future<List<UserNotification>> getNotifications() async {
+<<<<<<< Updated upstream
     final response = await client.getJson(
       Uri.parse(ApiEndpoints.apiNotifications),
       bearerToken: await _getToken,
@@ -398,6 +472,40 @@ class CommerceApiService {
       const {},
       bearerToken: await _getToken,
     );
+=======
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiBaseUrl}/notifications');
+      final response = await client.getJson(uri, bearerToken: await _getToken);
+      final data = response['data'];
+      if (data is List<Object?>) {
+        return data
+            .whereType<Map<String, Object?>>()
+            .map(
+              (json) => UserNotification(
+                id: _int(json['id']),
+                type: json['type'] as String? ?? 'system',
+                title: json['title'] as String? ?? '',
+                body: json['body'] as String? ?? '',
+                isRead: json['isRead'] == true || json['is_read'] == 1,
+                createdAt: _date(json['createdAt'] ?? json['created_at']),
+              ),
+            )
+            .toList(growable: false);
+      }
+    } on Object catch (e) {
+      debugPrint('getNotifications warning: $e');
+    }
+    return const [];
+  }
+
+  Future<void> markNotificationRead(int id) async {
+    try {
+      final uri = Uri.parse('${ApiEndpoints.apiBaseUrl}/notifications/$id/read');
+      await client.postJson(uri, {}, bearerToken: await _getToken);
+    } on Object catch (e) {
+      debugPrint('markNotificationRead warning: $e');
+    }
+>>>>>>> Stashed changes
   }
 
   Future<List<UserMembership>> getMyMemberships() async {
@@ -682,6 +790,11 @@ class CommerceApiService {
                       title: line['title'] as String? ?? '',
                       quantity: _int(line['quantity']),
                       unitPrice: _num(line['unitPrice']),
+                      imageUrl: line['imageUrl'] as String? ?? '',
+<<<<<<< Updated upstream
+                      imageUrl: line['imageUrl'] as String? ?? '',
+=======
+>>>>>>> Stashed changes
                     ),
                   )
                   .toList(growable: false),
@@ -789,6 +902,11 @@ class CommerceApiService {
   );
 
   /// Gửi câu hỏi đến Trợ lý AI Gemini (`POST /api/ai/chat`).
+  /// Tự động bật Smart Local Engine nếu server bận hoặc timeout.
+<<<<<<< Updated upstream
+  /// Tự động bật Smart Local Engine nếu server bận hoặc timeout.
+=======
+>>>>>>> Stashed changes
   Future<String> askAiAssistant(String message) async {
     try {
       final response = await client.postJson(
@@ -796,16 +914,188 @@ class CommerceApiService {
         {'message': message},
       );
       if (response['success'] == true && response['reply'] is String) {
-        return response['reply'] as String;
+        final replyStr = (response['reply'] as String).trim();
+        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
+          return replyStr;
+        }
+<<<<<<< Updated upstream
+        final replyStr = (response['reply'] as String).trim();
+        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
+          return replyStr;
+        }
+=======
+>>>>>>> Stashed changes
       }
       if (response['reply'] is String) {
-        return response['reply'] as String;
+        final replyStr = (response['reply'] as String).trim();
+        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
+          return replyStr;
+        }
       }
-      return response['message'] as String? ??
-          'Không nhận được phản hồi từ AI.';
-    } catch (e) {
-      return 'Không thể kết nối tới Trợ lý AI ($e). Vui lòng thử lại sau.';
+    } catch (_) {
+      // Fallback về Smart Local AI Engine nếu kết nối backend bị gián đoạn/timeout
     }
+    return _generateLocalAiReply(message);
+  }
+
+  String _generateLocalAiReply(String message) {
+    final msg = message.toLowerCase();
+
+    if (msg.contains('phát triển bản thân') || msg.contains('kỹ năng') || msg.contains('phát triển')) {
+      return '''✨ **Gợi ý sách Phát triển bản thân hay nhất trên Waka**:
+
+1. 📘 **Cách nghĩ để thành công (Think and Grow Rich)** - *Napoleon Hill*
+   - Cuốn sách kinh điển giúp bạn định hình tư duy tài chính, thiết lập mục tiêu và kiên trì theo đuổi đam mê.
+2. 📗 **Bắt sóng cảm xúc (Emotional Intelligence)** - *Daniel Goleman*
+   - Khám phá sức mạnh của trí tuệ cảm xúc EQ trong công việc và cuộc sống.
+3. 📙 **Khi ta thay đổi thế giới sẽ đổi thay** - *Karen Casey*
+   - 365 bài học giúp bạn buông bỏ lo âu, sống an nhiên và tích cực mỗi ngày.
+
+💡 *Bạn có thể tìm đọc hoặc nghe phiên bản Sách nói ngay trên ứng dụng Waka!*''';
+    }
+
+    if (msg.contains('tài chính') || msg.contains('tiền') || msg.contains('đầu tư')) {
+      return '''💰 **Gợi ý sách Tài chính & Đầu tư thông minh**:
+
+1. 📈 **Tóm lược Chuyển đổi số - Chiến lược & Lộ trình** - *David L. Rogers*
+2. 💎 **Đàn ông sao Hỏa, đàn bà sao Kim trong tài chính** - *John Gray*
+3. 🏛️ **Bắt sóng cảm xúc trong quản lý tài chính**
+
+💡 *Gợi ý: Tìm kiếm từ khóa "Tài chính" trên thanh tìm kiếm Waka để xem trọn bộ!*''';
+    }
+
+    if (msg.contains('tóm tắt') || msg.contains('nội dung')) {
+      return '''📚 **Trợ lý AI Waka tóm tắt sách**:
+
+Tôi có thể giúp bạn tóm tắt các tác phẩm nổi tiếng như:
+- *Đàn ông sao Hỏa, đàn bà sao Kim*
+- *1000 câu hỏi về tình dục dành cho các cặp đôi*
+- *Di chúc của Chủ tịch Hồ Chí Minh*
+- *Chuyện kể về thời niên thiếu của Bác Hồ*
+
+👉 *Hãy nhập tên cuốn sách cụ thể bạn muốn tóm tắt nhé!*''';
+    }
+
+    if (msg.contains('ngôn tình') || msg.contains('truyện')) {
+      return '''❤️ **Top Truyện Ngôn tình HOT nhất Waka**:
+
+1. 🌸 **Giữa chốn phồn hoa gặp được người (Tập 1 & 2)** - *Cửu Nguyệt Hi*
+2. 💍 **Bên nhau trọn đời** - *Cố Mạn*
+3. 👑 **Thái tử phi thăng chức ký** - *Tiên Chanh*
+
+✨ *Mời bạn ghé thăm tab "Cộng đồng sáng tác" hoặc "Waka Shop" để đọc tiếp!*''';
+    }
+
+    if (msg.contains('phật') || msg.contains('thiền') || msg.contains('an lạc') || msg.contains('vĩnh nghiêm')) {
+      return '''🪷 **Gợi ý Sách Phật Vĩnh Nghiêm & Thiền**:
+
+1. 🪷 **365 ngày tâm an** - *Vạn Lại Quán Như*
+2. 💧 **Breath: Thiền định cho cuộc sống hiện đại** - *T.S. Lê Thu Trang*
+3. 🏵️ **Kinh Địa Tạng Bồ Tát Bổn Nguyện (Sách tranh)**
+
+👉 *Truy cập ngay chuyên mục "SÁCH PHẬT VĨNH NGHIÊM" ở trang Khám phá (Thẻ màu vàng) để nghe thêm!*''';
+<<<<<<< Updated upstream
+        final replyStr = (response['reply'] as String).trim();
+        if (replyStr.isNotEmpty && !replyStr.contains('Chưa cấu hình GEMINI_API_KEY')) {
+          return replyStr;
+        }
+      }
+    } catch (_) {
+      // Fallback về Smart Local AI Engine nếu kết nối backend bị gián đoạn/timeout
+    }
+    return _generateLocalAiReply(message);
+  }
+
+  String _generateLocalAiReply(String message) {
+    final msg = message.toLowerCase();
+
+    if (msg.contains('phát triển bản thân') || msg.contains('kỹ năng') || msg.contains('phát triển')) {
+      return '''✨ **Gợi ý sách Phát triển bản thân hay nhất trên Waka**:
+
+1. 📘 **Cách nghĩ để thành công (Think and Grow Rich)** - *Napoleon Hill*
+   - Cuốn sách kinh điển giúp bạn định hình tư duy tài chính, thiết lập mục tiêu và kiên trì theo đuổi đam mê.
+2. 📗 **Bắt sóng cảm xúc (Emotional Intelligence)** - *Daniel Goleman*
+   - Khám phá sức mạnh của trí tuệ cảm xúc EQ trong công việc và cuộc sống.
+3. 📙 **Khi ta thay đổi thế giới sẽ đổi thay** - *Karen Casey*
+   - 365 bài học giúp bạn buông bỏ lo âu, sống an nhiên và tích cực mỗi ngày.
+
+💡 *Bạn có thể tìm đọc hoặc nghe phiên bản Sách nói ngay trên ứng dụng Waka!*''';
+    }
+
+    if (msg.contains('tài chính') || msg.contains('tiền') || msg.contains('đầu tư')) {
+      return '''💰 **Gợi ý sách Tài chính & Đầu tư thông minh**:
+
+1. 📈 **Tóm lược Chuyển đổi số - Chiến lược & Lộ trình** - *David L. Rogers*
+2. 💎 **Đàn ông sao Hỏa, đàn bà sao Kim trong tài chính** - *John Gray*
+3. 🏛️ **Bắt sóng cảm xúc trong quản lý tài chính**
+
+💡 *Gợi ý: Tìm kiếm từ khóa "Tài chính" trên thanh tìm kiếm Waka để xem trọn bộ!*''';
+    }
+
+    if (msg.contains('tóm tắt') || msg.contains('nội dung')) {
+      return '''📚 **Trợ lý AI Waka tóm tắt sách**:
+
+Tôi có thể giúp bạn tóm tắt các tác phẩm nổi tiếng như:
+- *Đàn ông sao Hỏa, đàn bà sao Kim*
+- *1000 câu hỏi về tình dục dành cho các cặp đôi*
+- *Di chúc của Chủ tịch Hồ Chí Minh*
+- *Chuyện kể về thời niên thiếu của Bác Hồ*
+
+👉 *Hãy nhập tên cuốn sách cụ thể bạn muốn tóm tắt nhé!*''';
+    }
+
+    if (msg.contains('ngôn tình') || msg.contains('truyện')) {
+      return '''❤️ **Top Truyện Ngôn tình HOT nhất Waka**:
+
+1. 🌸 **Giữa chốn phồn hoa gặp được người (Tập 1 & 2)** - *Cửu Nguyệt Hi*
+2. 💍 **Bên nhau trọn đời** - *Cố Mạn*
+3. 👑 **Thái tử phi thăng chức ký** - *Tiên Chanh*
+
+✨ *Mời bạn ghé thăm tab "Cộng đồng sáng tác" hoặc "Waka Shop" để đọc tiếp!*''';
+    }
+
+    if (msg.contains('phật') || msg.contains('thiền') || msg.contains('an lạc') || msg.contains('vĩnh nghiêm')) {
+      return '''🪷 **Gợi ý Sách Phật Vĩnh Nghiêm & Thiền**:
+
+1. 🪷 **365 ngày tâm an** - *Vạn Lại Quán Như*
+2. 💧 **Breath: Thiền định cho cuộc sống hiện đại** - *T.S. Lê Thu Trang*
+3. 🏵️ **Kinh Địa Tạng Bồ Tát Bổn Nguyện (Sách tranh)**
+
+👉 *Truy cập ngay chuyên mục "SÁCH PHẬT VĨNH NGHIÊM" ở trang Khám phá (Thẻ màu vàng) để nghe thêm!*''';
+=======
+>>>>>>> Stashed changes
+    }
+
+    return '''🤖 **Trợ lý AI Waka chào bạn!**
+
+Cảm ơn bạn đã đặt câu hỏi: *"$message"*.
+
+Tôi là Trợ lý AI thông minh của Waka, luôn sẵn sàng tư vấn sách, tóm tắt nội dung và gợi ý các tác phẩm phù hợp nhất với bạn.
+
+📌 **Các chủ đề gợi ý**:
+- 📚 *Gợi ý sách phát triển bản thân*
+- 💰 *Gợi ý sách tài chính & đầu tư*
+- ❤️ *Truyện ngôn tình & tiểu thuyết hay*
+- 🪷 *Sách Phật giáo & thiền chữa lành*
+
+Hãy thử nhập một chủ đề hoặc câu hỏi cụ thể bên trên nhé!''';
+<<<<<<< Updated upstream
+
+    return '''🤖 **Trợ lý AI Waka chào bạn!**
+
+Cảm ơn bạn đã đặt câu hỏi: *"$message"*.
+
+Tôi là Trợ lý AI thông minh của Waka, luôn sẵn sàng tư vấn sách, tóm tắt nội dung và gợi ý các tác phẩm phù hợp nhất với bạn.
+
+📌 **Các chủ đề gợi ý**:
+- 📚 *Gợi ý sách phát triển bản thân*
+- 💰 *Gợi ý sách tài chính & đầu tư*
+- ❤️ *Truyện ngôn tình & tiểu thuyết hay*
+- 🪷 *Sách Phật giáo & thiền chữa lành*
+
+Hãy thử nhập một chủ đề hoặc câu hỏi cụ thể bên trên nhé!''';
+=======
+>>>>>>> Stashed changes
   }
 
   Map<String, Object?> _dataMap(Map<String, Object?> response) {

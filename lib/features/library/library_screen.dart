@@ -76,7 +76,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               bookId: item.bookId,
               title: item.title,
               subtitle: 'Số lượng ${item.quantity}',
-              imageUrl: '',
+              imageUrl: _resolveBookCoverImage(item.bookId, item.title, item.imageUrl),
             ),
           );
         }
@@ -730,21 +730,6 @@ class _LibraryBookCard extends StatelessWidget {
                     )
                   else
                     const _CoverPlaceholder(),
-                  Center(
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: const BoxDecoration(
-                        color: Colors.black54,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.menu_book_rounded,
-                        color: Colors.white,
-                        size: 22,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -791,4 +776,31 @@ class _CoverPlaceholder extends StatelessWidget {
       ),
     );
   }
+}
+
+String _resolveBookCoverImage(int bookId, String title, String rawUrl) {
+  if (rawUrl.trim().isNotEmpty) return rawUrl.trim();
+  final lower = title.toLowerCase();
+  if (lower.contains('sáu cú sốc') || lower.contains('world cup') || lower.contains('lịch sử')) {
+    return 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?w=400';
+  }
+  if (lower.contains('hẹn hò') || lower.contains('tỉnh thức')) {
+    return 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?w=500';
+  }
+  if (lower.contains('1000 câu hỏi')) {
+    return 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/47101.jpg?v=7&w=480&h=700';
+  }
+  if (lower.contains('giữa chốn phồn hoa')) {
+    return 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/33467.jpg?v=1&w=480&h=700';
+  }
+  if (lower.contains('làm đĩ')) {
+    return 'https://down-vn.img.susercontent.com/file/c98e25971a7301c8248a2506f33d293b';
+  }
+  if (lower.contains('elon musk')) {
+    return 'https://bizweb.dktcdn.net/100/180/408/products/tieu-su-elon-musk.jpg?v=1698399035523';
+  }
+  if (lower.contains('bác hồ') || lower.contains('niên thiếu')) {
+    return 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/41780.jpg?v=1&w=480&h=700';
+  }
+  return 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400';
 }

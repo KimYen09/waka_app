@@ -102,7 +102,7 @@ async function listOrders(req, res) {
   const ids = orders.map((order) => order.id);
   const placeholders = ids.map(() => '?').join(',');
   const [items] = await pool.execute(
-    `SELECT oi.order_id AS orderId, oi.book_id AS bookId, b.title,
+    `SELECT oi.order_id AS orderId, oi.book_id AS bookId, b.title, b.image_url AS imageUrl,
       oi.quantity, oi.unit_price AS unitPrice
      FROM order_items oi
      INNER JOIN books b ON b.id = oi.book_id

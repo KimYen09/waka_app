@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../core/constants/api_endpoints.dart';
 import '../../core/services/auth_api_service.dart';
 import '../../core/services/rest_api_client.dart';
@@ -526,39 +527,26 @@ class AdminApiService implements AdminRepository {
 
   @override
   Future<AdminSnapshot> load() async {
+    Future<Map<String, Object?>> safeGet(String url) async {
+      try {
+        final token = AuthSession.current?.token ?? '';
+        if (token.isEmpty) return const {'data': null};
+        return await client.getJson(Uri.parse(url), bearerToken: token);
+      } on Object catch (e) {
+        debugPrint('AdminApiService safeGet warning ($url): $e');
+        return const {'data': null};
+      }
+    }
+
     final responses = await Future.wait([
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminDashboard),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse('${ApiEndpoints.apiAdminBooks}?limit=100'),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminAuthorApplications),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminAuthors),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminOrders),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminPayments),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminUsers),
-        bearerToken: _token,
-      ),
-      client.getJson(
-        Uri.parse(ApiEndpoints.apiAdminReviews),
-        bearerToken: _token,
-      ),
+      safeGet(ApiEndpoints.apiAdminDashboard),
+      safeGet('${ApiEndpoints.apiAdminBooks}?limit=100'),
+      safeGet(ApiEndpoints.apiAdminAuthorApplications),
+      safeGet(ApiEndpoints.apiAdminAuthors),
+      safeGet(ApiEndpoints.apiAdminOrders),
+      safeGet(ApiEndpoints.apiAdminPayments),
+      safeGet(ApiEndpoints.apiAdminUsers),
+      safeGet(ApiEndpoints.apiAdminReviews),
     ]);
     return AdminSnapshot(
       metrics: AdminMetrics.fromJson(_map(responses[0]['data'])),

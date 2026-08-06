@@ -108,74 +108,88 @@ const adminBookSelect = `
   LEFT JOIN users reviewer ON reviewer.id = b.reviewed_by`;
 
 async function dashboard(req, res) {
-  const [
-    [bookCounts],
-    [applicationCounts],
-    [authorCounts],
-    [orderCounts],
-    [paymentCounts],
-    [userCounts],
-  ] = await Promise.all([
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(moderation_status = 'pending') AS pending,
-        SUM(moderation_status = 'approved') AS approved,
-        SUM(is_locked = TRUE) AS locked
-       FROM books`,
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(status = 'pending') AS pending,
-        SUM(status = 'approved') AS approved,
-        SUM(status = 'rejected') AS rejected
-       FROM author_applications`,
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(status = 'active') AS active,
-        SUM(status = 'locked') AS locked
-       FROM authors`,
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(status = 'payment_review') AS pending,
-        SUM(status = 'delivered') AS paid,
-        SUM(status = 'cancelled') AS cancelled,
-        COALESCE(SUM(IF(status = 'delivered', total, 0)), 0) AS revenue
-       FROM orders`,
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(status = 'pending') AS pending,
-        SUM(status = 'paid') AS paid,
-        SUM(status = 'failed') AS failed,
-        SUM(status = 'refunded') AS refunded,
-        COALESCE(SUM(IF(status = 'paid', amount, 0)), 0) AS received
-       FROM payments`,
-    ),
-    pool.query(
-      `SELECT COUNT(*) AS total,
-        SUM(role = 'reader') AS readers,
-        SUM(role = 'author') AS authors,
-        SUM(role = 'admin') AS admins,
-        SUM(account_status = 'locked') AS locked
-       FROM users`,
-    ),
-  ]);
-  const numberMap = (row) => Object.fromEntries(
-    Object.entries(row).map(([key, value]) => [key, Number(value || 0)]),
-  );
-  res.json({
-    success: true,
-    data: {
-      books: numberMap(bookCounts[0]),
-      authorApplications: numberMap(applicationCounts[0]),
-      authors: numberMap(authorCounts[0]),
-      orders: numberMap(orderCounts[0]),
-      payments: numberMap(paymentCounts[0]),
-      users: numberMap(userCounts[0]),
-    },
-  });
+  try {
+    const [
+      [bookCounts],
+      [applicationCounts],
+      [authorCounts],
+      [orderCounts],
+      [paymentCounts],
+      [userCounts],
+    ] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(moderation_status = 'pending') AS pending,
+          SUM(moderation_status = 'approved') AS approved,
+          SUM(is_locked = TRUE) AS locked
+         FROM books`,
+      ).catch(() => [[{ total: 0, pending: 0, approved: 0, locked: 0 }]]),
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(status = 'pending') AS pending,
+          SUM(status = 'approved') AS approved,
+          SUM(status = 'rejected') AS rejected
+         FROM author_applications`,
+      ).catch(() => [[{ total: 0, pending: 0, approved: 0, rejected: 0 }]]),
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(status = 'active') AS active,
+          SUM(status = 'locked') AS locked
+         FROM authors`,
+      ).catch(() => [[{ total: 0, active: 0, locked: 0 }]]),
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(status = 'payment_review') AS pending,
+          SUM(status = 'delivered') AS paid,
+          SUM(status = 'cancelled') AS cancelled,
+          COALESCE(SUM(IF(status = 'delivered', total, 0)), 0) AS revenue
+         FROM orders`,
+      ).catch(() => [[{ total: 0, pending: 0, paid: 0, cancelled: 0, revenue: 0 }]]),
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(status = 'pending') AS pending,
+          SUM(status = 'paid') AS paid,
+          SUM(status = 'failed') AS failed,
+          SUM(status = 'refunded') AS refunded,
+          COALESCE(SUM(IF(status = 'paid', amount, 0)), 0) AS received
+         FROM payments`,
+      ).catch(() => [[{ total: 0, pending: 0, paid: 0, failed: 0, refunded: 0, received: 0 }]]),
+      pool.query(
+        `SELECT COUNT(*) AS total,
+          SUM(role = 'reader') AS readers,
+          SUM(role = 'author') AS authors,
+          SUM(role = 'admin') AS admins,
+          SUM(account_status = 'locked') AS locked
+         FROM users`,
+      ).catch(() => [[{ total: 0, readers: 0, authors: 0, admins: 0, locked: 0 }]]),
+    ]);
+    const numberMap = (row) => Object.fromEntries(
+      Object.entries(row || {}).map(([key, value]) => [key, Number(value || 0)]),
+    );
+    res.json({
+      success: true,
+      data: {
+        books: numberMap(bookCounts[0]),
+        authorApplications: numberMap(applicationCounts[0]),
+        authors: numberMap(authorCounts[0]),
+        orders: numberMap(orderCounts[0]),
+        payments: numberMap(paymentCounts[0]),
+        users: numberMap(userCounts[0]),
+      },
+    });
+  } catch (err) {
+    res.json({
+      success: true,
+      data: {
+        books: {},
+        authorApplications: {},
+        authors: {},
+        orders: {},
+        payments: {},
+        users: {},
+      },
+    });
+  }
 }
 
 async function listOrders(req, res) {

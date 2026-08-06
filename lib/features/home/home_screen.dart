@@ -85,26 +85,141 @@ const dailyBooks = [
   ),
 ];
 
+const theoDauChanBacBooks = [
+  HomeBook(
+    title: 'Ba chiếc điện thoại ở nhà sàn Bác Hồ',
+    colors: [Color(0xFFD32F2F), Color(0xFF880E4F)],
+    icon: Icons.flag_rounded,
+    author: 'Vĩnh Thắng',
+    imageUrl: 'https://bcp.cdnchinhphu.vn/Uploaded/buithuhuong/2020_05_14/7_ba_chiec_dt.jpg',
+    section: 'Theo dấu chân Bác',
+  ),
+  HomeBook(
+    title: 'Sự lãnh đạo của Đảng, Bác Hồ là nguyên nhân...',
+    colors: [Color(0xFF1976D2), Color(0xFF0D47A1)],
+    icon: Icons.menu_book_rounded,
+    author: 'GS.TS Vũ Đăng Hiền',
+    imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/42971.jpg?v=1&w=480&h=710',
+    section: 'Theo dấu chân Bác',
+  ),
+  HomeBook(
+    title: '[Tóm tắt sách] Chuyện kể về thời niên thiếu của Bác Hồ',
+    colors: [Color(0xFF388E3C), Color(0xFF1B5E20)],
+    icon: Icons.child_care_rounded,
+    author: 'Bùi Ngọc Tam',
+    imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/41780.jpg?v=1&w=480&h=700',
+    section: 'Theo dấu chân Bác',
+  ),
+];
+
+const toQuocTrongTimBooks = [
+  HomeBook(
+    title: 'Biển đảo Việt Nam - Bản hùng ca nơi đầu sóng',
+    colors: [Color(0xFF0288D1), Color(0xFF01579B)],
+    icon: Icons.sailing_rounded,
+    author: 'Hà My',
+    imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/43646.jpg?v=1&w=480&h=700',
+    section: 'Tổ quốc trong tim',
+  ),
+  HomeBook(
+    title: 'Gạc Ma: Tổ quốc là vĩnh cửu',
+    colors: [Color(0xFFC2185B), Color(0xFF880E4F)],
+    icon: Icons.shield_rounded,
+    author: 'Trần Trung Hiếu',
+    imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/43604.jpg?v=1&w=480&h=710',
+    section: 'Tổ quốc trong tim',
+  ),
+  HomeBook(
+    title: 'Mẹ anh hùng vùng sông nước miền Tây',
+    colors: [Color(0xFFF57C00), Color(0xFFE65100)],
+    icon: Icons.nature_people_rounded,
+    author: 'Lê Phi Hùng',
+    imageUrl: 'https://cantholib.org.vn/assets/news/gts/xuatban2019/nhung-nguoi-me-anh-hung_300_445.jpg',
+    section: 'Tổ quốc trong tim',
+  ),
+];
+
 const rankingBooks = [
   HomeBook(
-    title: 'Siêu cấp cưng chiều',
-    colors: [Color(0xFFDAB25A), Color(0xFF4D2117)],
-    icon: Icons.auto_stories_outlined,
-    assetAlignment: Alignment.topCenter,
+    title: '[Tóm tắt sách] Đàn ông sao Hỏa, đàn bà sao Kim',
+    colors: [Color(0xFF0F2027), Color(0xFFC0392B)],
+    icon: Icons.brightness_6_rounded,
+    author: 'John Gray',
+    rank: 1,
+    imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400',
+    section: 'Bảng Xếp Hạng',
   ),
   HomeBook(
-    title: 'Đập nồi bán sắt đi học',
-    colors: [Color(0xFF1D2744), Color(0xFF8798D7)],
-    icon: Icons.rocket_launch_outlined,
-    assetAlignment: Alignment.center,
+    title: 'Làm đĩ',
+    colors: [Color(0xFF4A2B18), Color(0xFFC88A4C)],
+    icon: Icons.menu_book_rounded,
+    author: 'Vũ Trọng Phụng',
+    rank: 2,
+    imageUrl: 'https://down-vn.img.susercontent.com/file/c98e25971a7301c8248a2506f33d293b',
+    section: 'Bảng Xếp Hạng',
   ),
   HomeBook(
-    title: 'Ngu ngôn làm giàu cho người mới bắt đầu',
-    colors: [Color(0xFF14A783), Color(0xFFF0922B)],
-    icon: Icons.savings_outlined,
-    badge: '79.000đ',
-    badgeColor: Color(0xFFE83BA7),
-    assetAlignment: Alignment.bottomCenter,
+    title: 'CM-12 Phía sau kế hoạch phản gián',
+    colors: [Color(0xFF1B3B2B), Color(0xFF47A36F)],
+    icon: Icons.security_rounded,
+    author: 'Nguyễn Khắc Đức',
+    rank: 3,
+    imageUrl: 'https://cdn1.fahasa.com/media/catalog/product/z/7/z7559362432815_58b7db0644c7ffc7e9378ada6274a2f4_2_1.jpg',
+    section: 'Bảng Xếp Hạng',
+  ),
+  HomeBook(
+    title: 'Bên nhau trọn đời',
+    colors: [Color(0xFF3B1E37), Color(0xFF9E5A93)],
+    icon: Icons.favorite_rounded,
+    author: 'Cố Mạn',
+    rank: 4,
+    imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/0/16736.jpg?v=1&w=480&h=700',
+    section: 'Bảng Xếp Hạng',
+  ),
+  HomeBook(
+    title: 'Cách nghĩ để thành công',
+    colors: [Color(0xFF1B2A47), Color(0xFF4A74C4)],
+    icon: Icons.psychology_rounded,
+    author: 'Napoleon Hill',
+    rank: 5,
+    imageUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?w=400',
+    section: 'Bảng Xếp Hạng',
+  ),
+  HomeBook(
+    title: 'Lối mòn của tư duy cảm tính (SWAY)',
+    colors: [Color(0xFF2C3E50), Color(0xFFBDC3C7)],
+    icon: Icons.alt_route_rounded,
+    author: 'Ori Brafman',
+    rank: 6,
+    imageUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400',
+    section: 'Bảng Xếp Hạng',
+  ),
+];
+
+const dongChayLichSuBooks = [
+  HomeBook(
+    title: '"Muôn năm tinh thần Nguyễn Văn Trỗi"',
+    colors: [Color(0xFFD32F2F), Color(0xFFB71C1C)],
+    icon: Icons.flag_rounded,
+    author: 'Hà Thư',
+    imageUrl: 'https://cdn1.fahasa.com/media/flashmagazine/images/page_images/nguyen_van_troi/2022_11_18_15_40_30_1-390x510.jpg',
+    section: 'Dòng chảy Lịch sử Việt',
+  ),
+  HomeBook(
+    title: 'Tổng bí thư đầu tiên của Đảng...',
+    colors: [Color(0xFF1565C0), Color(0xFF0D47A1)],
+    icon: Icons.history_edu_rounded,
+    author: 'PGS.TS Đàm Đức Vượng',
+    imageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=400',
+    section: 'Dòng chảy Lịch sử Việt',
+  ),
+  HomeBook(
+    title: 'Cuộc tổng tiến công Mậu Thân 1968',
+    colors: [Color(0xFFC2185B), Color(0xFF880E4F)],
+    icon: Icons.auto_awesome_rounded,
+    author: 'Waka Books',
+    imageUrl: 'https://baokhanhhoa.vn/file/e7837c02857c8ca30185a8c39b582c03/dataimages/201801/original/images5322653_phat_hanh_sach.jpg',
+    section: 'Dòng chảy Lịch sử Việt',
   ),
 ];
 
@@ -176,6 +291,8 @@ const storyBooks = [
 
 const allHomeBooks = [
   ...dailyBooks,
+  ...theoDauChanBacBooks,
+  ...toQuocTrongTimBooks,
   ...rankingBooks,
   ...footballBooks,
   ...skillBooks,
@@ -338,64 +455,6 @@ class _HomeScreenState extends State<HomeScreen> {
       ],
       fallbackBooks: storyBooks,
     );
-  }
-
-  List<HomeBook> _categoryCollection(
-    List<String> categories, {
-    List<String> titleQueries = const [],
-    int limit = 18,
-  }) {
-    if (_apiBooks.isEmpty) return _expandFallbackBooks(allHomeBooks, 10);
-    final matched = _apiBooks.where(
-      (book) =>
-          _matchesAny(book.section, categories) ||
-          _matchesAny(book.title, titleQueries),
-    );
-    return _dedupeHomeBooks(matched.toList()).take(limit).toList();
-  }
-
-  List<HomeBook> get _financeBooks => _categoryCollection(
-    const ['Tài chính cá nhân'],
-    titleQueries: const [
-      'tiền',
-      'tài chính',
-      'đầu tư',
-      'thu nhập',
-      'kim cương',
-    ],
-  );
-
-  List<HomeBook> get _romanceBooks => _categoryCollection(
-    const ['Ngôn tình'],
-    titleQueries: const ['tình yêu', 'trúc mã', 'hôn nhân', 'chồng', 'hẹn hò'],
-  );
-
-  List<HomeBook> get _technologyBooks => _categoryCollection(
-    const ['Khoa học - Công nghệ'],
-    titleQueries: const ['công nghệ', 'chatgpt', 'chip', 'thế giới'],
-  );
-
-  List<HomeBook> get _wellnessBooks => _categoryCollection(
-    const ['Sức khỏe - Làm đẹp'],
-    titleQueries: const ['sức khỏe', 'tâm lý', 'món ăn', 'sống'],
-  );
-
-  List<HomeBook> get _childrenBooks => _categoryCollection(
-    const ['Giáo dục - Sách thiếu nhi'],
-    titleQueries: const ['thiếu nhi', 'trẻ em', 'nông trại', 'học'],
-  );
-
-  List<HomeBook> get _moreDiscoveryBooks {
-    if (_apiBooks.isEmpty) return _expandFallbackBooks(allHomeBooks, 12);
-    final featuredTitles = <String>{
-      ..._apiDailyBooks.map((book) => _homeNormalize(book.title)),
-      ..._apiRankingBooks.map((book) => _homeNormalize(book.title)),
-      ..._apiRecommendationBooks.map((book) => _homeNormalize(book.title)),
-    };
-    final fresh = _apiBooks
-        .where((book) => !featuredTitles.contains(_homeNormalize(book.title)))
-        .toList();
-    return _dedupeHomeBooks(fresh).take(24).toList();
   }
 
   List<HomeBook> _booksFromWaka({
@@ -652,7 +711,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     ? _FeaturedCategoryCarousel(books: _allBooks)
                     : _OfficialHomeBannerCarousel(banners: _homeBanners),
               ),
-              const SliverToBoxAdapter(child: SizedBox(height: 30)),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
             ] else if (showingCategoryPage) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 18)),
               SliverToBoxAdapter(
@@ -712,6 +771,27 @@ class _HomeScreenState extends State<HomeScreen> {
                   : _BookShelf(books: primaryBooks),
             ),
             if (!hasSearchText && _selectedCategoryIndex == 0) ...[
+              // SECTION: THEO DẤU CHÂN BÁC (Khớp Ảnh 2)
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Theo dấu chân Bác',
+                  onTap: () => _openSectionBooks('Theo dấu chân Bác', theoDauChanBacBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: theoDauChanBacBooks)),
+
+              // SECTION: TỔ QUỐC TRONG TIM (Khớp Ảnh 2 & 3)
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Tổ quốc trong tim',
+                  onTap: () => _openSectionBooks('Tổ quốc trong tim', toQuocTrongTimBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: toQuocTrongTimBooks)),
               const SliverToBoxAdapter(child: SizedBox(height: 34)),
               SliverToBoxAdapter(
                 child: _SectionTitle(
@@ -722,6 +802,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverToBoxAdapter(child: _BookShelf(books: _apiRankingBooks)),
+
+              // SECTION: DÒNG CHẢY LỊCH SỬ VIỆT (Khớp Ảnh 1 mới)
+              const SliverToBoxAdapter(child: SizedBox(height: 34)),
+              SliverToBoxAdapter(
+                child: _SectionTitle(
+                  title: 'Dòng chảy Lịch sử Việt',
+                  onTap: () => _openSectionBooks('Dòng chảy Lịch sử Việt', dongChayLichSuBooks),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 14)),
+              SliverToBoxAdapter(child: _BookShelf(books: dongChayLichSuBooks)),
               const SliverToBoxAdapter(child: SizedBox(height: 34)),
               SliverToBoxAdapter(
                 child: _SectionTitle(
@@ -749,83 +840,6 @@ class _HomeScreenState extends State<HomeScreen> {
               const SliverToBoxAdapter(child: SizedBox(height: 14)),
               SliverToBoxAdapter(child: _BookShelf(books: _apiFootballBooks)),
               const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'TUYỂN TẬP SÁCH KỸ NĂNG,...',
-                  onTap: () => _openSectionBooks(
-                    'TUYỂN TẬP SÁCH KỸ NĂNG,...',
-                    _apiSkillBooks,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _apiSkillBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Tài chính thông minh',
-                  onTap: () =>
-                      _openSectionBooks('Tài chính thông minh', _financeBooks),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _financeBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Ngôn tình được yêu thích',
-                  onTap: () => _openSectionBooks(
-                    'Ngôn tình được yêu thích',
-                    _romanceBooks,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _romanceBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Khoa học và công nghệ',
-                  onTap: () => _openSectionBooks(
-                    'Khoa học và công nghệ',
-                    _technologyBooks,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _technologyBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Sống khỏe mỗi ngày',
-                  onTap: () =>
-                      _openSectionBooks('Sống khỏe mỗi ngày', _wellnessBooks),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _wellnessBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Thế giới sách thiếu nhi',
-                  onTap: () => _openSectionBooks(
-                    'Thế giới sách thiếu nhi',
-                    _childrenBooks,
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _childrenBooks)),
-              const SliverToBoxAdapter(child: SizedBox(height: 34)),
-              SliverToBoxAdapter(
-                child: _SectionTitle(
-                  title: 'Khám phá thêm',
-                  onTap: () =>
-                      _openSectionBooks('Khám phá thêm', _moreDiscoveryBooks),
-                ),
-              ),
-              const SliverToBoxAdapter(child: SizedBox(height: 14)),
-              SliverToBoxAdapter(child: _BookShelf(books: _moreDiscoveryBooks)),
             ],
             if (!hasSearchText && _selectedCategoryIndex == 1) ...[
               const SliverToBoxAdapter(child: SizedBox(height: 34)),

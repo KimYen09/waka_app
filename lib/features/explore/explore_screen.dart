@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_theme.dart';
+import '../../shared/widgets/waka_search_sheet.dart';
+import 'book_news_screen.dart';
+import 'creative_community_screen.dart';
+import 'digital_library_screen.dart';
+import 'vinh_nghiem_buddhist_screen.dart';
+import 'youth_books_screen.dart';
 
 /// Màn "Khám phá" - tab Cộng đồng (lưới 2x2 thẻ màu) + tab Thông tin (feed
-/// bài đăng của Waka.vn, có ảnh/text/thời gian).
+/// bài đăng của Waka.vn, có ảnh/text/thời gian) + tab Tin tức (chuyển sang màn hình Tin tức Sách).
 class ExploreScreen extends StatefulWidget {
   const ExploreScreen({super.key});
 
@@ -14,40 +20,51 @@ class ExploreScreen extends StatefulWidget {
 class _ExploreScreenState extends State<ExploreScreen> {
   int _selectedTab = 0;
   static const _tabs = ['Cộng đồng', 'Thông tin', 'Tin tức'];
+  final ScrollController _scrollController = ScrollController();
 
   static const _communityCards = [
     _CommunityCard(
       title: 'TỦ SÁCH\nTHANH NIÊN',
       color: Color(0xFFD32F2F),
       icon: Icons.auto_awesome_rounded,
+      type: _CommunityCardType.youth,
     ),
     _CommunityCard(
       title: 'CỘNG ĐỒNG\nSÁNG TÁC',
       color: Color(0xFF4C8C3B),
       icon: Icons.edit_rounded,
+      type: _CommunityCardType.community,
     ),
     _CommunityCard(
       title: 'THƯ VIỆN\nSỐ 4.0',
       color: Color(0xFF1E88C7),
       icon: Icons.school_rounded,
+      type: _CommunityCardType.digitalLibrary,
     ),
     _CommunityCard(
       title: 'SÁCH PHẬT\nVĨNH NGHIÊM',
       color: Color(0xFFD4A017),
       icon: Icons.spa_rounded,
+      type: _CommunityCardType.buddhism,
     ),
   ];
 
-  // 🌟 ĐÃ SÉT ÚP SẴN URL ẢNH THẬT TỪ WAKA CDN CHO CÁC BÀI VIẾT
   static const _posts = [
+    _Post(
+      author: 'Waka.vn',
+      timeAgo: '3 giờ trước',
+      content:
+          'PHẬN LÀ IDOL NHƯNG CHỈ ĐAM MÊ MÁY MÓC VỚI LUYỆN CƠ TAY ?\n\nSống qua ngày chỉ nghĩ cách bào tiền của ông chủ để mua linh kiện.',
+      hasImage: true,
+      imageUrl: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600',
+    ),
     _Post(
       author: 'Waka.vn',
       timeAgo: '15 giờ trước',
       content:
           '"Tiền bạc vô tình trở thành ranh giới nghiệt ngã phân định giữa một cuộc sống bình yên và một cuộc sống héo mòn.\n\nNhìn vào thực tế ngoài kia mà xem, ranh giới đó rõ...',
       hasImage: true,
-      imageUrl:
-          'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=600',
+      imageUrl: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=600',
     ),
     _Post(
       author: 'Waka.vn',
@@ -55,8 +72,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       content:
           'Top 5 cuốn sách giúp bạn quản lý thời gian hiệu quả hơn trong năm nay. Cuốn số 3 sẽ khiến bạn phải suy nghĩ lại về cách mình đang làm việc mỗi ngày...',
       hasImage: true,
-      imageUrl:
-          'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55930.jpg?v=1&w=350&h=510',
+      imageUrl: 'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.book/0/0/1/55930.jpg?v=1&w=350&h=510',
     ),
     _Post(
       author: 'Waka.vn',
@@ -65,16 +81,70 @@ class _ExploreScreenState extends State<ExploreScreen> {
           'Cộng đồng Sáng Tác Waka vừa mở cuộc thi viết truyện ngắn chủ đề "Thanh xuân". Giải thưởng lên đến 10 triệu đồng, hạn nộp bài đến hết tháng này!',
       hasImage: false,
     ),
-    _Post(
-      author: 'Waka.vn',
-      timeAgo: '3 ngày trước',
-      content:
-          'Bạn đã nghe thử tính năng đọc sách bằng giọng AI mới của Waka chưa? Trải nghiệm ngay trong mục Sách nói để cảm nhận sự khác biệt...',
-      hasImage: true,
-      imageUrl:
-          'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.banner/0/0/0/3022.jpg',
-    ),
   ];
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onTabTapped(int index) {
+    if (index == 2) {
+      // Tab Tin tức: Mở màn hình Tin Tức Sách
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const BookNewsScreen()),
+      );
+      return;
+    }
+
+    setState(() => _selectedTab = index);
+
+    if (index == 1) {
+      // Tab Thông tin: Lướt cuộn mượt xuống khu vực "Thông tin" nằm bên dưới
+      _scrollController.animateTo(
+        290.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    } else if (index == 0) {
+      // Tab Cộng đồng: Lướt lên trên cùng
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
+  void _openCardDestination(_CommunityCardType type) {
+    switch (type) {
+      case _CommunityCardType.youth:
+        // Mở Tủ Sách Thanh Niên (Màn hình màu đỏ lịch sử & cách mạng)
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const YouthBooksScreen()),
+        );
+        break;
+      case _CommunityCardType.community:
+        // Mở Cộng Đồng Sáng Tác (Giao diện xanh lá cây với Tác giả HOT, Thể loại, Truyện HOT & Waka đề cử)
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const CreativeCommunityScreen()),
+        );
+        break;
+      case _CommunityCardType.digitalLibrary:
+        // Mở Thư Viện Số 4.0
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const DigitalLibraryScreen()),
+        );
+        break;
+      case _CommunityCardType.buddhism:
+        // Mở Sách Phật Vĩnh Nghiêm (Giao diện 4 tab Phật giáo chính chủ)
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(builder: (_) => const VinhNghiemBuddhistScreen()),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +153,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
       child: SafeArea(
         bottom: false,
         child: CustomScrollView(
+          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
@@ -90,8 +161,8 @@ class _ExploreScreenState extends State<ExploreScreen> {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Khám phá',
                       style: TextStyle(
                         color: WakaColors.text,
@@ -99,11 +170,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         fontWeight: FontWeight.w800,
                       ),
                     ),
-                    Spacer(),
-                    Icon(
-                      Icons.search_rounded,
-                      color: WakaColors.text,
-                      size: 30,
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.search_rounded,
+                        color: WakaColors.text,
+                        size: 30,
+                      ),
+                      onPressed: () => showWakaSearchSheet(context),
                     ),
                   ],
                 ),
@@ -121,7 +195,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   itemBuilder: (context, index) {
                     final isSelected = index == _selectedTab;
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedTab = index),
+                      onTap: () => _onTabTapped(index),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
                         alignment: Alignment.center,
@@ -132,9 +206,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
                         child: Text(
                           _tabs[index],
                           style: TextStyle(
-                            color: isSelected
-                                ? Colors.black
-                                : WakaColors.mutedText,
+                            color: isSelected ? Colors.black : WakaColors.mutedText,
                             fontSize: 15.5,
                             fontWeight: FontWeight.w700,
                           ),
@@ -170,8 +242,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   childAspectRatio: 1.68,
                 ),
                 delegate: SliverChildBuilderDelegate(
-                  (context, index) =>
-                      _CommunityCardWidget(card: _communityCards[index]),
+                  (context, index) => GestureDetector(
+                    onTap: () => _openCardDestination(_communityCards[index].type),
+                    child: _CommunityCardWidget(card: _communityCards[index]),
+                  ),
                   childCount: _communityCards.length,
                 ),
               ),
@@ -208,19 +282,20 @@ class _ExploreScreenState extends State<ExploreScreen> {
   }
 }
 
-// ----------------------------------------------------------------------
-// Card cộng đồng (2x2 grid)
-// ----------------------------------------------------------------------
+enum _CommunityCardType { youth, community, digitalLibrary, buddhism }
+
 class _CommunityCard {
   const _CommunityCard({
     required this.title,
     required this.color,
     required this.icon,
+    required this.type,
   });
 
   final String title;
   final Color color;
   final IconData icon;
+  final _CommunityCardType type;
 }
 
 class _CommunityCardWidget extends StatelessWidget {
@@ -233,6 +308,13 @@ class _CommunityCardWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: card.color,
         borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: card.color.withValues(alpha: 0.35),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       padding: const EdgeInsets.all(16),
       child: Stack(
@@ -266,9 +348,6 @@ class _CommunityCardWidget extends StatelessWidget {
   }
 }
 
-// ----------------------------------------------------------------------
-// Post card (feed "Thông tin")
-// ----------------------------------------------------------------------
 class _Post {
   const _Post({
     required this.author,
@@ -282,12 +361,9 @@ class _Post {
   final String timeAgo;
   final String content;
   final bool hasImage;
-  final String? imageUrl; // 👈 Đã thêm field URL ảnh bài viết
+  final String? imageUrl;
 }
 
-// ----------------------------------------------------------------------
-// Post card (feed "Thông tin" - Đã cập nhật Image.network)
-// ----------------------------------------------------------------------
 class _PostCard extends StatelessWidget {
   const _PostCard({required this.post});
   final _Post post;
@@ -375,8 +451,6 @@ class _PostCard extends StatelessWidget {
               ],
             ),
           ),
-
-          // 🌟 THAY CONTAINER CŨ BẰNG IMAGE.NETWORK NÀY NÈ
           if (post.hasImage && post.imageUrl != null) ...[
             const SizedBox(height: 12),
             ClipRRect(
