@@ -506,11 +506,13 @@ class _BookHero extends StatelessWidget {
       expandedHeight: 600,
       backgroundColor: const Color(0xFF170909),
       leading: IconButton(
+        tooltip: 'Quay lại',
         onPressed: () => Navigator.of(context).pop(),
         icon: const Icon(Icons.arrow_back_rounded, size: 32),
       ),
       actions: [
         IconButton(
+          tooltip: isFavorite ? 'Bỏ khỏi yêu thích' : 'Thêm vào yêu thích',
           onPressed: onFavorite,
           icon: Icon(
             isFavorite ? Icons.favorite_rounded : Icons.favorite_border_rounded,
@@ -518,6 +520,7 @@ class _BookHero extends StatelessWidget {
           ),
         ),
         IconButton(
+          tooltip: 'Chia sẻ sách',
           onPressed: onShare,
           icon: const Icon(Icons.share_rounded, size: 30),
         ),
@@ -624,6 +627,10 @@ class _BookBackground extends StatelessWidget {
       return Image.network(
         book.imageUrl,
         fit: BoxFit.cover,
+        // Giữ chỗ bằng chính bìa tự sinh trong lúc tải: trên mạng di động yếu,
+        // Image.network để lại khoảng trống rồi ảnh mới "nhảy" vào.
+        loadingBuilder: (_, child, progress) =>
+            progress == null ? child : _GeneratedCover(book: book),
         errorBuilder: (_, _, _) => _GeneratedCover(book: book),
       );
     }
@@ -658,6 +665,8 @@ class _MiniBookCover extends StatelessWidget {
           : Image.network(
               book.imageUrl,
               fit: BoxFit.cover,
+              loadingBuilder: (_, child, progress) =>
+                  progress == null ? child : _GeneratedCover(book: book),
               errorBuilder: (_, _, _) => _GeneratedCover(book: book),
             ),
     );

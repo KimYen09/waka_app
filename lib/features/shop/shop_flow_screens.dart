@@ -219,6 +219,7 @@ class _ShopProductCategoryScreenState extends State<ShopProductCategoryScreen> {
               child: _FlowHeader(
                 title: _cleanLabel(widget.category.label),
                 trailing: IconButton(
+                  tooltip: 'Chia sẻ danh mục',
                   onPressed: _share,
                   icon: const Icon(Icons.share_rounded, color: Colors.white),
                 ),
@@ -377,6 +378,7 @@ class ShopSellerScreen extends StatelessWidget {
               child: _FlowHeader(
                 title: 'Nhà sách Online',
                 trailing: IconButton(
+                  tooltip: 'Giỏ hàng',
                   onPressed: () => _openCart(context),
                   icon: const Icon(
                     Icons.shopping_cart_outlined,
@@ -468,6 +470,7 @@ class _ShopRankingScreenState extends State<ShopRankingScreen> {
             _FlowHeader(
               title: 'Bảng Xếp hạng',
               trailing: IconButton(
+                tooltip: 'Giỏ hàng',
                 onPressed: () => _openCart(context),
                 icon: const Icon(
                   Icons.shopping_cart_outlined,
@@ -1390,6 +1393,7 @@ class ShopPromoVideoCard extends StatelessWidget {
             top: 4,
             right: 4,
             child: IconButton(
+              tooltip: 'Đóng',
               onPressed: onClose,
               icon: const Icon(Icons.close_rounded, color: Colors.white),
               style: IconButton.styleFrom(backgroundColor: Colors.black45),
@@ -1414,6 +1418,7 @@ class _FlowHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Quay lại',
             onPressed: () => AppNavigation.goBackOrExit(context),
             icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           ),

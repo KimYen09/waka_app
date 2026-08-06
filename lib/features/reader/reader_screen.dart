@@ -1095,6 +1095,7 @@ class _ReaderTopBar extends StatelessWidget {
           child: Row(
             children: [
               IconButton(
+                tooltip: 'Quay lại',
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
               ),
@@ -1111,6 +1112,7 @@ class _ReaderTopBar extends StatelessWidget {
                 ),
               ),
               IconButton(
+                tooltip: isBookmarked ? 'Bỏ đánh dấu trang' : 'Đánh dấu trang',
                 onPressed: onBookmark,
                 icon: Icon(
                   isBookmarked
@@ -1120,6 +1122,7 @@ class _ReaderTopBar extends StatelessWidget {
                 ),
               ),
               IconButton(
+                tooltip: 'Cỡ chữ và giao diện đọc',
                 onPressed: onSettings,
                 icon: const Icon(
                   Icons.text_fields_rounded,
