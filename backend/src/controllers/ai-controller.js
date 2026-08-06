@@ -28,8 +28,11 @@ async function handleAiChat(req, res, next) {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    // Gọi Gemini model với system instruction chuẩn Waka Assistant
-    const modelsToTry = ['gemini-3.6-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+    // Gọi Gemini model với system instruction chuẩn Waka Assistant.
+    // Danh sách được thử tuần tự, nên đặt alias 'latest' lên đầu: để một mã
+    // model không tồn tại đứng đầu khiến mọi request tốn thêm một vòng gọi
+    // hỏng trước khi rơi xuống model dùng được.
+    const modelsToTry = ['gemini-flash-latest', 'gemini-2.5-flash', 'gemini-2.0-flash'];
     let responseText = '';
     let lastError = null;
 
@@ -54,7 +57,13 @@ async function handleAiChat(req, res, next) {
       }
     }
 
-    const reply = responseText || (lastError ? `Lỗi kết nối AI (${lastError.message})` : 'Xin lỗi, hiện tại tôi chưa thể đưa ra câu trả lời.');
+    if (!responseText && lastError) {
+      // Thông điệp lỗi của SDK có thể lộ chi tiết cấu hình phía máy chủ nên
+      // chỉ ghi log, không trả nguyên văn về client.
+      console.error('[Gemini AI Controller Error]:', lastError);
+    }
+    const reply = responseText
+      || 'Xin lỗi, hiện tại tôi chưa thể đưa ra câu trả lời. Vui lòng thử lại sau.';
 
     return res.json({
       success: true,

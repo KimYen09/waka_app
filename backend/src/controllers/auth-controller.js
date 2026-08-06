@@ -88,6 +88,11 @@ async function me(req, res) {
 }
 
 async function changePassword(req, res) {
+  // Phiên khách đại diện cho một tài khoản dùng chung chứ không phải người
+  // đang gọi, nên không được phép đổi mật khẩu của tài khoản đó.
+  if (req.user?.isGuest) {
+    throw new HttpError(401, 'Vui lòng đăng nhập để đổi mật khẩu.');
+  }
   const oldPassword = String(req.body.oldPassword || '');
   const newPassword = String(req.body.newPassword || '');
   if (newPassword.length < 6 || newPassword.length > 20) {

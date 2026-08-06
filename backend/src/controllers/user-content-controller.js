@@ -16,10 +16,16 @@ async function resolveBookId(body) {
     const [books] = await pool.execute('SELECT id FROM books WHERE title = ? LIMIT 1', [title]);
     if (books.length) return books[0].id;
 
-    // Tự động thêm sách vào cơ sở dữ liệu nếu chưa tồn tại
+    // Tự động thêm sách vào cơ sở dữ liệu nếu chưa tồn tại.
+    //
+    // Dữ liệu ở đây do client gửi lên nên phải vào hàng chờ kiểm duyệt:
+    // `moderation_status` mặc định của bảng là 'approved', nếu không ghi đè
+    // thì bất kỳ ai cũng đẩy được sách tự đặt tên lên catalog công khai.
     const [result] = await pool.execute(
-      `INSERT INTO books (title, author, image_url, source_url, price, discount_percent)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO books
+        (title, author, image_url, source_url, price, discount_percent,
+         moderation_status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')`,
       [
         title,
         body.author || 'Waka',
