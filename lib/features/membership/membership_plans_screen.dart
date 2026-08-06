@@ -600,36 +600,51 @@ class _PlanCard extends StatelessWidget {
         const SizedBox(height: 5),
         Text(plan.subtitle, style: const TextStyle(color: Colors.white60)),
         const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              plan.price,
-              style: const TextStyle(
-                color: WakaColors.gold,
-                fontSize: 25,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            if (plan.oldPrice.isNotEmpty) ...[
-              const SizedBox(width: 9),
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  plan.oldPrice,
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 390;
+            final prices = Wrap(
+              spacing: 9,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.end,
+              children: [
+                Text(
+                  plan.price,
                   style: const TextStyle(
-                    color: Colors.white38,
-                    decoration: TextDecoration.lineThrough,
+                    color: WakaColors.gold,
+                    fontSize: 25,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-              ),
-            ],
-            const Spacer(),
-            FilledButton(
+                if (plan.oldPrice.isNotEmpty)
+                  Text(
+                    plan.oldPrice,
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      decoration: TextDecoration.lineThrough,
+                    ),
+                  ),
+              ],
+            );
+            final button = FilledButton(
               onPressed: isBuying ? null : onBuy,
               child: Text(isBuying ? 'Đang xử lý…' : 'Mua/Gia hạn'),
-            ),
-          ],
+            );
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [prices, const SizedBox(height: 12), button],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(child: prices),
+                const SizedBox(width: 12),
+                button,
+              ],
+            );
+          },
         ),
         if (plan.gift.isNotEmpty) ...[
           const Divider(color: Colors.white12, height: 24),

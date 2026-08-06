@@ -17,6 +17,7 @@ class DigitalPurchaseItem {
     required this.colors,
     required this.icon,
     this.imageUrl = '',
+    this.includedTitles = const [],
   });
 
   final String productId;
@@ -25,6 +26,7 @@ class DigitalPurchaseItem {
   final String imageUrl;
   final List<Color> colors;
   final IconData icon;
+  final List<String> includedTitles;
 }
 
 String digitalProductIdForBook(String title) {
@@ -58,7 +60,7 @@ Future<void> showDigitalBookPurchase(
       borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
     ),
     builder: (_) => FractionallySizedBox(
-      heightFactor: 0.72,
+      heightFactor: 0.86,
       child: DigitalPurchaseSheet(item: item),
     ),
   );
@@ -169,162 +171,207 @@ class _DigitalPurchaseSheetState extends State<DigitalPurchaseSheet> {
     return Container(
       key: const ValueKey('digital-purchase-sheet'),
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(
-            child: Container(
-              width: 42,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.white30,
-                borderRadius: BorderRadius.circular(99),
+      child: SingleChildScrollView(
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white30,
+                  borderRadius: BorderRadius.circular(99),
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              const Expanded(
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Expanded(
+                  child: Text(
+                    'Mua sách điện tử',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close_rounded, color: Colors.white),
+                ),
+              ],
+            ),
+            if (account != null && account.isNotEmpty)
+              Text(
+                'Tài khoản Waka: $account',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: Colors.white54, fontSize: 14),
+              ),
+            const SizedBox(height: 22),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _PurchaseBookCover(item: widget.item),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.item.title,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          height: 1.2,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 7),
+                      const Text(
+                        'Waka · Sách điện tử',
+                        style: TextStyle(color: Colors.white54, fontSize: 15),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        displayedPrice,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 23,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (widget.item.includedTitles.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              const Text(
+                'Sách có trong combo',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 8),
+              for (final title in widget.item.includedTitles)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 17,
+                        color: WakaColors.accent,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+            const SizedBox(height: 22),
+            const Divider(color: Colors.white12, height: 1),
+            const SizedBox(height: 10),
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: CircleAvatar(
+                backgroundColor: Color(0xFF2A2A2E),
+                child: Icon(Icons.account_balance_wallet_outlined),
+              ),
+              title: Text(
+                'Thanh toán qua Google Play',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              subtitle: Text(
+                'Phương thức thanh toán do tài khoản Google Play quản lý',
+                style: TextStyle(color: Colors.white54),
+              ),
+              trailing: Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white54,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (_isLoading)
+              const LinearProgressIndicator(
+                minHeight: 2,
+                color: WakaColors.accent,
+                backgroundColor: Colors.white12,
+              )
+            else if (_storeMessage != null)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1D1D20),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
+                ),
                 child: Text(
-                  'Mua sách điện tử',
+                  _storeMessage!,
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
+                    color: _isOwned ? WakaColors.accent : Colors.white60,
+                    height: 1.35,
                   ),
                 ),
               ),
-              IconButton(
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded, color: Colors.white),
+            const SizedBox(height: 24),
+            const Text(
+              'Giá và phương thức thanh toán cuối cùng sẽ hiển thị trong cửa '
+              'sổ bảo mật của Google Play.',
+              style: TextStyle(
+                color: Colors.white54,
+                fontSize: 13,
+                height: 1.4,
               ),
-            ],
-          ),
-          if (account != null && account.isNotEmpty)
-            Text(
-              'Tài khoản Waka: $account',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: Colors.white54, fontSize: 14),
             ),
-          const SizedBox(height: 22),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _PurchaseBookCover(item: widget.item),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.item.title,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 14),
+            FilledButton(
+              key: const ValueKey('digital-purchase-continue'),
+              onPressed: _isLoading || _isBuying ? null : _buy,
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(56),
+                backgroundColor: const Color(0xFFA8C7FA),
+                foregroundColor: const Color(0xFF09244A),
+                disabledBackgroundColor: Colors.white12,
+                shape: const StadiumBorder(),
+              ),
+              child: _isBuying
+                  ? const SizedBox.square(
+                      dimension: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  : Text(
+                      _isOwned
+                          ? 'ĐÃ SỞ HỮU · ĐÓNG'
+                          : 'TIẾP TỤC VỚI GOOGLE PLAY',
                       style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 19,
-                        height: 1.2,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 7),
-                    const Text(
-                      'Waka · Sách điện tử',
-                      style: TextStyle(color: Colors.white54, fontSize: 15),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      displayedPrice,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 23,
+                        fontSize: 16,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-          const Divider(color: Colors.white12, height: 1),
-          const SizedBox(height: 10),
-          const ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(
-              backgroundColor: Color(0xFF2A2A2E),
-              child: Icon(Icons.account_balance_wallet_outlined),
             ),
-            title: Text(
-              'Thanh toán qua Google Play',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            subtitle: Text(
-              'Phương thức thanh toán do tài khoản Google Play quản lý',
-              style: TextStyle(color: Colors.white54),
-            ),
-            trailing: Icon(Icons.chevron_right_rounded, color: Colors.white54),
-          ),
-          const SizedBox(height: 8),
-          if (_isLoading)
-            const LinearProgressIndicator(
-              minHeight: 2,
-              color: WakaColors.accent,
-              backgroundColor: Colors.white12,
-            )
-          else if (_storeMessage != null)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1D1D20),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Text(
-                _storeMessage!,
-                style: TextStyle(
-                  color: _isOwned ? WakaColors.accent : Colors.white60,
-                  height: 1.35,
-                ),
-              ),
-            ),
-          const Spacer(),
-          const Text(
-            'Giá và phương thức thanh toán cuối cùng sẽ hiển thị trong cửa '
-            'sổ bảo mật của Google Play.',
-            style: TextStyle(color: Colors.white54, fontSize: 13, height: 1.4),
-          ),
-          const SizedBox(height: 14),
-          FilledButton(
-            key: const ValueKey('digital-purchase-continue'),
-            onPressed: _isLoading || _isBuying ? null : _buy,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(56),
-              backgroundColor: const Color(0xFFA8C7FA),
-              foregroundColor: const Color(0xFF09244A),
-              disabledBackgroundColor: Colors.white12,
-              shape: const StadiumBorder(),
-            ),
-            child: _isBuying
-                ? const SizedBox.square(
-                    dimension: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2.5),
-                  )
-                : Text(
-                    _isOwned ? 'ĐÃ SỞ HỮU · ĐÓNG' : 'TIẾP TỤC VỚI GOOGLE PLAY',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

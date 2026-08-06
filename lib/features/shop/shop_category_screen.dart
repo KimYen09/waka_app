@@ -33,43 +33,48 @@ class _ShopCategoryScreenState extends State<ShopCategoryScreen> {
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(child: _CategoryHeader(onHomeTap: _goHome)),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: 20)),
             SliverToBoxAdapter(
               child: _CategoryTabs(
                 selectedIndex: _selectedTab,
                 onChanged: _selectTab,
               ),
             ),
-            const SliverToBoxAdapter(child: SizedBox(height: 30)),
-            SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              sliver: SliverGrid.builder(
-                itemCount: _categories.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 4,
-                  mainAxisSpacing: 32,
-                  crossAxisSpacing: 18,
-                  mainAxisExtent: ShopLayout.categoryScreenItemHeight,
-                ),
-                itemBuilder: (context, index) {
-                  return _CategoryGridItem(
-                    category: _categories[index],
-                    stationery: _selectedTab == 1,
-                    index: index,
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => ShopProductCategoryScreen(
-                          category: _categories[index],
-                          products: const [
-                            ...topProducts,
-                            ...suggestedProducts,
-                          ],
-                        ),
-                      ),
+            const SliverToBoxAdapter(child: SizedBox(height: 26)),
+            SliverLayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.crossAxisExtent < 430 ? 3 : 4;
+                return SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  sliver: SliverGrid.builder(
+                    itemCount: _categories.length,
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: columns,
+                      mainAxisSpacing: 22,
+                      crossAxisSpacing: 12,
+                      mainAxisExtent: columns == 3 ? 176 : 168,
                     ),
-                  );
-                },
-              ),
+                    itemBuilder: (context, index) {
+                      return _CategoryGridItem(
+                        category: _categories[index],
+                        stationery: _selectedTab == 1,
+                        index: index,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => ShopProductCategoryScreen(
+                              category: _categories[index],
+                              products: const [
+                                ...topProducts,
+                                ...suggestedProducts,
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
             const SliverToBoxAdapter(child: SizedBox(height: 48)),
           ],
@@ -190,7 +195,7 @@ class _CategoryTabButton extends StatelessWidget {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          height: 44,
+          height: 48,
           alignment: Alignment.center,
           color: selected ? WakaColors.accent : WakaColors.elevatedSoft,
           child: Text(
@@ -199,7 +204,7 @@ class _CategoryTabButton extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.w500,
               height: 1,
             ),
@@ -237,7 +242,7 @@ class _CategoryGridItem extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             category.label,
-            maxLines: 4,
+            maxLines: 3,
             textAlign: TextAlign.center,
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
@@ -281,7 +286,16 @@ class _CategoryImage extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (stationery)
+          if (stationery && category.imageAsset.isNotEmpty)
+            Image.asset(
+              category.imageAsset,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => _StationeryIllustration(
+                index: index,
+                color: category.bookColor,
+              ),
+            )
+          else if (stationery)
             _StationeryIllustration(index: index, color: category.bookColor)
           else
             Center(
