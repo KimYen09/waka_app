@@ -43,20 +43,392 @@ function escapeHtml(value) {
 }
 
 function renderVnpayResultPage({ success, orderCode }) {
-  const title = success ? 'Thanh toan thanh cong' : 'Thanh toan khong thanh cong';
+  const title = success ? 'Thanh toán thành công!' : 'Thanh toán không thành công';
+  const subtitle = success
+    ? 'Gói hội viên Waka của bạn đã được kích hoạt'
+    : 'Giao dịch bị hủy hoặc có lỗi xảy ra';
   const message = success
-    ? `Don hang ${escapeHtml(orderCode)} da duoc xac nhan. Ban co the dong cua so nay va quay lai ung dung Waka.`
-    : `Giao dich cho don hang ${escapeHtml(orderCode)} khong thanh cong hoac da bi huy. Vui long quay lai ung dung Waka de thu lai.`;
+    ? `Mã đơn hàng <strong>${escapeHtml(orderCode)}</strong> đã được xác nhận. Bạn có thể đóng cửa sổ này và quay lại ứng dụng Waka để bắt đầu đọc sách.`
+    : `Giao dịch cho đơn hàng <strong>${escapeHtml(orderCode)}</strong> không thành công hoặc đã bị hủy. Vui lòng quay lại ứng dụng Waka để thử lại.`;
+
+  const accentColor = success ? '#1ED760' : '#FF4D4D';
+  const accentGlow = success ? 'rgba(30,215,96,0.35)' : 'rgba(255,77,77,0.35)';
+  const iconSvg = success
+    ? `<svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="26" cy="26" r="25" stroke="${accentColor}" stroke-width="2"/>
+        <path d="M14 27L22 35L38 18" stroke="${accentColor}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+       </svg>`
+    : `<svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="26" cy="26" r="25" stroke="${accentColor}" stroke-width="2"/>
+        <path d="M18 18L34 34M34 18L18 34" stroke="${accentColor}" stroke-width="3.5" stroke-linecap="round"/>
+       </svg>`;
+
   return `<!doctype html>
-<html lang="vi"><head><meta charset="utf-8" />
-<title>${title}</title>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <title>${title} – Waka</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #0A0E1A;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Ambient background blobs */
+    .blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+      pointer-events: none;
+      animation: float 8s ease-in-out infinite;
+    }
+    .blob-1 {
+      width: 420px; height: 420px;
+      background: ${accentColor};
+      top: -120px; left: -100px;
+      animation-delay: 0s;
+    }
+    .blob-2 {
+      width: 300px; height: 300px;
+      background: #7B61FF;
+      bottom: -80px; right: -80px;
+      animation-delay: -3s;
+    }
+    .blob-3 {
+      width: 200px; height: 200px;
+      background: ${accentColor};
+      bottom: 100px; left: 60px;
+      opacity: 0.08;
+      animation-delay: -5s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) scale(1); }
+      50% { transform: translateY(-24px) scale(1.04); }
+    }
+
+    /* Card */
+    .card {
+      position: relative;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 28px;
+      padding: 48px 36px 44px;
+      max-width: 420px;
+      width: calc(100% - 32px);
+      text-align: center;
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06);
+      animation: cardIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: scale(0.82) translateY(32px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    /* Logo */
+    .logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.5s 0.2s ease both;
+    }
+    .logo-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: ${accentColor};
+      box-shadow: 0 0 12px ${accentColor};
+    }
+    .logo-text {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+    }
+
+    /* Icon */
+    .icon-wrap {
+      width: 90px; height: 90px;
+      margin: 0 auto 28px;
+      position: relative;
+      opacity: 0;
+      animation: scaleIn 0.5s 0.35s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    .icon-wrap svg {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(0 0 20px ${accentGlow});
+    }
+    .icon-ring {
+      position: absolute;
+      inset: -12px;
+      border-radius: 50%;
+      border: 2px solid ${accentColor};
+      opacity: 0.2;
+      animation: ringPulse 2s 1s ease infinite;
+    }
+    .icon-ring-2 {
+      position: absolute;
+      inset: -24px;
+      border-radius: 50%;
+      border: 1px solid ${accentColor};
+      opacity: 0.1;
+      animation: ringPulse 2s 1.3s ease infinite;
+    }
+
+    @keyframes ringPulse {
+      0%, 100% { transform: scale(1); opacity: 0.15; }
+      50% { transform: scale(1.08); opacity: 0.05; }
+    }
+    @keyframes scaleIn {
+      from { opacity: 0; transform: scale(0.4); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* Title */
+    .title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      line-height: 1.2;
+      margin-bottom: 8px;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.45s ease both;
+    }
+    .subtitle {
+      font-size: 14px;
+      font-weight: 500;
+      color: ${accentColor};
+      margin-bottom: 24px;
+      letter-spacing: 0.3px;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.5s ease both;
+    }
+
+    /* Divider */
+    .divider {
+      height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.1), transparent);
+      margin: 0 0 24px;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.55s ease both;
+    }
+
+    /* Order info box */
+    .order-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      text-align: left;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.6s ease both;
+    }
+    .order-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: rgba(255,255,255,0.35);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .order-code {
+      font-size: 15px;
+      font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    /* Message */
+    .message {
+      font-size: 14px;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.55);
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.65s ease both;
+    }
+    .message strong { color: rgba(255,255,255,0.8); }
+
+    /* Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 15px 24px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+      text-decoration: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.75s ease both;
+    }
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, ${accentColor}, ${success ? '#17a84a' : '#c0392b'});
+      color: ${success ? '#001a0d' : '#fff'};
+      box-shadow: 0 8px 24px ${accentGlow};
+    }
+    .btn-primary:hover {
+      box-shadow: 0 12px 32px ${accentGlow};
+      transform: translateY(-1px);
+    }
+
+    /* Powered by VNPay badge */
+    .powered {
+      margin-top: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      opacity: 0;
+      animation: fadeUp 0.4s 0.85s ease both;
+    }
+    .powered span {
+      font-size: 11px;
+      color: rgba(255,255,255,0.2);
+      font-weight: 500;
+    }
+    .powered strong {
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    /* Confetti particles for success */
+    .confetti-wrap {
+      position: fixed; inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .particle {
+      position: absolute;
+      top: -10px;
+      width: 8px; height: 8px;
+      border-radius: 2px;
+      animation: fall linear infinite;
+    }
+
+    @keyframes fall {
+      0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+      85%  { opacity: 1; }
+      100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+  </style>
 </head>
-<body style="font-family: sans-serif; text-align:center; padding: 48px 16px;">
-  <h1>${success ? '✅' : '❌'} ${title}</h1>
-  <p>${message}</p>
-</body></html>`;
+<body>
+
+  <!-- Ambient blobs -->
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+
+  ${success ? `
+  <!-- Confetti -->
+  <div class="confetti-wrap" id="confetti"></div>
+  ` : ''}
+
+  <div class="card">
+    <!-- Logo -->
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-text">Waka</span>
+    </div>
+
+    <!-- Icon -->
+    <div class="icon-wrap">
+      <div class="icon-ring"></div>
+      <div class="icon-ring-2"></div>
+      ${iconSvg}
+    </div>
+
+    <h1 class="title">${title}</h1>
+    <p class="subtitle">${subtitle}</p>
+
+    <div class="divider"></div>
+
+    <div class="order-box">
+      <div class="order-label">Mã giao dịch</div>
+      <div class="order-code">${escapeHtml(orderCode) || '—'}</div>
+    </div>
+
+    <p class="message">${message}</p>
+
+    <a href="javascript:window.close()" class="btn btn-primary">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 0 0-4-4H4"/>
+      </svg>
+      Quay lại ứng dụng Waka
+    </a>
+
+    <div class="powered">
+      <span>Thanh toán bảo mật bởi</span>
+      <strong>VNPay</strong>
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    </div>
+  </div>
+
+  ${success ? `
+  <script>
+    // Confetti generator
+    const wrap = document.getElementById('confetti');
+    const colors = ['#1ED760','#7B61FF','#FFD25F','#FF6B6B','#4ECDC4','#45B7D1','#96CEB4'];
+    for (let i = 0; i < 60; i++) {
+      const el = document.createElement('div');
+      el.className = 'particle';
+      el.style.cssText = [
+        'left:' + Math.random() * 100 + '%',
+        'background:' + colors[Math.floor(Math.random() * colors.length)],
+        'width:' + (Math.random() * 8 + 5) + 'px',
+        'height:' + (Math.random() * 8 + 5) + 'px',
+        'border-radius:' + (Math.random() > 0.5 ? '50%' : '2px'),
+        'animation-duration:' + (Math.random() * 3 + 2.5) + 's',
+        'animation-delay:' + (Math.random() * 3) + 's',
+        'opacity:' + (Math.random() * 0.7 + 0.3),
+      ].join(';');
+      wrap.appendChild(el);
+    }
+  </script>
+  ` : ''}
+</body>
+</html>`;
 }
+
 
 function mapPlan(row) {
   return {
