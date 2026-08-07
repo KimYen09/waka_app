@@ -21,6 +21,7 @@ class WakaSubScreenHeader extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
+            tooltip: 'Quay lại',
             onPressed: onBack ?? () => Navigator.of(context).pop(),
             icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
           ),

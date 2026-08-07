@@ -3,6 +3,11 @@ const HttpError = require('../utils/http-error');
 
 async function requireAdmin(req, res, next) {
   try {
+    // Phiên khách (token thiếu/hỏng) không phải danh tính đã xác thực nên
+    // không được mượn quyền của tài khoản mà nó đang tạm đại diện.
+    if (req.user?.isGuest) {
+      return next(new HttpError(401, 'Vui lòng đăng nhập bằng tài khoản quản trị.'));
+    }
     const [rows] = await pool.execute(
       `SELECT role, account_status AS accountStatus
        FROM users WHERE id = ? LIMIT 1`,

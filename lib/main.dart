@@ -30,12 +30,16 @@ class WakaDemoApp extends StatelessWidget {
       title: 'Waka',
       theme: WakaTheme.dark,
       builder: (context, child) {
-        final mediaQuery = MediaQuery.of(context);
+        // Nhiều khối giao diện (carousel sách, thẻ ưu đãi) đang dùng chiều cao
+        // cố định, nên cỡ chữ hệ thống quá lớn sẽ làm tràn bố cục. Giới hạn ở
+        // 1.3 để vẫn tôn trọng lựa chọn của người dùng cần chữ to mà không vỡ
+        // layout — bỏ giới hạn này khi các khối đó đã co giãn được theo nội dung.
+        final media = MediaQuery.of(context);
         return MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: mediaQuery.textScaler.clamp(
-              minScaleFactor: 0.9,
-              maxScaleFactor: 1.12,
+          data: media.copyWith(
+            textScaler: media.textScaler.clamp(
+              minScaleFactor: 1.0,
+              maxScaleFactor: 1.3,
             ),
           ),
           child: child ?? const SizedBox.shrink(),

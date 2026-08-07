@@ -544,30 +544,36 @@ class _FlashSaleCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              book.oldPrice,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
-                fontSize: 25,
-                decoration: TextDecoration.lineThrough,
-                decorationColor: Colors.white.withValues(alpha: 0.64),
-                fontWeight: FontWeight.w500,
+        // PageView cho carousel này chỉ cấp ~0.58 chiều rộng màn hình, nên hai
+        // mức giá cỡ chữ lớn cạnh nhau dễ tràn ra ngoài Row — FittedBox co lại
+        // vừa khung thay vì để tràn (đã thấy tràn ~158px khi chạy widget test).
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                book.oldPrice,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 25,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: Colors.white.withValues(alpha: 0.64),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              book.price,
-              style: const TextStyle(
-                color: Color(0xFFFF3D72),
-                fontSize: 31,
-                fontWeight: FontWeight.w900,
-                height: 1,
+              const SizedBox(width: 12),
+              Text(
+                book.price,
+                style: const TextStyle(
+                  color: Color(0xFFFF3D72),
+                  fontSize: 31,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         Text(
