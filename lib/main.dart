@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'core/services/auth_api_service.dart';
-import 'features/offer/offer_screen.dart';
+import 'features/offers/offer_screen.dart';
 import 'features/admin/admin_dashboard_screen.dart';
 import 'core/theme/app_theme.dart';
 import 'features/library/library_screen.dart';
@@ -89,7 +89,7 @@ class _WakaShellState extends State<WakaShell> {
     final pages = <Widget>[
       const HomeScreen(),
       const ShopScreen(),
-      const OffersScreen(),
+      const OfferScreen(),
       const ExploreScreen(),
       const LibraryScreen(),
 

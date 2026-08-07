@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/local_books_service.dart';
 import '../../core/services/waka_scraper_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../purchase/digital_purchase_sheet.dart';
 
 enum _OfferTab { all, retail, combo }
 
@@ -21,6 +22,7 @@ class _OfferScreenState extends State<OfferScreen> {
   var _selectedTab = _OfferTab.all;
   var _isSearching = false;
   var _searchText = '';
+  var _selectedMedia = 'ebook';
   List<_OfferBook> _books = const [];
 
   List<_OfferBook> get _sourceBooks {
@@ -32,14 +34,17 @@ class _OfferScreenState extends State<OfferScreen> {
     final books = _sourceBooks
         .where((book) {
           if (_searchText.isEmpty) return true;
-          return _matches(book.title, _searchText);
+          return _matches('${book.title} ${book.sourceUrl}', _searchText);
         })
         .toList(growable: false);
 
+    final mediaBooks = books
+        .where((book) => book.mediaType == _selectedMedia)
+        .toList(growable: false);
     return switch (_selectedTab) {
-      _OfferTab.all => books,
-      _OfferTab.retail => books.where((book) => !book.isCombo).toList(),
-      _OfferTab.combo => books.where((book) => book.isCombo).toList(),
+      _OfferTab.all => mediaBooks,
+      _OfferTab.retail => mediaBooks.where((book) => !book.isCombo).toList(),
+      _OfferTab.combo => mediaBooks.where((book) => book.isCombo).toList(),
     };
   }
 
@@ -47,7 +52,7 @@ class _OfferScreenState extends State<OfferScreen> {
       _filteredBooks.where((book) => !book.isCombo).take(12).toList();
 
   List<_OfferBook> get _comboBooks =>
-      _filteredBooks.where((book) => book.isCombo).take(12).toList();
+      _filteredBooks.where((book) => book.isCombo).take(24).toList();
 
   @override
   void initState() {
@@ -135,18 +140,26 @@ class _OfferScreenState extends State<OfferScreen> {
                 if (showRetail && _retailBooks.isNotEmpty) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 34)),
                   SliverToBoxAdapter(
-                    child: _OfferShelf(
-                      title: 'Sách hay giá tốt',
+                    child: _OfferCatalog(
+                      title: 'Tất cả danh mục',
                       books: _retailBooks,
+                      sortLabel: 'Bán chạy',
+                      selectedMedia: _selectedMedia,
+                      onMediaChanged: (value) =>
+                          setState(() => _selectedMedia = value),
                     ),
                   ),
                 ],
                 if (showCombo && _comboBooks.isNotEmpty) ...[
                   const SliverToBoxAdapter(child: SizedBox(height: 36)),
                   SliverToBoxAdapter(
-                    child: _OfferShelf(
-                      title: 'Combo bán chạy',
+                    child: _OfferCatalog(
+                      title: 'Tất cả combo',
                       books: _comboBooks,
+                      sortLabel: 'Mới nhất',
+                      selectedMedia: _selectedMedia,
+                      onMediaChanged: (value) =>
+                          setState(() => _selectedMedia = value),
                     ),
                   ),
                 ],
@@ -531,30 +544,36 @@ class _FlashSaleCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 22),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              book.oldPrice,
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.55),
-                fontSize: 25,
-                decoration: TextDecoration.lineThrough,
-                decorationColor: Colors.white.withValues(alpha: 0.64),
-                fontWeight: FontWeight.w500,
+        // PageView cho carousel này chỉ cấp ~0.58 chiều rộng màn hình, nên hai
+        // mức giá cỡ chữ lớn cạnh nhau dễ tràn ra ngoài Row — FittedBox co lại
+        // vừa khung thay vì để tràn (đã thấy tràn ~158px khi chạy widget test).
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                book.oldPrice,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.55),
+                  fontSize: 25,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: Colors.white.withValues(alpha: 0.64),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              book.price,
-              style: const TextStyle(
-                color: Color(0xFFFF3D72),
-                fontSize: 31,
-                fontWeight: FontWeight.w900,
-                height: 1,
+              const SizedBox(width: 12),
+              Text(
+                book.price,
+                style: const TextStyle(
+                  color: Color(0xFFFF3D72),
+                  fontSize: 31,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         Text(
@@ -570,21 +589,39 @@ class _FlashSaleCard extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF20E59F), Color(0xFF12B892)],
+        GestureDetector(
+          onTap: () => showDigitalBookPurchase(
+            context,
+            DigitalPurchaseItem(
+              productId: digitalProductIdForBook(book.title),
+              title: book.title,
+              price: book.price,
+              imageUrl: book.imageUrl,
+              colors: book.colors,
+              icon: book.isCombo
+                  ? Icons.collections_bookmark_rounded
+                  : Icons.menu_book_rounded,
+              includedTitles: book.isCombo
+                  ? _comboContentsFor(book.title)
+                  : const [],
             ),
-            borderRadius: BorderRadius.circular(999),
           ),
-          child: const Text(
-            'MUA NGAY',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 21,
-              fontWeight: FontWeight.w800,
-              height: 1,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 12),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF20E59F), Color(0xFF12B892)],
+              ),
+              borderRadius: BorderRadius.circular(999),
+            ),
+            child: const Text(
+              'MUA NGAY',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 21,
+                fontWeight: FontWeight.w800,
+                height: 1,
+              ),
             ),
           ),
         ),
@@ -823,11 +860,20 @@ class _PlanCard extends StatelessWidget {
   }
 }
 
-class _OfferShelf extends StatelessWidget {
-  const _OfferShelf({required this.title, required this.books});
+class _OfferCatalog extends StatelessWidget {
+  const _OfferCatalog({
+    required this.title,
+    required this.books,
+    required this.sortLabel,
+    required this.selectedMedia,
+    required this.onMediaChanged,
+  });
 
   final String title;
   final List<_OfferBook> books;
+  final String sortLabel;
+  final String selectedMedia;
+  final ValueChanged<String> onMediaChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -836,46 +882,104 @@ class _OfferShelf extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _MediaChip(
+                  label: 'Sách điện tử',
+                  selected: selectedMedia == 'ebook',
+                  onTap: () => onMediaChanged('ebook'),
+                ),
+                const SizedBox(width: 10),
+                _MediaChip(
+                  label: 'Sách nói',
+                  selected: selectedMedia == 'audio',
+                  onTap: () => onMediaChanged('audio'),
+                ),
+                const SizedBox(width: 10),
+                _MediaChip(
+                  label: 'Sách tương tác',
+                  selected: selectedMedia == 'interactive',
+                  onTap: () => onMediaChanged('interactive'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 30,
+                    fontSize: 25,
                     fontWeight: FontWeight.w900,
-                    height: 1,
                   ),
                 ),
               ),
-              const Icon(
-                Icons.chevron_right_rounded,
-                color: Colors.white,
-                size: 38,
+              Text(
+                sortLabel,
+                style: const TextStyle(color: Colors.white54, fontSize: 20),
               ),
+              const SizedBox(width: 5),
+              const Icon(Icons.tune_rounded, color: Colors.white70, size: 23),
             ],
           ),
         ),
-        const SizedBox(height: 22),
-        SizedBox(
-          height: 300,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: books.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              return _OfferBookCard(book: books[index]);
-            },
+        const SizedBox(height: 18),
+        GridView.builder(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: books.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 22,
+            mainAxisExtent: 300,
           ),
+          itemBuilder: (context, index) => _OfferBookCard(book: books[index]),
         ),
       ],
     );
   }
+}
+
+class _MediaChip extends StatelessWidget {
+  const _MediaChip({
+    required this.label,
+    required this.onTap,
+    this.selected = false,
+  });
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(999),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 9),
+      decoration: BoxDecoration(
+        color: selected ? Colors.white : const Color(0xFF29292E),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: selected ? Colors.black : Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    ),
+  );
 }
 
 class _OfferBookCard extends StatelessWidget {
@@ -885,16 +989,31 @@ class _OfferBookCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
+    return InkWell(
+      onTap: () => showDigitalBookPurchase(
+        context,
+        DigitalPurchaseItem(
+          productId: digitalProductIdForBook(book.title),
+          title: book.title,
+          price: book.price,
+          imageUrl: book.imageUrl,
+          colors: book.colors,
+          icon: book.isCombo
+              ? Icons.collections_bookmark_rounded
+              : Icons.menu_book_rounded,
+          includedTitles: book.isCombo
+              ? _comboContentsFor(book.title)
+              : const [],
+        ),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Stack(
             children: [
               SizedBox(
-                height: 195,
-                width: 150,
+                height: 220,
+                width: double.infinity,
                 child: _OfferCover(book: book, borderRadius: 4),
               ),
               Positioned(
@@ -942,7 +1061,7 @@ class _OfferBookCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: 18,
               fontWeight: FontWeight.w500,
               height: 1.16,
             ),
@@ -1103,7 +1222,9 @@ class _OfferBook {
     required this.discount,
     required this.colors,
     this.imageUrl = '',
+    this.sourceUrl = '',
     this.isCombo = false,
+    this.mediaType = 'ebook',
   });
 
   final String title;
@@ -1112,7 +1233,9 @@ class _OfferBook {
   final String discount;
   final List<Color> colors;
   final String imageUrl;
+  final String sourceUrl;
   final bool isCombo;
+  final String mediaType;
 }
 
 List<_OfferBook> _mapBooksToOffers(List<WakaScrapedBook> books) {
@@ -1133,12 +1256,14 @@ List<_OfferBook> _mapBooksToOffers(List<WakaScrapedBook> books) {
         discount: '-${[25, 21, 20, 15, 9, 30][index % 6]}%',
         colors: _offerColors(book.title),
         imageUrl: book.imageUrl,
+        sourceUrl: book.url,
         isCombo: isCombo,
+        mediaType: _mediaTypeFor(book),
       ),
     );
   }
 
-  final result = [...mapped];
+  final result = [..._officialComboBooks, ...mapped];
   for (final fallback in _fallbackOfferBooks) {
     if (result.length >= 36) break;
     if (result.any(
@@ -1149,6 +1274,37 @@ List<_OfferBook> _mapBooksToOffers(List<WakaScrapedBook> books) {
     result.add(fallback);
   }
   return result;
+}
+
+String _mediaTypeFor(WakaScrapedBook book) {
+  final value = _normalize('${book.section} ${book.title}');
+  if (value.contains('sach noi') || value.contains('audio')) return 'audio';
+  if (value.contains('tuong tac') || value.contains('hieu soi')) {
+    return 'interactive';
+  }
+  return 'ebook';
+}
+
+List<String> _comboContentsFor(String title) {
+  final value = _normalize(title);
+  if (value.contains('ban hang')) {
+    return const [
+      'Nghệ thuật bán hàng đỉnh cao',
+      'Tâm lý học trong bán hàng',
+      'Chốt sale hiệu quả',
+    ];
+  }
+  if (value.contains('trinh tham') || value.contains('hinh su')) {
+    return const ['Phía sau vụ án', 'Bản án ngầm', 'Hồ sơ tội phạm'];
+  }
+  if (value.contains('manifest')) {
+    return const ['Manifest', 'Luật hấp dẫn', 'Đánh thức tiềm năng'];
+  }
+  return const [
+    'Sách tuyển chọn 01',
+    'Sách tuyển chọn 02',
+    'Sách tuyển chọn 03',
+  ];
 }
 
 bool _looksLikeCombo(String title, int index) {
@@ -1206,6 +1362,214 @@ String _normalize(String value) {
 bool _matches(String value, String query) {
   return _normalize(value).contains(_normalize(query));
 }
+
+const _officialComboBooks = [
+  _OfferBook(
+    title: 'Nghệ thuật bán hàng đỉnh cao',
+    price: '99.000đ',
+    oldPrice: '456.000đ',
+    discount: '-78%',
+    colors: [Color(0xFF0876C8), Color(0xFFFFA51C)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/574_1.jpg?v=1&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/nghe-thuat-ban-hang-dinh-cao-xxg',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo trinh thám hình sự hay nhất',
+    price: '199.000đ',
+    oldPrice: '298.000đ',
+    discount: '-33%',
+    colors: [Color(0xFF09121D), Color(0xFF92282A)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/571_1.jpg?v=5&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-trinh-tham-hinh-su-hay-nhat-AGp',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: '“Manifest” sao cho đúng?',
+    price: '147.000đ',
+    oldPrice: '297.000đ',
+    discount: '-51%',
+    colors: [Color(0xFFFFBBD8), Color(0xFFFFF1B8)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/568_1.jpg?v=1&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/manifest-sao-cho-dung-nghe-thuat-thuc-tinh-va-tro-chuyen-voi-tam-tri-8W1',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Mùa nhảy việc - Sách nên đọc trước khi nhảy việc',
+    price: '99.000đ',
+    oldPrice: '774.000đ',
+    discount: '-87%',
+    colors: [Color(0xFFFFF6E7), Color(0xFFF1B177)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/562_1.jpg?v=2&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/mua-nhay-viec-nhung-cuon-sach-nen-doc-truoc-khi-nhay-viec-2V7',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Thỏ ơi',
+    price: '79.000đ',
+    oldPrice: '785.000đ',
+    discount: '-90%',
+    colors: [Color(0xFF171717), Color(0xFFE33444)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/556_1.jpg?v=1&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/tho-oi-1gl',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo Nâng niu nàng',
+    price: '99.000đ',
+    oldPrice: '594.000đ',
+    discount: '-83%',
+    colors: [Color(0xFFF7CDD9), Color(0xFF9D315D)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/553_1.jpg?v=4&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-nang-niu-nang-na1',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo Hiểu mình - Sống vững - Yêu đúng',
+    price: '199.000đ',
+    oldPrice: '940.000đ',
+    discount: '-79%',
+    colors: [Color(0xFF173D49), Color(0xFF72C5A7)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/550_1.jpg?v=1&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-hieu-minh-song-vung-yeu-dung-GM2',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Cảm ơn bạn đã không bỏ cuộc!',
+    price: '199.000đ',
+    oldPrice: '550.000đ',
+    discount: '-64%',
+    colors: [Color(0xFFF17D4C), Color(0xFF5A1827)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/547_1.jpg?v=2&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/combo-2025-cam-on-ban-da-khong-bo-cuoc-a6V',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo cổ đại trùng sinh',
+    price: '399.000đ',
+    oldPrice: '3.600.000đ',
+    discount: '-89%',
+    colors: [Color(0xFF411C30), Color(0xFFD2A45C)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/523_1.jpg?v=3&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-co-dai-trung-sinh-dpa',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo thiên kim đại chiến',
+    price: '299.000đ',
+    oldPrice: '1.497.000đ',
+    discount: '-80%',
+    colors: [Color(0xFF29162C), Color(0xFFD19A55)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/520_1.jpg?v=2&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-thien-kim-dai-chien-L4D',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo truyện sắc sủng',
+    price: '399.000đ',
+    oldPrice: '3.981.000đ',
+    discount: '-90%',
+    colors: [Color(0xFF53192B), Color(0xFFE59B9C)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/517_1.jpg?v=2&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-truyen-sac-sung-6el',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo truyện tình một đêm 419',
+    price: '399.000đ',
+    oldPrice: '4.000.000đ',
+    discount: '-90%',
+    colors: [Color(0xFF251326), Color(0xFFC45577)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/514_1.jpg?v=2&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-truyen-tinh-mot-dem-419-Knz',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo truyện ngược trước sủng sau',
+    price: '299.000đ',
+    oldPrice: '1.980.000đ',
+    discount: '-85%',
+    colors: [Color(0xFF3D2239), Color(0xFFE7A3B6)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/511_1.jpg?v=2&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-truyen-nguoc-truoc-sung-sau-3er',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo truyện nữ cường',
+    price: '399.000đ',
+    oldPrice: '4.972.000đ',
+    discount: '-92%',
+    colors: [Color(0xFF241838), Color(0xFFB078B9)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/508_1.jpg?v=4&w=400&h=400',
+    sourceUrl: 'https://waka.vn/combo/combo-truyen-nu-cuong-ln1',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo truyện trinh thám kinh dị',
+    price: '499.000đ',
+    oldPrice: '1.635.000đ',
+    discount: '-69%',
+    colors: [Color(0xFF09141D), Color(0xFF791E29)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/505_1.jpg?v=2&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/kinh-hoang-den-nghet-tho-combo-truyen-trinh-tham-kinh-di-duoc-san-lung-nhat-hien-nay-Np3',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo Bứt phá giới hạn bản thân',
+    price: '399.000đ',
+    oldPrice: '1.640.000đ',
+    discount: '-76%',
+    colors: [Color(0xFF1D3546), Color(0xFF39A3A5)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/502_1.jpg?v=1&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/combo-sach-but-pha-gioi-han-ban-than-vu-khi-chinh-phuc-moi-thu-thach-YEd',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Combo Phát triển bản thân - Tái tạo năng lượng',
+    price: '199.000đ',
+    oldPrice: '671.000đ',
+    discount: '-70%',
+    colors: [Color(0xFF234B45), Color(0xFFE5B65A)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/499_1.jpg?v=1&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/combo-sach-phat-trien-ban-than-tai-tao-nang-luong-3eV',
+    isCombo: true,
+  ),
+  _OfferBook(
+    title: 'Bộ sách 8 cuốn Kinh Luận',
+    price: '499.000đ',
+    oldPrice: '1.212.000đ',
+    discount: '-59%',
+    colors: [Color(0xFF45341E), Color(0xFFD0AA5D)],
+    imageUrl:
+        'https://307a0e78.vws.vegacdn.vn/view/v2/image/img.combo/0/0/0/496_1.jpg?v=2&w=400&h=400',
+    sourceUrl:
+        'https://waka.vn/combo/bo-sach-8-cuon-kinh-luan-cua-thay-thich-long-vien-lnQ',
+    isCombo: true,
+  ),
+];
 
 const _fallbackOfferBooks = [
   _OfferBook(

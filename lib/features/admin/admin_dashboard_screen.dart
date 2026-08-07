@@ -1321,13 +1321,16 @@ class _AdminPaymentCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 7),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
                 '${payment.provider.toUpperCase()} · ${_formatDate(payment.createdAt)}',
                 style: const TextStyle(color: Colors.white54),
               ),
-              const Spacer(),
               Text(
                 _money(payment.amount),
                 style: const TextStyle(
@@ -2196,9 +2199,27 @@ class _AdminBookCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final fallback = Container(
-      color: const Color(0xFF263A36),
+      padding: const EdgeInsets.all(6),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF214E45), Color(0xFF102421)],
+        ),
+      ),
       alignment: Alignment.center,
-      child: const Icon(Icons.auto_stories_rounded, color: WakaColors.accent),
+      child: Text(
+        book.title.trim().split(RegExp(r'\s+')).take(3).join('\n'),
+        maxLines: 3,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 9,
+          height: 1.05,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
     return Container(
       width: width,

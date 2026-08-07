@@ -186,21 +186,6 @@ class _ShopScreenState extends State<ShopScreen> {
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 22)),
               ],
-              if (_searchText.isEmpty) ...[
-                SliverToBoxAdapter(
-                  child: _ShopSectionTitle(
-                    title: 'Mã khuyến mại HOT',
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const ShopCouponScreen(),
-                      ),
-                    ),
-                  ),
-                ),
-                const SliverToBoxAdapter(child: SizedBox(height: 12)),
-                const SliverToBoxAdapter(child: _CouponList()),
-                const SliverToBoxAdapter(child: SizedBox(height: 24)),
-              ],
               if (_filteredSellers.isNotEmpty) ...[
                 SliverToBoxAdapter(
                   child: _ShopSectionTitle(
@@ -437,21 +422,21 @@ class _ShopHeader extends StatelessWidget {
     return SizedBox(
       height: ShopLayout.headerHeight,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        padding: const EdgeInsets.fromLTRB(12, 15, 12, 7),
         child: Row(
           children: [
             IconButton(
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 32),
+              constraints: const BoxConstraints.tightFor(width: 38),
               onPressed: () => _openCategoryScreen(context),
               icon: const Icon(
                 Icons.grid_view_rounded,
                 color: Colors.white,
-                size: 26,
+                size: 31,
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 10),
             Expanded(
               child: Container(
                 height: ShopLayout.searchHeight,
@@ -476,7 +461,7 @@ class _ShopHeader extends StatelessWidget {
                         textInputAction: TextInputAction.search,
                         style: const TextStyle(
                           color: Colors.black87,
-                          fontSize: 14,
+                          fontSize: 17,
                           fontWeight: FontWeight.w400,
                           height: 1,
                         ),
@@ -484,7 +469,7 @@ class _ShopHeader extends StatelessWidget {
                           hintText: 'Nhập tên sản phẩm',
                           hintStyle: TextStyle(
                             color: Color(0xFF9FA0A4),
-                            fontSize: 14,
+                            fontSize: 17,
                             fontWeight: FontWeight.w400,
                             height: 1,
                           ),
@@ -510,7 +495,7 @@ class _ShopHeader extends StatelessWidget {
             IconButton(
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 32),
+              constraints: const BoxConstraints.tightFor(width: 38),
               onPressed: onCart,
               icon: ValueListenableBuilder<int>(
                 valueListenable: shopCartItemCount,
@@ -520,7 +505,7 @@ class _ShopHeader extends StatelessWidget {
                     const Icon(
                       Icons.shopping_cart_outlined,
                       color: Colors.white,
-                      size: 25,
+                      size: 29,
                     ),
                     if (itemCount > 0)
                       Positioned(
@@ -553,12 +538,12 @@ class _ShopHeader extends StatelessWidget {
             IconButton(
               visualDensity: VisualDensity.compact,
               padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 32),
+              constraints: const BoxConstraints.tightFor(width: 38),
               onPressed: onChat,
               icon: const Icon(
                 Icons.chat_bubble_outline_rounded,
                 color: Colors.white,
-                size: 25,
+                size: 29,
               ),
             ),
           ],
@@ -651,14 +636,14 @@ class _CategoryList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 124,
+      height: 154,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(
           horizontal: ShopLayout.horizontalPadding,
         ),
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 14),
+        separatorBuilder: (_, _) => const SizedBox(width: 16),
         itemBuilder: (context, index) => _CategoryItem(
           categories[index],
           onTap: () => Navigator.of(context).push(
@@ -686,7 +671,7 @@ class _CategoryItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 72,
+        width: 90,
         child: Column(
           children: [
             Container(
@@ -757,117 +742,6 @@ class _CategoryItem extends StatelessWidget {
   }
 }
 
-class _CouponList extends StatelessWidget {
-  const _CouponList();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: ShopLayout.couponHeight,
-      child: ListView.separated(
-        padding: EdgeInsets.zero,
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        separatorBuilder: (_, _) => const SizedBox(width: 10),
-        itemBuilder: (context, index) => _CouponCard(index: index),
-      ),
-    );
-  }
-}
-
-class _CouponCard extends StatelessWidget {
-  const _CouponCard({required this.index});
-
-  final int index;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 250,
-      child: Row(
-        children: [
-          Container(
-            width: 70,
-            height: double.infinity,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFFF7E90), Color(0xFFFF5969)],
-              ),
-            ),
-            child: const Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.local_shipping_outlined,
-                  color: Colors.white,
-                  size: 28,
-                ),
-                SizedBox(height: 5),
-                Text(
-                  'MÃ VẬN\nCHUYỂN',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    height: 1.12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: Container(
-              height: double.infinity,
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-              color: WakaColors.elevatedSoft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    index == 0
-                        ? 'Giảm 20K phí vận\nchuyển, đơn tối thi...'
-                        : 'Giảm phí vận\nchuyển toàn quốc',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      height: 1.12,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    index == 0 ? 'Đã dùng 2%' : 'Ngày hết hạn\n06/01',
-                    maxLines: 2,
-                    style: const TextStyle(
-                      color: WakaColors.mutedText,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      height: 1.12,
-                    ),
-                  ),
-                  const Spacer(),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      minHeight: 5,
-                      value: index == 0 ? 0.02 : 0.2,
-                      color: const Color(0xFFFF2B6C),
-                      backgroundColor: const Color(0xFF111113),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _SellerList extends StatelessWidget {
   const _SellerList({required this.sellers});
 
@@ -876,14 +750,14 @@ class _SellerList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 112,
+      height: 142,
       child: ListView.separated(
         padding: const EdgeInsets.symmetric(
           horizontal: ShopLayout.horizontalPadding,
         ),
         scrollDirection: Axis.horizontal,
         itemCount: sellers.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 12),
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (context, index) => _SellerItem(sellers[index]),
       ),
     );
@@ -898,7 +772,7 @@ class _SellerItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 72,
+      width: 92,
       child: Column(
         children: [
           Container(

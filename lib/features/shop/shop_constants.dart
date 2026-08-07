@@ -2,29 +2,29 @@ import 'package:flutter/material.dart';
 
 abstract final class ShopLayout {
   static const double horizontalPadding = 12;
-  static const double headerHeight = 64;
-  static const double searchHeight = 36;
-  static const double categoryAvatarSize = 64;
-  static const double sellerAvatarSize = 64;
+  static const double headerHeight = 78;
+  static const double searchHeight = 44;
+  static const double categoryAvatarSize = 82;
+  static const double sellerAvatarSize = 82;
   static const double couponHeight = 104;
-  static const double topProductWidth = 126;
-  static const double topProductListHeight = 260;
-  static const double topProductImageHeight = 132;
-  static const double suggestedImageHeight = 180;
-  static const double suggestedProductCardHeight = 320;
-  static const double categoryScreenItemHeight = 145;
-  static const double categoryScreenImageSize = 74;
+  static const double topProductWidth = 154;
+  static const double topProductListHeight = 304;
+  static const double topProductImageHeight = 172;
+  static const double suggestedImageHeight = 205;
+  static const double suggestedProductCardHeight = 354;
+  static const double categoryScreenItemHeight = 168;
+  static const double categoryScreenImageSize = 86;
 }
 
 abstract final class ShopFontSizes {
-  static const double sectionTitle = 22;
-  static const double categoryLabel = 14;
-  static const double sellerLabel = 13;
-  static const double productTitle = 15;
-  static const double price = 18;
+  static const double sectionTitle = 27;
+  static const double categoryLabel = 15;
+  static const double sellerLabel = 14;
+  static const double productTitle = 16;
+  static const double price = 19;
   static const double oldPrice = 13;
   static const double sold = 12;
-  static const double categoryScreenLabel = 14;
+  static const double categoryScreenLabel = 16;
 }
 
 abstract final class ShopAssets {
@@ -149,29 +149,52 @@ const shopStationeryCategories = [
     label: 'Sổ tay các\nloại',
     colors: [Color(0xFF55E0D5), Color(0xFFF7F7F7), Color(0xFF1D2735)],
     bookColor: Color(0xFFF3E8D9),
+    imageAsset: 'assets/images/shop_category_reference.jpg',
   ),
   ShopCategory(
     label: 'Quà lưu\nniệm',
     colors: [Color(0xFF1E3726), Color(0xFF5C815A), Color(0xFFC3D5A9)],
     bookColor: Color(0xFF365C3D),
+    imageAsset: 'assets/images/shop_category_children.png',
   ),
   ShopCategory(
     label: 'Thiết bị\ngiáo dục',
     colors: [Color(0xFFFFFFFF), Color(0xFFF6F6F6)],
     bookColor: Color(0xFFDDDDDD),
+    imageAsset: 'assets/images/shop_category_education.jpg',
   ),
 ];
 
 const shopSellers = [
   ShopSeller(
+    name: 'Nhà sách\nWaka',
+    logo: 'WAKA\nSHOP',
+    colors: [Color(0xFFFFFFFF), Color(0xFFEAFBF5)],
+  ),
+  ShopSeller(
+    name: 'Evebooks',
+    logo: 'eve\nBOOKS',
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
+  ),
+  ShopSeller(
+    name: 'Etabooks',
+    logo: 'ETA\nBOOKS',
+    colors: [Color(0xFFE9E0D5), Color(0xFFA99988)],
+  ),
+  ShopSeller(
+    name: 'Akibooks\nOfficial',
+    logo: 'AKI',
+    colors: [Color(0xFF6D342C), Color(0xFFF1A785)],
+  ),
+  ShopSeller(
+    name: 'Carobooks',
+    logo: 'CARO\nBOOKS',
+    colors: [Color(0xFFFFF2C9), Color(0xFFFFC99E)],
+  ),
+  ShopSeller(
     name: 'San Hô\nBooks',
     logo: 'SAN HÔ\nBOOKS',
     colors: [Color(0xFFFFFFFF), Color(0xFFE8F3F6)],
-  ),
-  ShopSeller(
-    name: 'Waka.vn',
-    logo: 'WAKA',
-    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
   ),
   ShopSeller(
     name: 'Tiệm sách\nSói',
