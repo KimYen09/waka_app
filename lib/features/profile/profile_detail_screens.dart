@@ -742,7 +742,30 @@ class _AddressBookScreenState extends State<AddressBookScreen> {
   Future<void> _load() async {
     try {
       final ownerKey = AuthSession.current?.user.id.toString() ?? 'guest';
-      final address = await widget.store.read(ownerKey);
+      var address = await widget.store.read(ownerKey);
+      if (address == null) {
+        final orders = await const CommerceApiService().getOrders();
+        for (final order in orders) {
+          if (order.shippingAddress.trim().isEmpty) continue;
+          address = ShopShippingAddress(
+            recipient: order.shippingRecipient,
+            phone: order.shippingPhone,
+            provinceCode: 0,
+            province: '',
+            districtCode: 0,
+            district: '',
+            wardCode: 0,
+            ward: '',
+            streetAddress: order.shippingAddress,
+          );
+          try {
+            await widget.store.write(ownerKey, address);
+          } on Object {
+            // Vẫn hiển thị địa chỉ từ đơn hàng nếu lưu local thất bại.
+          }
+          break;
+        }
+      }
       if (!mounted) return;
       setState(() {
         _address = address;

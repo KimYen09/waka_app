@@ -76,7 +76,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               bookId: item.bookId,
               title: item.title,
               subtitle: 'Số lượng ${item.quantity}',
-              imageUrl: '',
+              imageUrl: item.imageUrl,
             ),
           );
         }
@@ -130,9 +130,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     if (_selectedTab == 0) {
       await Navigator.of(context).push<void>(
-        MaterialPageRoute<void>(
-          builder: (_) => ReaderScreen(book: bookData),
-        ),
+        MaterialPageRoute<void>(builder: (_) => ReaderScreen(book: bookData)),
       );
     } else {
       await Navigator.of(context).push<void>(
@@ -287,8 +285,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
     final books = _selectedTab == 1
         ? _purchased
         : _selectedTab == 2
-            ? _favorites
-            : _downloaded;
+        ? _favorites
+        : _downloaded;
     if (books.isEmpty) {
       final (icon, message) = switch (_selectedTab) {
         1 => (
@@ -307,7 +305,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
         ),
       };
       return [
-        SliverToBoxAdapter(child: _LibraryNotice(icon: icon, message: message)),
+        SliverToBoxAdapter(
+          child: _LibraryNotice(icon: icon, message: message),
+        ),
       ];
     }
 
@@ -763,10 +763,7 @@ class _LibraryBookCard extends StatelessWidget {
             book.subtitle,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: WakaColors.mutedText,
-              fontSize: 11.5,
-            ),
+            style: const TextStyle(color: WakaColors.mutedText, fontSize: 11.5),
           ),
         ],
       ),
