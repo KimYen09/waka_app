@@ -17,7 +17,9 @@ import 'profile_constants.dart';
 import '../ai_assistant/ai_assistant_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.refreshVersion = 0});
+
+  final int refreshVersion;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -35,6 +37,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void initState() {
     super.initState();
     _loadOrderCounts();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProfileScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.refreshVersion != widget.refreshVersion) {
+      _loadOrderCounts();
+    }
   }
 
   Future<void> _loadOrderCounts() async {
@@ -1454,8 +1464,9 @@ class _LogoutButton extends StatelessWidget {
         horizontal: ProfileLayout.horizontalPadding,
       ),
       child: GestureDetector(
-        onTap: () {
-          AuthSession.clear();
+        onTap: () async {
+          await AuthSession.clear();
+          if (!context.mounted) return;
           AppNavigation.replaceAll(context, const WelcomeScreen());
         },
         behavior: HitTestBehavior.opaque,

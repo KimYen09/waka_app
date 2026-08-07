@@ -58,6 +58,7 @@ class WakaShell extends StatefulWidget {
 
 class _WakaShellState extends State<WakaShell> {
   int _selectedIndex = 0;
+  int _profileRefreshVersion = 0;
   bool _didRequestStartupPromotion = false;
 
   @override
@@ -93,7 +94,7 @@ class _WakaShellState extends State<WakaShell> {
       const ExploreScreen(),
       const LibraryScreen(),
 
-      const ProfileScreen(),
+      ProfileScreen(refreshVersion: _profileRefreshVersion),
     ];
 
     return PopScope(
@@ -113,7 +114,10 @@ class _WakaShellState extends State<WakaShell> {
         body: IndexedStack(index: _selectedIndex, children: pages),
         bottomNavigationBar: WakaBottomNav(
           selectedIndex: _selectedIndex,
-          onChanged: (index) => setState(() => _selectedIndex = index),
+          onChanged: (index) => setState(() {
+            _selectedIndex = index;
+            if (index == 5) _profileRefreshVersion++;
+          }),
         ),
       ),
     );

@@ -175,16 +175,16 @@ class CommerceOrderItem {
   const CommerceOrderItem({
     required this.bookId,
     required this.title,
+    required this.imageUrl,
     required this.quantity,
     required this.unitPrice,
-    this.imageUrl = '',
   });
 
   final int bookId;
   final String title;
+  final String imageUrl;
   final int quantity;
   final num unitPrice;
-  final String imageUrl;
 }
 
 class CommerceOrder {
@@ -198,6 +198,7 @@ class CommerceOrder {
     required this.itemCount,
     required this.items,
     required this.shippingRecipient,
+    required this.shippingPhone,
     required this.shippingAddress,
     required this.shippingEvents,
   });
@@ -211,6 +212,7 @@ class CommerceOrder {
   final int itemCount;
   final List<CommerceOrderItem> items;
   final String shippingRecipient;
+  final String shippingPhone;
   final String shippingAddress;
   final List<CommerceShippingEvent> shippingEvents;
 }
@@ -620,16 +622,12 @@ class CommerceApiService {
     );
 
     try {
-      await client.postJson(
-        Uri.parse(ApiEndpoints.apiDownloads),
-        {
-          'bookId': bookId,
-          if (title != null && title.isNotEmpty) 'title': title,
-          if (author != null && author.isNotEmpty) 'author': author,
-          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-        },
-        bearerToken: await _getToken,
-      );
+      await client.postJson(Uri.parse(ApiEndpoints.apiDownloads), {
+        'bookId': bookId,
+        if (title != null && title.isNotEmpty) 'title': title,
+        if (author != null && author.isNotEmpty) 'author': author,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+      }, bearerToken: await _getToken);
     } on Object catch (e) {
       debugPrint('addDownload warning: $e');
     }
@@ -642,9 +640,7 @@ class CommerceApiService {
     }
     try {
       final uri = Uri.parse('${ApiEndpoints.apiDownloads}/$bookId').replace(
-        queryParameters: {
-          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
-        },
+        queryParameters: {if (resolvedTitle.isNotEmpty) 'title': resolvedTitle},
       );
       await client.deleteJson(uri, bearerToken: await _getToken);
     } on Object catch (e) {
@@ -671,17 +667,13 @@ class CommerceApiService {
     );
 
     try {
-      await client.postJson(
-        Uri.parse(ApiEndpoints.apiProgress),
-        {
-          'bookId': bookId,
-          'currentPage': page,
-          if (title != null && title.isNotEmpty) 'title': title,
-          if (author != null && author.isNotEmpty) 'author': author,
-          if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
-        },
-        bearerToken: await _getToken,
-      );
+      await client.postJson(Uri.parse(ApiEndpoints.apiProgress), {
+        'bookId': bookId,
+        'currentPage': page,
+        if (title != null && title.isNotEmpty) 'title': title,
+        if (author != null && author.isNotEmpty) 'author': author,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
+      }, bearerToken: await _getToken);
     } on Object catch (e) {
       debugPrint('saveReadingProgress warning: $e');
     }
@@ -691,14 +683,9 @@ class CommerceApiService {
     final resolvedTitle = title ?? '';
     try {
       final uri = Uri.parse('${ApiEndpoints.apiProgress}/$bookId').replace(
-        queryParameters: {
-          if (resolvedTitle.isNotEmpty) 'title': resolvedTitle,
-        },
+        queryParameters: {if (resolvedTitle.isNotEmpty) 'title': resolvedTitle},
       );
-      final response = await client.getJson(
-        uri,
-        bearerToken: await _getToken,
-      );
+      final response = await client.getJson(uri, bearerToken: await _getToken);
       final data = response['data'];
       if (data is Map<String, Object?>) {
         final page = data['currentPage'];
@@ -709,12 +696,12 @@ class CommerceApiService {
       debugPrint('getReadingProgress warning: $e');
     }
 
-    if (resolvedTitle.isNotEmpty && _fallbackProgressMap.containsKey(resolvedTitle)) {
+    if (resolvedTitle.isNotEmpty &&
+        _fallbackProgressMap.containsKey(resolvedTitle)) {
       return _fallbackProgressMap[resolvedTitle]?.currentPage;
     }
     return null;
   }
-
   Future<List<CommerceOrder>> getOrders() async {
     try {
       final response = await client.getJson(
@@ -740,13 +727,14 @@ class CommerceApiService {
                     (line) => CommerceOrderItem(
                       bookId: _int(line['bookId']),
                       title: line['title'] as String? ?? '',
+                      imageUrl: line['imageUrl'] as String? ?? '',
                       quantity: _int(line['quantity']),
                       unitPrice: _num(line['unitPrice']),
-                      imageUrl: line['imageUrl'] as String? ?? '',
                     ),
                   )
                   .toList(growable: false),
               shippingRecipient: item['shippingRecipient'] as String? ?? '',
+              shippingPhone: item['shippingPhone'] as String? ?? '',
               shippingAddress: item['shippingAddress'] as String? ?? '',
               shippingEvents:
                   (item['shippingEvents'] as List<Object?>? ?? const [])

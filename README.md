@@ -6,6 +6,11 @@ giỏ hàng, đơn hàng, gói hội viên, thanh toán VNPay, và trang quản 
 - Flutter app: `lib/`
 - Backend API: `backend/`
 
+> Xem [HUONG_DAN_SU_DUNG.md](HUONG_DAN_SU_DUNG.md) để đọc hướng dẫn đầy đủ từ
+> cài đặt, thao tác từng chức năng, vận hành backend/database đến xử lý lỗi.
+> Bản trình bày theo định dạng báo cáo nằm tại
+> [HUONG_DAN_SU_DUNG_BAO_CAO.md](HUONG_DAN_SU_DUNG_BAO_CAO.md).
+
 ---
 
 # Chạy lần đầu

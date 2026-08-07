@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../constants/api_endpoints.dart';
 import 'rest_api_client.dart';
 
@@ -27,14 +31,29 @@ class AuthResult {
 }
 
 abstract final class AuthSession {
+  static const _storage = FlutterSecureStorage();
+  static const _storageKey = 'waka_auth_session_v1';
+
   static AuthResult? current;
 
   static bool get isSignedIn => current != null;
 
-  static void clear() => current = null;
+  static Future<void> clear() async {
+    current = null;
+    try {
+      await _storage.delete(key: _storageKey);
+    } on Object {
+      // Đăng xuất trong RAM vẫn thành công nếu secure storage không khả dụng.
+    }
+  }
 
   static Future<AuthResult> ensureSession() async {
     if (current != null) return current!;
+    final restored = await _restore();
+    if (restored != null) {
+      current = restored;
+      return restored;
+    }
     try {
       final guestResult = await const AuthApiService().guestLogin();
       current = guestResult;
@@ -52,6 +71,52 @@ abstract final class AuthSession {
       current = fallback;
       return fallback;
     }
+  }
+
+  static Future<AuthResult?> _restore() async {
+    try {
+      final raw = await _storage.read(key: _storageKey);
+      if (raw == null || raw.isEmpty) return null;
+      final json = jsonDecode(raw);
+      if (json is! Map<String, Object?>) return null;
+      final token = json['token'];
+      final userJson = json['user'];
+      if (token is! String ||
+          token.isEmpty ||
+          userJson is! Map<String, Object?>) {
+        return null;
+      }
+      final id = (userJson['id'] as num?)?.toInt() ?? 0;
+      if (id <= 0) return null;
+      return AuthResult(
+        user: AuthUser(
+          id: id,
+          identifier: userJson['identifier'] as String? ?? '',
+          displayName: userJson['displayName'] as String?,
+          role: userJson['role'] as String? ?? 'reader',
+          accountStatus: userJson['accountStatus'] as String? ?? 'active',
+        ),
+        token: token,
+      );
+    } on Object {
+      return null;
+    }
+  }
+
+  static Future<void> persist(AuthResult result) {
+    return _storage.write(
+      key: _storageKey,
+      value: jsonEncode({
+        'token': result.token,
+        'user': {
+          'id': result.user.id,
+          'identifier': result.user.identifier,
+          'displayName': result.user.displayName,
+          'role': result.user.role,
+          'accountStatus': result.user.accountStatus,
+        },
+      }),
+    );
   }
 }
 
@@ -127,14 +192,13 @@ class AuthApiService {
     if (token == null || token.isEmpty) {
       throw const RestApiException('Vui lòng đăng nhập lại để đổi mật khẩu.');
     }
-    await client.postJson(
-      Uri.parse(ApiEndpoints.apiChangePassword),
-      {'oldPassword': oldPassword, 'newPassword': newPassword},
-      bearerToken: token,
-    );
+    await client.postJson(Uri.parse(ApiEndpoints.apiChangePassword), {
+      'oldPassword': oldPassword,
+      'newPassword': newPassword,
+    }, bearerToken: token);
   }
 
-  AuthResult _readAuthResult(Map<String, Object?> response) {
+  Future<AuthResult> _readAuthResult(Map<String, Object?> response) async {
     final data = response['data'];
     if (data is! Map<String, Object?>) {
       throw const RestApiException('Phản hồi đăng nhập không đúng định dạng.');
@@ -156,6 +220,7 @@ class AuthApiService {
       token: token,
     );
     AuthSession.current = result;
+    await AuthSession.persist(result);
     return result;
   }
 }
