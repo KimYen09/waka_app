@@ -6,7 +6,7 @@ import 'package:waka_demo/core/services/waka_discovery_store.dart';
 import 'package:waka_demo/features/admin/admin_api_service.dart';
 import 'package:waka_demo/features/admin/admin_dashboard_screen.dart';
 import 'package:waka_demo/features/home/home_screen.dart';
-import 'package:waka_demo/features/offer/offer_screen.dart';
+import 'package:waka_demo/features/offers/offer_screen.dart';
 import 'package:waka_demo/features/purchase/digital_purchase_sheet.dart';
 import 'package:waka_demo/features/reader/book_detail_screen.dart';
 import 'package:waka_demo/features/reader/reader_screen.dart';
@@ -392,25 +392,40 @@ void main() {
     expect(find.text('ƯU ĐÃI HỘI VIÊN'), findsNothing);
   });
 
-  testWidgets('offer book card opens the shared book detail screen', (
+  testWidgets('offer book card opens the digital purchase sheet', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(430, 932));
     addTearDown(() => tester.binding.setSurfaceSize(null));
+    // `_FlashSaleHero` chạy Timer.periodic đếm ngược liên tục nên
+    // pumpAndSettle() không bao giờ "ổn định" được — dùng pump() có thời
+    // lượng cố định thay vì chờ hết animation như các màn hình khác.
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
-        home: const Scaffold(body: OffersScreen()),
+        home: const Scaffold(body: OfferScreen()),
       ),
     );
+    await tester.pump(const Duration(milliseconds: 500));
 
     await tester.drag(find.byType(CustomScrollView), const Offset(0, -1600));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(HomeBookCard).first);
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    // Sách hiển thị đọc từ assets/data/books.json nên tựa đề là dữ liệu động,
+    // không thể chọn theo text cố định — tìm theo cấu trúc: thẻ sách trong
+    // lưới danh mục, không phải các InkWell khác của header/tab/chip.
+    await tester.tap(
+      find
+          .descendant(
+            of: find.byType(GridView),
+            matching: find.byType(InkWell),
+          )
+          .first,
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
 
-    expect(find.byType(BookDetailScreen), findsOneWidget);
-    expect(find.text('99.000đ'), findsWidgets);
+    expect(find.byType(DigitalPurchaseSheet), findsOneWidget);
+    expect(find.text('Mua sách điện tử'), findsOneWidget);
   });
 
   testWidgets('offer buy button opens the digital purchase sheet', (
@@ -421,7 +436,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         theme: ThemeData.dark(useMaterial3: true),
-        home: const Scaffold(body: OffersScreen()),
+        home: const Scaffold(body: OfferScreen()),
       ),
     );
 
