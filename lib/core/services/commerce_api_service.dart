@@ -377,46 +377,26 @@ class CommerceApiService {
     String paymentMethod = 'bank_qr',
     bool forceCancel = false,
   }) async {
-    try {
-      final response = await client.postJson(
-        Uri.parse(ApiEndpoints.apiMembershipPurchase),
-        {
+    final response = await client
+        .postJson(Uri.parse(ApiEndpoints.apiMembershipPurchase), {
           'planId': planId,
           'paymentMethod': paymentMethod,
-          'forceCancel': forceCancel,
           if (transactionRef != null && transactionRef.isNotEmpty)
             'transactionRef': transactionRef,
-        },
-        bearerToken: await _getToken,
-      );
-      final data = _dataMap(response);
-      return MembershipPurchaseResult(
-        membership: UserMembership(
-          id: _int(data['membershipId']),
-          status: data['status'] as String? ?? 'pending',
-          planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
-          startedAt: _date(data['startedAt']),
-          expiresAt: _date(data['expiresAt']),
-          planId: _int(data['planId']),
-          price: _num(data['price']),
-        ),
-        paymentUrl: data['paymentUrl'] as String?,
-      );
-    } on RestApiException catch (e) {
-      if (e.statusCode == 409 && e.responseBody != null) {
-        final body = e.responseBody!;
-        if (body['code'] == 'PENDING_ORDER_EXISTS') {
-          final data = body['data'] as Map<String, Object?>? ?? {};
-          throw CommercePendingOrderException(
-            message: e.message,
-            pendingId: _int(data['pendingId']),
-            paymentUrl: data['paymentUrl'] as String?,
-            expiresAt: data['expiresAt'] as String?,
-          );
-        }
-      }
-      rethrow;
-    }
+        }, bearerToken: await _getToken);
+    final data = _dataMap(response);
+    return MembershipPurchaseResult(
+      membership: UserMembership(
+        id: _int(data['membershipId']),
+        status: data['status'] as String? ?? 'pending',
+        planTitle: data['planTitle'] as String? ?? 'Gói hội viên',
+        startedAt: _date(data['startedAt']),
+        expiresAt: _date(data['expiresAt']),
+        planId: _int(data['planId']),
+        price: _num(data['price']),
+      ),
+      paymentUrl: data['paymentUrl'] as String?,
+    );
   }
 
   /// Hủy toàn bộ gói đang hoạt động và giao dịch đang chờ duyệt.
@@ -702,6 +682,7 @@ class CommerceApiService {
     }
     return null;
   }
+
   Future<List<CommerceOrder>> getOrders() async {
     try {
       final response = await client.getJson(

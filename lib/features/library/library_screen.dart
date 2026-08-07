@@ -90,7 +90,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 bookId: book.bookId,
                 title: book.title,
                 subtitle: book.author.isEmpty ? 'Waka' : book.author,
-                imageUrl: book.imageUrl,
+                imageUrl: _resolveBookCoverImage(book.bookId, book.title, book.imageUrl),
               ),
             )
             .toList(growable: false);
@@ -101,7 +101,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 bookId: book.bookId,
                 title: book.title,
                 subtitle: book.author.isEmpty ? 'Waka' : book.author,
-                imageUrl: book.imageUrl,
+                imageUrl: _resolveBookCoverImage(book.bookId, book.title, book.imageUrl),
               ),
             )
             .toList(growable: false);
