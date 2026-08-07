@@ -135,9 +135,16 @@ class _ShopScreenState extends State<ShopScreen> {
       color: WakaColors.background,
       child: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          onRefresh: _loadShopBooks,
+          color: WakaColors.accent,
+          backgroundColor: WakaColors.elevated,
+          child: CustomScrollView(
+            // AlwaysScrollable để vẫn kéo lại được khi nội dung ngắn hơn màn hình.
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
             SliverPersistentHeader(
               pinned: true,
               delegate: _ShopHeaderDelegate(
@@ -256,7 +263,8 @@ class _ShopScreenState extends State<ShopScreen> {
               ],
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 96)),
-          ],
+            ],
+          ),
         ),
       ),
     );

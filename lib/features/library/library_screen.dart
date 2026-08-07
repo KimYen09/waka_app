@@ -724,6 +724,8 @@ class _LibraryBookCard extends StatelessWidget {
                     Image.network(
                       book.imageUrl,
                       fit: BoxFit.cover,
+                      loadingBuilder: (_, child, progress) =>
+                          progress == null ? child : const _CoverPlaceholder(),
                       errorBuilder: (_, _, _) => const _CoverPlaceholder(),
                     )
                   else

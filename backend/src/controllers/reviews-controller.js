@@ -66,7 +66,12 @@ async function saveReview(req, res) {
   const rating = Number.parseInt(req.body.rating, 10);
   const comment = clean(req.body.comment);
   const isAnonymous = Boolean(req.body.isAnonymous);
-  if (rating < 1 || rating > 5) throw new HttpError(422, 'Số sao phải từ 1 đến 5.');
+  // Number.parseInt trả NaN khi thiếu/không phải số, mà mọi so sánh với NaN
+  // đều false nên giá trị hỏng lọt qua và được lưu thành rating = 0, làm sai
+  // cả điểm trung bình của sách.
+  if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+    throw new HttpError(422, 'Số sao phải từ 1 đến 5.');
+  }
   if (comment.length < 3) throw new HttpError(422, 'Bình luận cần ít nhất 3 ký tự.');
   const [books] = await pool.execute('SELECT id FROM books WHERE id = ? LIMIT 1', [bookId]);
   if (!books.length) throw new HttpError(404, 'Không tìm thấy sách.');

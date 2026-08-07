@@ -598,9 +598,18 @@ class _HomeScreenState extends State<HomeScreen> {
       color: _screenBackground,
       child: SafeArea(
         bottom: false,
-        child: CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
+        child: RefreshIndicator(
+          // Kéo xuống để tải lại là thao tác mặc định người dùng mobile mong
+          // đợi ở màn nội dung; trước đây chỉ có nút thử lại khi đã lỗi.
+          onRefresh: () => _loadHomeApi(forceRefresh: true),
+          color: WakaColors.accent,
+          backgroundColor: WakaColors.elevated,
+          child: CustomScrollView(
+            // AlwaysScrollable để vẫn kéo lại được khi nội dung ngắn hơn màn hình.
+            physics: const AlwaysScrollableScrollPhysics(
+              parent: BouncingScrollPhysics(),
+            ),
+            slivers: [
             SliverPersistentHeader(
               pinned: true,
               delegate: _HomeHeaderDelegate(
@@ -871,7 +880,8 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverToBoxAdapter(child: _BookShelf(books: _apiStoryBooks)),
             ],
             const SliverToBoxAdapter(child: SizedBox(height: 22)),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1209,6 +1219,7 @@ class _HomeHeader extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
+              tooltip: 'Đóng tìm kiếm',
               visualDensity: VisualDensity.compact,
               onPressed: onClose,
               icon: const Icon(
@@ -1276,6 +1287,7 @@ class _HomeHeader extends StatelessWidget {
           _HomeCartButton(onTap: onCart),
           const SizedBox(width: 18),
           IconButton(
+            tooltip: 'Tìm kiếm sách',
             visualDensity: VisualDensity.compact,
             onPressed: onSearchTap,
             icon: const Icon(
@@ -1891,6 +1903,28 @@ class _OfficialHomeBannerCard extends StatelessWidget {
         banner.imageUrl,
         fit: BoxFit.cover,
         alignment: Alignment.center,
+        // Banner chiếm gần hết màn hình đầu tiên: không có trạng thái tải thì
+        // người dùng nhìn vào một khoảng trống lớn cho tới khi ảnh về.
+        loadingBuilder: (_, child, progress) => progress == null
+            ? child
+            : const DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF302242), Color(0xFF6B3A68)],
+                  ),
+                ),
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white70,
+                    ),
+                  ),
+                ),
+              ),
         errorBuilder: (context, error, stackTrace) {
           return Container(
             decoration: const BoxDecoration(

@@ -46,3 +46,6 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Anh do golden test sinh ra khi that bai - la rac build, khong commit
+/test/failures/

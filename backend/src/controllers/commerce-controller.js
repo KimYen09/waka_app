@@ -9,6 +9,10 @@ const checkoutVouchers = new Map([
   ['WAKA15', { percent: 15, minimumSubtotal: 250000 }],
 ]);
 
+/// Link thanh toán VNPay hết hạn sau 15 phút; cho thêm biên độ trước khi coi
+/// một giao dịch gói đang chờ là đã bị bỏ dở.
+const PENDING_MEMBERSHIP_TIMEOUT_MS = 30 * 60 * 1000;
+
 function cleanText(value, maxLength = 500) {
   return String(value || '').trim().slice(0, maxLength);
 }
@@ -358,12 +362,34 @@ async function purchaseMembership(req, res) {
     if (!plan) throw new HttpError(404, 'Gói cước không còn hiệu lực.');
     const now = new Date();
     const [pendingRows] = await connection.execute(
-      `SELECT id FROM user_memberships
-       WHERE user_id = ? AND status = 'pending' LIMIT 1 FOR UPDATE`,
+      `SELECT id, created_at AS createdAt FROM user_memberships
+       WHERE user_id = ? AND status = 'pending' FOR UPDATE`,
       [req.user.id],
     );
-    if (pendingRows.length) {
-      throw new HttpError(409, 'Bạn đang có một giao dịch gói chờ quản trị viên duyệt.');
+    // Khách bỏ dở trang VNPay (hoặc không chuyển khoản) để lại một bản ghi
+    // 'pending' vĩnh viễn. Nếu chỉ chặn cứng thì họ không bao giờ mua lại
+    // được, nên các giao dịch quá hạn phải tự huỷ trước khi kiểm tra.
+    const staleIds = pendingRows
+      .filter((row) => now - new Date(row.createdAt) > PENDING_MEMBERSHIP_TIMEOUT_MS)
+      .map((row) => row.id);
+    if (staleIds.length) {
+      const placeholders = staleIds.map(() => '?').join(',');
+      await connection.execute(
+        `UPDATE user_memberships SET status = 'cancelled' WHERE id IN (${placeholders})`,
+        staleIds,
+      );
+      await connection.execute(
+        `UPDATE payments SET status = 'failed'
+         WHERE membership_id IN (${placeholders})
+           AND status IN ('pending', 'proof_submitted')`,
+        staleIds,
+      );
+    }
+    if (staleIds.length < pendingRows.length) {
+      throw new HttpError(
+        409,
+        'Bạn đang có một giao dịch gói chưa hoàn tất. Vui lòng thanh toán hoặc huỷ trước khi mua gói mới.',
+      );
     }
     const [activeRows] = await connection.execute(
       `SELECT um.id, um.started_at AS startedAt, um.expires_at AS expiresAt,

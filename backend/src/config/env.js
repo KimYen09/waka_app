@@ -2,18 +2,25 @@ const path = require('node:path');
 
 require('dotenv').config({ path: path.join(__dirname, '../../.env') });
 
-function required(name, fallback) {
-  const value = process.env[name] ?? fallback;
-  if (value === undefined || value === '') {
+/// Bí mật chỉ được phép có giá trị mặc định khi chạy dev.
+///
+/// Nếu luôn điền fallback thì bản production thiếu biến môi trường vẫn khởi
+/// động bình thường bằng một chuỗi ai đọc mã nguồn cũng biết — đủ để tự ký
+/// JWT cho bất kỳ tài khoản nào. Ở production phải dừng hẳn thay vì chạy tiếp
+/// trong trạng thái không an toàn.
+function requiredSecret(name, developmentFallback) {
+  const value = process.env[name];
+  if (value) return value;
+  if (process.env.NODE_ENV === 'production') {
     throw new Error(`Missing required environment variable: ${name}`);
   }
-  return value;
+  return developmentFallback;
 }
 
 module.exports = {
   port: Number(process.env.PORT || 3000),
   corsOrigin: process.env.CORS_ORIGIN || '*',
-  jwtSecret: required('JWT_SECRET', 'development-only-change-me'),
+  jwtSecret: requiredSecret('JWT_SECRET', 'development-only-change-me'),
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   googleClientId: process.env.GOOGLE_CLIENT_ID || '',
   facebookAppId: process.env.FACEBOOK_APP_ID || '',
