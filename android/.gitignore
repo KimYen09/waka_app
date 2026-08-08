@@ -12,3 +12,8 @@ GeneratedPluginRegistrant.java
 key.properties
 **/*.keystore
 **/*.jks
+
+# Ngoại lệ: keystore debug dùng chung phải được commit để mọi máy build ra cùng
+# một SHA-1, nhờ vậy Google Sign-In chạy được với bất kỳ ai clone repo về.
+# Đây chỉ là khoá debug (mật khẩu công khai "android"), không dùng để phát hành.
+!/app/shared-debug.keystore
