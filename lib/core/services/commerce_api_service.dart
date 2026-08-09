@@ -322,7 +322,7 @@ class CommerceApiService {
   }
 
   Future<CommerceCheckoutResult> checkout(
-    Object? bookIdsOrRecipient, {
+    Object? bookIds, {
     String? shippingRecipient,
     String? shippingPhone,
     Object? shippingAddress,
@@ -331,17 +331,35 @@ class CommerceApiService {
     String? orderCode,
     String? note,
   }) async {
-    final addressStr = shippingAddress is Map
-        ? '${shippingAddress['address'] ?? ''}, ${shippingAddress['ward'] ?? ''}, ${shippingAddress['district'] ?? ''}, ${shippingAddress['city'] ?? ''}'
-        : '${shippingAddress ?? ''}';
+    // Build address payload as an object so the backend can parse individual
+    // fields (recipient, phone, streetAddress, ward, district, province).
+    // Backend validates each field separately and rejects flat strings.
+    final Map<String, Object?> addressPayload;
+    if (shippingAddress is Map<String, Object?>) {
+      // Passed from shop_flow_screens via ShopShippingAddress.toJson()
+      // which already has the correct keys.
+      addressPayload = shippingAddress;
+    } else {
+      // Fallback for legacy callers that pass individual fields.
+      addressPayload = {
+        'recipient': shippingRecipient ?? 'Khách hàng',
+        'phone': shippingPhone ?? '0900000000',
+        'streetAddress': '',
+        'ward': '',
+        'district': '',
+        'province': '',
+      };
+    }
 
     final response = await client.postJson(
       Uri.parse(ApiEndpoints.apiCheckout),
       {
-        'shippingRecipient': shippingRecipient ?? 'Khách hàng',
-        'shippingPhone': shippingPhone ?? '0900000000',
-        'shippingAddress': addressStr,
+        if (bookIds is List) 'bookIds': bookIds,
+        'shippingAddress': addressPayload,
         'paymentMethod': paymentMethod,
+        if (voucherCode != null && voucherCode.isNotEmpty)
+          'voucherCode': voucherCode,
+        if (orderCode != null && orderCode.isNotEmpty) 'orderCode': orderCode,
         if (note != null && note.isNotEmpty) 'note': note,
       },
       bearerToken: await _getToken,
@@ -403,6 +421,7 @@ class CommerceApiService {
   Future<void> cancelMembership([int? membershipId]) async {
     await client.deleteJson(
       Uri.parse(ApiEndpoints.apiMyMemberships),
+      body: membershipId != null ? {'membershipId': membershipId} : null,
       bearerToken: await _getToken,
     );
   }

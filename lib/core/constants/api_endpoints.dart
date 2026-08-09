@@ -7,7 +7,10 @@ abstract final class ApiEndpoints {
 
   /// Android Emulator reaches the host computer through 10.0.2.2. Desktop,
   /// iOS Simulator and web can reach the local backend directly. Physical
-  /// Android devices must provide the computer's LAN IP through API_BASE_URL.
+  /// Android devices must provide the computer's LAN IP through API_BASE_URL
+  /// or set CLOUDFLARE_TUNNEL_URL as the base URL.
+  ///
+  /// (Tunnel không còn cần thiết cho VNPay nữa vì VNPay đã tự động nhận URL)
   static final String apiBaseUrl = _configuredApiBaseUrl.isNotEmpty
       ? _configuredApiBaseUrl
       : kIsWeb || defaultTargetPlatform != TargetPlatform.android

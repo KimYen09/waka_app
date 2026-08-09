@@ -42,6 +42,11 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function getDynamicReturnUrl(req) {
+  const protocol = req.headers['x-forwarded-proto'] === 'https' || req.secure ? 'https' : 'http';
+  return `${protocol}://${req.get('host')}/api/payments/vnpay/return`;
+}
+
 function renderVnpayResultPage({ success, orderCode }) {
   const title = success ? 'Thanh toán thành công!' : 'Thanh toán không thành công';
   const subtitle = success
@@ -653,6 +658,7 @@ async function checkoutCart(req, res) {
         amount: total,
         orderInfo: `Thanh toan don hang ${orderCode}`,
         ipAddr: clientIp(req),
+        returnUrl: getDynamicReturnUrl(req),
       })
       : null;
     res.status(201).json({
@@ -793,6 +799,7 @@ async function purchaseMembership(req, res) {
           amount: activePending.amount,
           orderInfo: `Thanh toan goi hoi vien ${activePending.planTitle || ''}`,
           ipAddr: clientIp(req),
+          returnUrl: getDynamicReturnUrl(req),
         });
       }
 
@@ -849,6 +856,7 @@ async function purchaseMembership(req, res) {
         amount: plan.price,
         orderInfo: `Thanh toan goi hoi vien ${plan.title}`,
         ipAddr: clientIp(req),
+        returnUrl: getDynamicReturnUrl(req),
       })
       : null;
     res.status(201).json({
@@ -878,23 +886,45 @@ async function purchaseMembership(req, res) {
 }
 
 async function cancelMembership(req, res) {
+  // Chỉ hủy đơn PENDING (chưa thanh toán), KHÔNG bao giờ hủy đơn active.
+  // Nếu truyền membershipId thì chỉ hủy đúng đơn đó (phải của user hiện tại).
+  const targetId = req.body?.membershipId
+    ? Number.parseInt(req.body.membershipId, 10)
+    : null;
+
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    const [memberships] = await connection.execute(
-      `SELECT id FROM user_memberships
-       WHERE user_id = ? AND status IN ('active', 'pending') FOR UPDATE`,
-      [req.user.id],
-    );
-    if (!memberships.length) {
-      throw new HttpError(404, 'Bạn không có đăng ký nào để hủy.');
+
+    let pendingRows;
+    if (Number.isInteger(targetId) && targetId > 0) {
+      // Hủy đúng 1 đơn pending theo id — bảo vệ tuyệt đối, chỉ pending mới bị hủy
+      [pendingRows] = await connection.execute(
+        `SELECT id FROM user_memberships
+         WHERE id = ? AND user_id = ? AND status = 'pending' FOR UPDATE`,
+        [targetId, req.user.id],
+      );
+    } else {
+      // Hủy TẤT CẢ đơn pending của user — KHÔNG chạm vào 'active'
+      [pendingRows] = await connection.execute(
+        `SELECT id FROM user_memberships
+         WHERE user_id = ? AND status = 'pending' FOR UPDATE`,
+        [req.user.id],
+      );
     }
-    const ids = memberships.map((item) => item.id);
+
+    if (!pendingRows.length) {
+      await connection.rollback();
+      throw new HttpError(404, 'Không tìm thấy đơn chờ thanh toán nào để hủy.');
+    }
+
+    const ids = pendingRows.map((item) => item.id);
     const placeholders = ids.map(() => '?').join(',');
+
     await connection.execute(
       `UPDATE user_memberships SET status = 'cancelled'
-       WHERE id IN (${placeholders})`,
-      ids,
+       WHERE id IN (${placeholders}) AND user_id = ?`,
+      [...ids, req.user.id],
     );
     await connection.execute(
       `UPDATE payments SET status = 'failed'
@@ -902,6 +932,7 @@ async function cancelMembership(req, res) {
          AND status IN ('pending', 'proof_submitted')`,
       ids,
     );
+
     await connection.commit();
     res.json({ success: true, data: { cancelled: ids.length } });
   } catch (error) {

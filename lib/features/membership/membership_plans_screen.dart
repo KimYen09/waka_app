@@ -360,43 +360,40 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
     );
   }
 
-  Future<void> _cancelMembership() async {
+  Future<void> _cancelPendingOrder(int pendingId) async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hủy đăng ký?'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Hủy đơn gia hạn đang chờ?'),
         content: const Text(
-          'Thao tác kiểm thử này sẽ hủy cả gói đang hoạt động và giao dịch đang chờ duyệt.',
+          'Chỉ hủy đơn gia hạn đang chờ thanh toán. Gói hiện tại của bạn '
+          'vẫn được giữ nguyên, không mất ngày nào.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('GIỮ LẠI'),
           ),
           FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('HỦY ĐĂNG KÝ'),
+            style: FilledButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('HỦY ĐƠN CHờ'),
           ),
         ],
       ),
     );
     if (confirmed != true || !mounted) return;
     try {
-      await const CommerceApiService().cancelMembership();
+      await const CommerceApiService().cancelMembership(pendingId);
       if (!mounted) return;
-      setState(() {
-        _activeMembership = null;
-        _pendingMembership = null;
-      });
-      _countdownTimer?.cancel();
+      setState(() => _pendingMembership = null);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã hủy đăng ký để kiểm thử.')),
+        const SnackBar(content: Text('Đã hủy đơn gia hạn đang chờ. Gói hiện tại không bị ảnh hưởng.')),
       );
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error.toString())));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(error.toString())));
       }
     }
   }
@@ -469,14 +466,14 @@ class _MembershipPlansScreenState extends State<MembershipPlansScreen> {
               SliverToBoxAdapter(
                 child: _ActiveMembershipCard(
                   membership: membership,
-                  onCancel: _cancelMembership,
+                  // Không cho hủy gói đang active — chỉ hiện thị thông tin
                 ),
               ),
             if (_pendingMembership case final membership?)
               SliverToBoxAdapter(
                 child: _PendingMembershipCard(
                   membership: membership,
-                  onCancel: _cancelMembership,
+                  onCancel: () => _cancelPendingOrder(membership.id),
                 ),
               ),
             SliverToBoxAdapter(
@@ -764,11 +761,9 @@ class _PlanCard extends StatelessWidget {
 class _ActiveMembershipCard extends StatelessWidget {
   const _ActiveMembershipCard({
     required this.membership,
-    required this.onCancel,
   });
 
   final UserMembership membership;
-  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -821,10 +816,8 @@ class _ActiveMembershipCard extends StatelessWidget {
                   'Thời hạn còn lại: $countdown',
                   style: const TextStyle(color: Colors.white70),
                 ),
-                TextButton(
-                  onPressed: onCancel,
-                  child: const Text('HỦY ĐĂNG KÝ (TEST)'),
-                ),
+                // Không hiện nút hủy cho gói đang active —
+                // chỉ gói pending mới cho hủy.
               ],
             ),
           ),

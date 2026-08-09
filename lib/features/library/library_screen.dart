@@ -5,6 +5,8 @@ import '../../core/services/commerce_api_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../reader/book_detail_screen.dart';
 import '../reader/reader_screen.dart';
+import '../ai_assistant/ai_assistant_screen.dart';
+import '../profile/account_info_screen.dart';
 
 /// Màn "Thư viện" - header (avatar + tabs) đứng yên khi cuộn, phần dưới cuộn qua.
 ///
@@ -451,43 +453,64 @@ class _LibraryHeaderDelegate extends SliverPersistentHeaderDelegate {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      accountLabel,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: WakaColors.text,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w800,
+                child: GestureDetector(
+                  onTap: () {
+                    final user = AuthSession.current?.user;
+                    final identifier = user?.identifier ?? '';
+                    final isEmail = identifier.contains('@');
+                    Navigator.of(context).push<void>(
+                      MaterialPageRoute<void>(
+                        builder: (_) => AccountInfoScreen(
+                          displayName: user?.displayName?.isNotEmpty == true
+                              ? user!.displayName!
+                              : 'Chưa cập nhật',
+                          phoneNumber: isEmail ? '' : identifier,
+                          email: isEmail ? identifier : null,
+                          userId: user?.id.toString() ?? '—',
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    const Text(
-                      'Xem hồ sơ',
-                      style: TextStyle(
-                        color: WakaColors.mutedText,
-                        fontSize: 14,
+                    );
+                  },
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        accountLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: WakaColors.text,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      const Text(
+                        'Xem hồ sơ',
+                        style: TextStyle(
+                          color: WakaColors.mutedText,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const Icon(
-                Icons.notifications_none_rounded,
-                color: WakaColors.text,
-                size: 26,
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).push<void>(
+                    MaterialPageRoute<void>(
+                      builder: (_) => const AiAssistantScreen(),
+                    ),
+                  );
+                },
+                child: const Icon(
+                  Icons.headset_mic_outlined,
+                  color: WakaColors.text,
+                  size: 26,
+                ),
               ),
-              const SizedBox(width: 18),
-              const Icon(
-                Icons.headset_mic_outlined,
-                color: WakaColors.text,
-                size: 26,
-              ),
-              const SizedBox(width: 18),
-              const Icon(Icons.edit_outlined, color: WakaColors.text, size: 24),
             ],
           ),
           const SizedBox(height: 18),

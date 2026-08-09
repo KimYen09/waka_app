@@ -386,8 +386,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       enabled: !_isSubmitting,
                       onGoogle: () =>
                           _socialLogin(_socialAuth.signInWithGoogle),
-                      onFacebook: () =>
-                          _socialLogin(_socialAuth.signInWithFacebook),
                     ),
                     const SizedBox(height: 28),
 

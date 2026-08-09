@@ -214,6 +214,7 @@ class _CreativeCommunityScreenState extends State<CreativeCommunityScreen>
               tabs: const [
                 Tab(text: 'Cộng đồng'),
                 Tab(text: 'EBook (Sách)'),
+                Tab(text: 'Sách Nói'),
               ],
             ),
           ),

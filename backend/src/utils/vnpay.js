@@ -51,7 +51,7 @@ function removeAccents(str) {
     .trim();
 }
 
-function buildPaymentUrl({ txnRef, amount, orderInfo, ipAddr, orderType = 'other', locale = 'vn' }) {
+function buildPaymentUrl({ txnRef, amount, orderInfo, ipAddr, returnUrl, orderType = 'other', locale = 'vn' }) {
   const now = new Date();
   const cleanOrderInfo = removeAccents(orderInfo) || 'Thanh toan Waka App';
   const params = {
@@ -65,7 +65,7 @@ function buildPaymentUrl({ txnRef, amount, orderInfo, ipAddr, orderType = 'other
     vnp_OrderType: orderType,
     // VNPay expects the amount multiplied by 100 (no decimal places).
     vnp_Amount: Math.round(amount) * 100,
-    vnp_ReturnUrl: env.vnpay.returnUrl,
+    vnp_ReturnUrl: returnUrl || env.vnpay.returnUrl,
     vnp_IpAddr: ipAddr || '127.0.0.1',
     vnp_CreateDate: formatVnpDate(now),
     vnp_ExpireDate: formatVnpDate(new Date(now.getTime() + 15 * 60 * 1000)),
